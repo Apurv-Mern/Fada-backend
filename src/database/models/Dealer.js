@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
   Dealer.init(
     {
       name: DataTypes.STRING,
+      dealerCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+      },
       roleId: DataTypes.INTEGER,
       email: DataTypes.STRING,
       password: DataTypes.TEXT,
@@ -21,8 +26,13 @@ module.exports = (sequelize, DataTypes) => {
       otp: DataTypes.STRING,
       profilePicture: DataTypes.STRING,
       isActive: DataTypes.BOOLEAN,
+      isEmailVerified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      refreshToken: DataTypes.TEXT,
       status: {
-        type: DataTypes.ENUM("pending", "approved", "rejected"),
+        type: DataTypes.ENUM("temporary", "pending", "approved", "rejected"),
         defaultValue: "pending",
       },
     },
