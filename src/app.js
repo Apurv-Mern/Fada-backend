@@ -20,11 +20,8 @@ app.set("trust proxy", 1);
  * Allowed Origins
  */
 const allowedOrigins = [
-  "http://localhost:8080", // Vue
-  "http://localhost:5173", // Vite
-  "http://localhost:3000", // React
-  "https://yourdomain.com",
-  "https://admin.yourdomain.com",
+  "http://localhost:8080",
+  "*"
 ];
 
 /**
