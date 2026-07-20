@@ -17,7 +17,7 @@ exports.dealerRegister = async (req, res) => {
         const validator = new Validator(req.body, {
             name: "required|string",
             dealerCode: "required|string",
-            email: "required|email", 
+            email: "required|email",
             phone: "required|string",
         });
 
@@ -40,8 +40,8 @@ exports.dealerRegister = async (req, res) => {
 
         // Generate OTP
         const otp = generateOTP(6);
-        
-          await Dealer.create({
+
+        await Dealer.create({
             name,
             dealerCode,
             email,
@@ -90,7 +90,7 @@ exports.verifyOtp = async (req, res) => {
         if (!dealer.otp) {
             return res.apiError("No OTP found. Please register again or request a new OTP", 400);
         }
- 
+
 
         const isStoredOtpValid = String(dealer.otp) === String(otp);
 
@@ -128,7 +128,13 @@ exports.verifyOtp = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days
         });
 
-        return res.apiSuccess("OTP verified successfully. Please create your profile.", { accessToken });
+        return res.apiSuccess("OTP verified successfully. Please create your profile.", {
+            name: dealer.name,
+            dealerCode: dealer.dealerCode,
+            email: dealer.email,
+            phone: dealer.phone,
+            accessToken
+        });
     } catch (error) {
         return res.apiError("Internal server error", 500, error);
     }
@@ -145,12 +151,25 @@ exports.dealerLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        const validator = new Validator(req.body, {
+            email: "required|email",
+            password: "required|string|min:6",
+        });
+
+        if (validator.fails()) {
+            return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+        }
+
         const dealer = await Dealer.findOne({
             where: { email },
         });
 
         if (!dealer) {
             return res.apiError("Dealer not found", 404);
+        }
+
+        if (dealer && !dealer.password) {
+            return res.apiError("Your password is not set.", 404);
         }
 
         const isPasswordValid = await comparePassword(password, dealer.password);
@@ -186,16 +205,12 @@ exports.dealerLogin = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days
         });
 
-        return res.status(200).json({
-            success: true,
-            message: "Login successful",
-            accessToken,
-            dealer: {
-                id: dealer.id,
-                name: dealer.name,
-                email: dealer.email,
-                role: "dealer"
-            },
+        return res.apiSuccess("Login successful", {
+            name: dealer.name,
+            dealerCode: dealer.dealerCode,
+            email: dealer.email,
+            phone: dealer.phone,
+            accessToken
         });
     } catch (error) {
         return res.apiError("Internal server error", 500, error);
@@ -248,7 +263,14 @@ exports.refreshToken = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        return res.apiSuccess("Token refreshed successfully", { accessToken });
+        return res.apiSuccess("Token refreshed successfully", {
+            accessToken,
+            name: dealer.name,
+            dealerCode: dealer.dealerCode,
+            email: dealer.email,
+            phone: dealer.phone,
+            role: "dealer",
+        });
 
 
     } catch (error) {
