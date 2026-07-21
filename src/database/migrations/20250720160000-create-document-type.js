@@ -2,58 +2,57 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("Employees", {
+    await queryInterface.createTable("Documents", {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
-      fadaId: {
-        type: Sequelize.STRING,
-      },
       name: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
-      email: {
+      code: {
         type: Sequelize.STRING,
+        allowNull: true,
       },
-      password: {
-        type: Sequelize.TEXT,
-      },
-      phone: {
+      category: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
-      otp: {
-        type: Sequelize.STRING,
-      },
-      mpin: {
-        type: Sequelize.TEXT,
-      },
-      dob: {
-        type: Sequelize.STRING,
-      },
-      gender: {
-        type: Sequelize.STRING,
-      },
-      profilePicture: {
-        type: Sequelize.STRING,
+      appliesTo: {
+        type: Sequelize.ENUM("employee", "dealer"),
+        allowNull: false,
       },
       isActive: {
         type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false, 
+      },
+      sortOrder: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      isMandatory: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
         defaultValue: false,
       },
-      isVerified: {
+      isVerificationRequired: {
         type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+      },
+      isExpiryApplicable: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
         defaultValue: false,
       },
-      isPhoneVerified: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: false,
-      },
-      isEmailVerified: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: false,
+      notes: {
+        type: Sequelize.TEXT,
+        allowNull: true,
       },
       createdAt: {
         allowNull: false,
@@ -69,7 +68,7 @@ module.exports = {
       },
     });
   },
-  async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("Employees");
+  async down(queryInterface) {
+    await queryInterface.dropTable("Documents");
   },
 };

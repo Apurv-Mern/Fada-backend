@@ -24,8 +24,12 @@ module.exports = (sequelize, DataTypes) => {
   }
   Employee.init(
     {
-      fadaId: DataTypes.STRING,
-      dealerId: DataTypes.INTEGER,
+      fadaId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+      },
+      
       name: DataTypes.STRING,
       email: DataTypes.STRING,
       password: DataTypes.TEXT,
@@ -38,7 +42,15 @@ module.exports = (sequelize, DataTypes) => {
       isActive: DataTypes.BOOLEAN,
       isVerified: DataTypes.BOOLEAN,
       isPhoneVerified: DataTypes.BOOLEAN,
-      isEmailVerified: DataTypes.BOOLEAN,
+      isEmailVerified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      refreshToken: DataTypes.TEXT,
+      status: {
+        type: DataTypes.ENUM("temporary", "pending", "approved", "rejected"),
+        defaultValue: "pending",
+      },
     },
     {
       sequelize,
