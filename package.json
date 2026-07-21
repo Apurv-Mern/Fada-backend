@@ -26,6 +26,8 @@
     "morgan": "^1.10.0",
     "mysql2": "^3.14.2",
     "sequelize": "^6.37.7",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "validatorjs": "^3.22.1"
   },
   "devDependencies": {

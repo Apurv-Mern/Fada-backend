@@ -6,6 +6,8 @@ const cors = require("cors");
 const morgan = require("morgan");
 const compression = require("compression");
 const cookieParser = require("cookie-parser");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
 
 const app = express();
 
@@ -30,7 +32,18 @@ const allowedOrigins = [
 /**
  * Security
  */
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+  })
+);
 
 /**
  * CORS
@@ -72,6 +85,15 @@ app.use(
 );
 
 app.use(cookieParser());
+
+/**
+ * Swagger Docs
+ */
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
 
 /**
  * Routes
