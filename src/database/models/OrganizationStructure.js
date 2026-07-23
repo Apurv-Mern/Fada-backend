@@ -17,6 +17,16 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "parentId",
         as: "children",
       });
+
+      OrganizationStructure.hasMany(models.EmployeeDesignation, {
+        foreignKey: "departmentId",
+        as: "departmentDesignations",
+      });
+
+      OrganizationStructure.hasMany(models.EmployeeDesignation, {
+        foreignKey: "designationId",
+        as: "roleDesignations",
+      });
     }
   }
   OrganizationStructure.init(

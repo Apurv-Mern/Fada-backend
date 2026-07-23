@@ -1,14 +1,91 @@
-const {Dealer} = require('../../../database/models');
-const Validator = require('validatorjs');
+const { Dealer, DealerLocation, KeyContact } = require("../../../database/models");
+const { Op } = require("sequelize");
+const Validator = require("validatorjs");
+
+const dealerAttributes = {
+  exclude: ["password", "otp", "refreshToken"],
+};
+
+const locationValidationRules = {
+  pinCode: "required|string|size:6",
+  city: "required|string",
+  state: "required|string",
+  gstNumber: "required|string|size:15",
+  address: "required|string",
+};
+
+const keyContactValidationRules = {
+  name: "required|string",
+  designation: "required|string",
+  phone: "required|string|size:10",
+  email: "required|email",
+  isActive: "boolean",
+};
+
+const findDealerOrError = async (dealerId, res) => {
+  const dealer = await Dealer.findByPk(dealerId);
+  if (!dealer) {
+    res.apiError("Dealer not found", 404);
+    return null;
+  }
+  return dealer;
+};
+
+const findDealerLocationByDealerId = async (dealerId) =>
+  DealerLocation.findOne({
+    where: { dealerId },
+  });
+
+const findKeyContactByDealerId = async (dealerId) =>
+  KeyContact.findOne({
+    where: { dealerId },
+  });
 /*
-@API: GET /admin/dealers
+@API: GET /admin/dealers?search=searchTerm&limit=limit&offset=offset
 @Desc: Get all dealers
 @Access: Private     
 */
 exports.getDealers = async (req, res) => {
     try {
-        const dealers = await Dealer.findAll();
-        return res.apiSuccess("Dealers fetched successfully", dealers);
+        const { search } = req.query;
+        const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+        const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
+        const where = search
+            ? {
+                [Op.or]: [
+                    { name: { [Op.like]: `%${search}%` } },
+                    { dealerCode: { [Op.like]: `%${search}%` } },
+                    { email: { [Op.like]: `%${search}%` } },
+                    { phone: { [Op.like]: `%${search}%` } },
+                ],
+            }
+            : {};
+
+        const { rows: dealers, count: total } = await Dealer.findAndCountAll({
+            attributes: dealerAttributes,
+            include: [
+                {
+                    model: DealerLocation,
+                    as: "location",
+                    required: false,
+                }, 
+            ],
+            where,
+            order: [["id", "DESC"]],
+            limit,
+            offset,
+            distinct: true,
+        });
+
+        return res.apiSuccess("Dealers fetched successfully", {
+            dealers,
+            pagination: {
+                total,
+                limit,
+                offset,
+            },
+        });
     } catch (error) {
         return res.apiError(error.message, 500, error);
     }
@@ -21,7 +98,26 @@ exports.getDealers = async (req, res) => {
 */
 exports.getDealerById = async (req, res) => {
     try {
-        const dealer = await Dealer.findByPk(req.params.id);
+        const dealer = await Dealer.findByPk(req.params.id, {
+            attributes: dealerAttributes,
+            include: [
+                {
+                    model: DealerLocation,
+                    as: "location",
+                    required: false,
+                },
+                {
+                    model: KeyContact,
+                    as: "keyContacts",
+                    required: false,
+                },
+            ],
+        });
+
+        if (!dealer) {
+            return res.apiError("Dealer not found", 404);
+        }
+
         return res.apiSuccess("Dealer fetched successfully", dealer);
     } catch (error) {
         return res.apiError(error.message, 500, error);
@@ -39,7 +135,7 @@ exports.createDealer = async (req, res) => {
             name: 'required|string',
             email: 'required|email',
             phone: 'required|string',
-            address: 'required|string',
+            dealerCode: 'required|string',
         });
         if (validator.fails()) {
             return res.apiError(validator.errors.all(), 400);
@@ -49,7 +145,7 @@ exports.createDealer = async (req, res) => {
             name: req.body.name,
             email: req.body.email,
             phone: req.body.phone,
-            address: req.body.address,
+            dealerCode: req.body.dealerCode,
         });
         return res.apiSuccess("Dealer created successfully", dealer);
     } catch (error) {
@@ -68,7 +164,7 @@ exports.updateDealer = async (req, res) => {
             name: 'required|string',
             email: 'required|email',
             phone: 'required|string',
-            address: 'required|string',
+            dealerCode: 'required|string',
         });
         if (validator.fails()) {
             return res.apiError(validator.errors.all(), 400);
@@ -77,7 +173,7 @@ exports.updateDealer = async (req, res) => {
             name: req.body.name,
             email: req.body.email,
             phone: req.body.phone,
-            address: req.body.address,
+            dealerCode: req.body.dealerCode,
         }, {
             where: { id: req.params.id }
         });
@@ -122,6 +218,173 @@ exports.updateDealerStatus = async (req, res) => {
             where: { id: req.params.id }
         });
         return res.apiSuccess("Dealer status updated successfully", dealer);
+    } catch (error) {
+        return res.apiError(error.message, 500, error);
+    }
+};
+
+/*
+@API: PUT /admin/dealers/:dealerId/location
+@Desc: Create or update dealer location (one per dealer)
+@Access: Private
+*/
+exports.saveDealerLocation = async (req, res) => {
+    try {
+        const dealer = await findDealerOrError(req.params.dealerId, res);
+        if (!dealer) return;
+
+        const validator = new Validator(req.body, locationValidationRules);
+        if (validator.fails()) {
+            return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+        }
+
+        const { pinCode, city, state, gstNumber, address } = req.body;
+        const existingLocation = await findDealerLocationByDealerId(dealer.id);
+
+        if (existingLocation) {
+            if (gstNumber !== existingLocation.gstNumber) {
+                const existingGst = await DealerLocation.findOne({
+                    where: { gstNumber },
+                });
+                if (existingGst) {
+                    return res.apiError(
+                        "A location with this GST number already exists",
+                        409
+                    );
+                }
+            }
+
+            await existingLocation.update({
+                pinCode,
+                city,
+                state,
+                gstNumber,
+                address,
+            });
+
+            return res.apiSuccess(
+                "Dealer location updated successfully",
+                existingLocation
+            );
+        }
+
+        const existingGst = await DealerLocation.findOne({ where: { gstNumber } });
+        if (existingGst) {
+            return res.apiError("A location with this GST number already exists", 409);
+        }
+
+        const location = await DealerLocation.create({
+            dealerId: dealer.id,
+            pinCode,
+            city,
+            state,
+            gstNumber,
+            address,
+        });
+
+        return res.apiSuccess("Dealer location added successfully", location);
+    } catch (error) {
+        return res.apiError(error.message, 500, error);
+    }
+};
+
+/*
+@API: GET /admin/dealers/:dealerId/key-contact
+@Desc: Get dealer key contacts
+@Access: Private
+*/
+exports.getKeyContact = async (req, res) => {
+    try { 
+        const keyContacts = await KeyContact.findAll({
+            where: { dealerId: dealer.id },
+        });
+
+        return res.apiSuccess("Key contacts fetched successfully", keyContacts);
+    } catch (error) {
+        return res.apiError(error.message, 500, error);
+    }
+};
+
+/*
+@API: PUT /admin/dealers/:dealerId/key-contact
+@Desc: Create or update dealer key contact (one per dealer)
+@Access: Private
+*/
+exports.addKeyContact = async (req, res) => {
+    try {
+        const dealer = await findDealerOrError(req.params.dealerId, res);
+        if (!dealer) return;
+
+        const validator = new Validator(req.body, keyContactValidationRules);
+        if (validator.fails()) {
+            return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+        }
+
+        const { name, designation, phone, email, isActive } = req.body;
+         
+
+        const keyContact = await KeyContact.create({
+            dealerId: dealer.id,
+            name,
+            designation,
+            phone,
+            email,
+            isActive: isActive ?? true,
+        });
+
+        return res.apiSuccess("Key contact added successfully", keyContact);
+    } catch (error) {
+        return res.apiError(error.message, 500, error);
+    }
+};
+
+
+/*
+@API: PUT /admin/dealers/:dealerId/key-contact/:keyContactId
+@Desc: Update dealer key contact
+@Access: Private
+*/
+exports.updateKeyContact = async (req, res) => {
+    try {
+        
+
+        const validator = new Validator(req.body, keyContactValidationRules);
+        if (validator.fails()) {
+            return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+        }
+
+        const { name, designation, phone, email, isActive } = req.body;
+        const keyContact = await KeyContact.findByPk(req.params.keyContactId);
+        if (!keyContact) return res.apiError("Key contact not found", 404);
+
+        await keyContact.update({
+            name,
+            designation,
+            phone, 
+            email,
+            isActive: isActive ?? keyContact.isActive,
+        });
+
+        return res.apiSuccess("Key contact updated successfully");
+    } catch (error) {
+        return res.apiError(error.message, 500, error);
+    }
+};
+
+
+/*
+@API: DELETE /admin/dealers/:dealerId/key-contact/:keyContactId
+@Desc: Delete dealer key contact
+@Access: Private
+*/
+exports.deleteKeyContact = async (req, res) => {
+    try {
+         
+        const keyContact = await KeyContact.findByPk(req.params.keyContactId);
+        if (!keyContact) return res.apiError("Key contact not found", 404);
+
+        await keyContact.destroy();
+        return res.apiSuccess("Key contact deleted successfully", keyContact);
     } catch (error) {
         return res.apiError(error.message, 500, error);
     }

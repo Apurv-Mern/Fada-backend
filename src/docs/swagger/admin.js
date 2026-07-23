@@ -13,6 +13,22 @@
  *     summary: Get all dealers
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name, dealerCode, email, or phone
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
  *     responses:
  *       200:
  *         description: Dealers fetched successfully
@@ -29,7 +45,7 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, email, phone, address]
+ *             required: [name, email, phone, dealerCode]
  *             properties:
  *               name:
  *                 type: string
@@ -38,7 +54,7 @@
  *                 format: email
  *               phone:
  *                 type: string
- *               address:
+ *               dealerCode:
  *                 type: string
  *     responses:
  *       200:
@@ -79,7 +95,7 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, email, phone, address]
+ *             required: [name, email, phone, dealerCode]
  *             properties:
  *               name:
  *                 type: string
@@ -87,7 +103,7 @@
  *                 type: string
  *               phone:
  *                 type: string
- *               address:
+ *               dealerCode:
  *                 type: string
  *     responses:
  *       200:
@@ -136,4 +152,177 @@
  *     responses:
  *       200:
  *         description: Dealer status updated
+ */
+
+/**
+ * @swagger
+ * /admin/dealers/{dealerId}/location:
+ *   put:
+ *     tags: [Admin Dealers]
+ *     summary: Create or update dealer location
+ *     description: Upserts one location record per dealer
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: dealerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [pinCode, city, state, gstNumber, address]
+ *             properties:
+ *               pinCode:
+ *                 type: string
+ *                 example: "560001"
+ *               city:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               gstNumber:
+ *                 type: string
+ *                 example: "29ABCDE1234F1Z5"
+ *               address:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Dealer location saved
+ *       404:
+ *         description: Dealer not found
+ *       409:
+ *         description: GST number already exists
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /admin/dealers/{dealerId}/key-contact:
+ *   get:
+ *     tags: [Admin Dealers]
+ *     summary: Get dealer key contacts
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: dealerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Key contacts fetched
+ *       404:
+ *         description: Dealer not found
+ *   post:
+ *     tags: [Admin Dealers]
+ *     summary: Add dealer key contact
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: dealerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, designation, phone, email]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               designation:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *                 example: "9876543210"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Key contact added
+ *       404:
+ *         description: Dealer not found
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /admin/dealers/{dealerId}/key-contact/{keyContactId}:
+ *   put:
+ *     tags: [Admin Dealers]
+ *     summary: Update dealer key contact
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: dealerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: keyContactId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, designation, phone, email]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               designation:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Key contact updated
+ *       404:
+ *         description: Key contact not found
+ *       422:
+ *         description: Validation error
+ *   delete:
+ *     tags: [Admin Dealers]
+ *     summary: Delete dealer key contact
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: dealerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: keyContactId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Key contact deleted
+ *       404:
+ *         description: Key contact not found
  */

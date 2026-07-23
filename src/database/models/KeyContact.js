@@ -1,44 +1,41 @@
 "use strict";
 const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
-  class Brand extends Model {
+  class KeyContact extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      Brand.hasMany(models.OutletBrandCategory, {
-        foreignKey: "brandId",
-        as: "outletBrandCategories",
-      });
-
-      Brand.belongsToMany(models.Outlet, {
-        through: models.OutletBrandCategory,
-        foreignKey: "brandId",
-        otherKey: "outletId",
-        as: "outlets",
+      KeyContact.belongsTo(models.Dealer, {
+        foreignKey: "dealerId",
+        as: "dealer",
       });
     }
   }
-  Brand.init(
+  KeyContact.init(
     {
+      dealerId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        
+      },
       name: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      slug: {
+      designation: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
       },
-      flag: {
-        type: DataTypes.STRING,
-        allowNull: true,
+      phone: {
+        type: DataTypes.STRING(10),
+        allowNull: false,
       },
-      country: {
+      email: {
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: false,
       },
       isActive: {
         type: DataTypes.BOOLEAN,
@@ -48,9 +45,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: "Brand",
+      modelName: "KeyContact",
       paranoid: true,
     }
   );
-  return Brand;
+  return KeyContact;
 };

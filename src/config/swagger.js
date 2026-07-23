@@ -10,8 +10,12 @@ const options = {
     },
     servers: [
       {
-        url: `http://localhost:${process.env.PORT || 8080}`,
+        url: `http://localhost:3005`,
         description: "Local server",
+      },
+      {
+        url: `https://api.fadaid.com`,
+        description: "Live server",
       },
     ],
     components: {
@@ -29,6 +33,8 @@ const options = {
     "./src/docs/swagger/auth.js",
     "./src/docs/swagger/admin.js",
     "./src/docs/swagger/masters.js",
+    "./src/docs/swagger/employees.js",
+    "./src/docs/swagger/outlets.js",
   ],
 };
 
