@@ -12,6 +12,7 @@ router.delete("/documents/:id",authMiddleware, masterController.deleteDocument);
 
 router.get("/brands", authMiddleware, masterController.getBrands);
 router.get("/brands/:id", authMiddleware, masterController.getBrandById);
+router.get("/brands/flag/:flag", authMiddleware, masterController.getBrandsByFlag);
 router.post("/brands", authMiddleware, masterController.createBrand);
 router.put("/brands/:id", authMiddleware, masterController.updateBrand);
 router.delete("/brands/:id", authMiddleware, masterController.deleteBrand);
@@ -25,6 +26,11 @@ router.get(
   "/organization-structures/:id",
   authMiddleware,
   masterController.getOrganizationStructureById
+);
+router.get(
+  "/organization-structures/parent/:parentId/flag/:flag",
+  authMiddleware,
+  masterController.getOrganizationStructureByParentAndFlag
 );
 router.post(
   "/organization-structures",
@@ -46,6 +52,32 @@ router.get(
   "/organization-structures/flag/:flag",
   authMiddleware,
   masterController.getOrganizationStructureByFlag
+);
+
+router.get(
+  "/outlet-functions",
+  authMiddleware,
+  masterController.getOutletFunctions
+);
+router.get(
+  "/outlet-functions/:id",
+  authMiddleware,
+  masterController.getOutletFunctionById
+);
+router.post(
+  "/outlet-functions",
+  authMiddleware,
+  masterController.createOutletFunction
+);
+router.put(
+  "/outlet-functions/:id",
+  authMiddleware,
+  masterController.updateOutletFunction
+);
+router.delete(
+  "/outlet-functions/:id",
+  authMiddleware,
+  masterController.deleteOutletFunction
 );
 
 module.exports = router;

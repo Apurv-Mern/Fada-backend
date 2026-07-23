@@ -1,5 +1,8 @@
 const Validator = require("validatorjs");
-const { Document, Brand, OrganizationStructure } = require("../../../database/models");
+const { Document, Brand, OrganizationStructure, OutletFunction } = require("../../../database/models");
+const { Op } = require("sequelize");
+
+
 
 const generateSlug = (value) =>
   value
@@ -247,6 +250,27 @@ exports.getBrandById = async (req, res) => {
 };
 
 /*
+@API: GET /admin/masters/brands/flag/:flag?search=searchTerm
+@Desc: Get all brands by flag
+@Access: Private
+*/
+exports.getBrandsByFlag = async (req, res) => {
+  try {
+    const { search } = req.query;
+    const brands = await Brand.findAll({
+      attributes: ["id", "name"],
+      where: { flag: req.params.flag, ...(search ? { name: { [Op.like]: `%${search}%` } } : {}) },
+      order: [
+        ["name", "ASC"], 
+      ],
+    });
+    return res.apiSuccess("Brands fetched successfully", brands);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
 @API: POST /admin/masters/brands
 @Desc: Create a brand
 @Access: Private
@@ -464,6 +488,35 @@ exports.getOrganizationStructureByFlag = async (req, res) => {
 };
 
 /*
+@API: GET /admin/masters/organization-structures/parent/:parentId/flag/:flag
+@Desc: Get all organization structures by parent id and flag
+@Access: Private
+*/
+exports.getOrganizationStructureByParentAndFlag = async (req, res) => {
+  try {
+    const organizationStructure = await OrganizationStructure.findAll(
+      {
+        where: { parentId: req.params.parentId, flag: req.params.flag },
+        attributes: ["id", "name", "slug", "level", "flag"],
+        order: [ 
+          ["name", "ASC"], 
+        ],
+      }
+    );
+
+    return res.apiSuccess(
+      "Organization structures fetched successfully",
+      organizationStructure
+    );
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+
+
+/*
 @API: POST /admin/masters/organization-structures
 @Desc: Create an organization structure
 @Access: Private
@@ -623,3 +676,170 @@ exports.deleteOrganizationStructure = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
+
+/*
+@API: GET /admin/masters/outlet-functions?search=searchTerm&limit=limit&page=page
+@Desc: Get all outlet functions
+@Access: Private
+*/
+exports.getOutletFunctions = async (req, res) => {
+  try {
+    const { search,limit,page } = req.query;
+    const offset = (page - 1) * limit;
+    const outletFunctions = await OutletFunction.findAll({
+      limit: limit ? parseInt(limit) : 10,
+      offset: offset ? parseInt(offset) : 0,
+      where: { ...(search ? { name: { [Op.like]: `%${search}%` } } : {}) },
+      order: [
+        ["name", "ASC"],
+        ["id", "ASC"],
+      ],
+    });
+    return res.apiSuccess("Outlet functions fetched successfully", {
+      outletFunctions,
+      total: outletFunctions.length,
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+    });
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+
+
+/*
+@API: GET /admin/masters/outlet-functions/:id
+@Desc: Get an outlet function by id
+@Access: Private
+*/
+exports.getOutletFunctionById = async (req, res) => {
+  try {
+    const outletFunction = await OutletFunction.findByPk(req.params.id);
+    if (!outletFunction) {
+      return res.apiError("Outlet function not found", 404);
+    }
+    return res.apiSuccess("Outlet function fetched successfully", outletFunction);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: POST /admin/masters/outlet-functions
+@Desc: Create an outlet function
+@Access: Private
+*/
+exports.createOutletFunction = async (req, res) => {
+  try {
+    const validator = new Validator(req.body, {
+      name: "required|string",
+      slug: "string",
+      description: "string",
+      isActive: "boolean",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const { name, slug, description, isActive } = req.body;
+    const outletFunctionSlug = slug ? generateSlug(slug) : generateSlug(name);
+
+    if (!outletFunctionSlug) {
+      return res.apiError("Unable to generate a valid slug", 422);
+    }
+
+    const existingSlug = await OutletFunction.findOne({
+      where: { slug: outletFunctionSlug },
+    });
+    if (existingSlug) {
+      return res.apiError("An outlet function with this slug already exists", 409);
+    }
+
+    const outletFunction = await OutletFunction.create({
+      name,
+      slug: outletFunctionSlug,
+      description: description ?? null,
+      isActive: isActive ?? true,
+    });
+
+    return res.apiSuccess("Outlet function created successfully", outletFunction);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: PUT /admin/masters/outlet-functions/:id
+@Desc: Update an outlet function
+@Access: Private
+*/
+exports.updateOutletFunction = async (req, res) => {
+  try {
+    const validator = new Validator(req.body, {
+      name: "required|string",
+      slug: "string",
+      description: "string",
+      isActive: "boolean",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const outletFunction = await OutletFunction.findByPk(req.params.id);
+    if (!outletFunction) {
+      return res.apiError("Outlet function not found", 404);
+    }
+
+    const { name, slug, description, isActive } = req.body;
+    const outletFunctionSlug = slug ? generateSlug(slug) : generateSlug(name);
+
+    if (!outletFunctionSlug) {
+      return res.apiError("Unable to generate a valid slug", 422);
+    }
+
+    if (outletFunctionSlug !== outletFunction.slug) {
+      const existingSlug = await OutletFunction.findOne({
+        where: { slug: outletFunctionSlug },
+      });
+      if (existingSlug) {
+        return res.apiError("An outlet function with this slug already exists", 409);
+      }
+    }
+
+    await outletFunction.update({
+      name,
+      slug: outletFunctionSlug,
+      description: description ?? outletFunction.description,
+      isActive: isActive ?? outletFunction.isActive,
+    });
+
+    return res.apiSuccess("Outlet function updated successfully", outletFunction);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: DELETE /admin/masters/outlet-functions/:id
+@Desc: Delete an outlet function
+@Access: Private
+*/
+exports.deleteOutletFunction = async (req, res) => {
+  try {
+    const outletFunction = await OutletFunction.findByPk(req.params.id);
+    if (!outletFunction) {
+      return res.apiError("Outlet function not found", 404);
+    }
+
+    await outletFunction.destroy();
+    return res.apiSuccess("Outlet function deleted successfully");
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+

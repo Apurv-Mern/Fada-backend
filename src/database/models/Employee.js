@@ -20,6 +20,15 @@ module.exports = (sequelize, DataTypes) => {
         as: "documents",
       });
 
+      Employee.hasOne(models.EmployeeDesignation, {
+        foreignKey: "employeeId",
+        as: "designation",
+      });
+
+      Employee.hasOne(models.EmployeeAssignment, {
+        foreignKey: "employeeId",
+        as: "assignment",
+      });
     }
   }
   Employee.init(
@@ -50,6 +59,15 @@ module.exports = (sequelize, DataTypes) => {
       status: {
         type: DataTypes.ENUM("temporary", "pending", "approved", "rejected"),
         defaultValue: "pending",
+      },
+      score: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      joinedDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
       },
     },
     {
