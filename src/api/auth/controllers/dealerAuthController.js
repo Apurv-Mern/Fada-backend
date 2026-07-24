@@ -1,16 +1,15 @@
 const Validator = require("validatorjs");
 const { Dealer } = require("../../../database/models");
-const { comparePassword } = require("../../../utils/passwordUtil");
+const { comparePassword, hashPassword } = require("../../../utils/passwordUtil");
 const {
   generateAccessToken,
   generateRefreshToken,
 } = require("../../../utils/jwtUtil");
 const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
-const config = require("../../../config/config");
-
+const { addEmailJob, addSmsJob } = require("../../../queues");
 /*
 @API: POST /dealer/auth/register
-@Body: { name, dealerCode, email, phone }
+@Body: { name, dealerCode, email, password, phone }
 @Desc: Dealer Registration
 @Access: Public
 */
@@ -20,6 +19,7 @@ exports.dealerRegister = async (req, res) => {
       name: "required|string",
       dealerCode: "required|string",
       email: "required|email",
+      password: "required|string|min:6",
       phone: "required|string",
     });
 
@@ -27,7 +27,7 @@ exports.dealerRegister = async (req, res) => {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    const { name, dealerCode, email, phone } = req.body;
+    const { name, dealerCode, email, password, phone } = req.body;
 
     // Prevent duplicate registrations
     const existingDealer = await Dealer.findOne({ where: { email } });
@@ -40,20 +40,34 @@ exports.dealerRegister = async (req, res) => {
       return res.apiError("A dealer with this dealer code already exists", 409);
     }
 
+    const hashedPassword = await hashPassword(password);
+
     // Generate OTP
     const otp = generateOTP(6);
+
+    await addEmailJob({
+      to: email,
+      subject: "Dealer Registration OTP",
+      templateName: "otp.ejs",
+      data: {
+        name,
+        otp,
+        purpose: "registration",
+      },
+    });
 
     await Dealer.create({
       name,
       dealerCode,
       email,
+      password: hashedPassword,
       otp,
       phone,
       status: "temporary",
       isActive: false,
       isEmailVerified: false,
     });
-
+ 
     return res.apiSuccess("Dealer registered successfully. Please verify OTP.");
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
@@ -368,6 +382,25 @@ exports.loginWithOtp = async (req, res) => {
     const otp = generateOTP(6);
 
     await dealer.update({ otp });
+
+    const usernameFilter = verifyUserName(email);
+    if (usernameFilter.email) {
+      await addEmailJob({
+        to: email,
+        subject: "Dealer Login OTP",
+        templateName: "otp.ejs",
+        data: {
+          name: dealer.name,
+          otp,
+          purpose: "login",
+        },
+      });
+    }else if (usernameFilter.phone) {
+      await addSmsJob({
+        to: usernameFilter.phone,
+        message: `Your OTP for login is ${otp}`,
+      });
+    }
 
     return res.apiSuccess("OTP sent successfully", verifyUserName(email));
   } catch (error) {

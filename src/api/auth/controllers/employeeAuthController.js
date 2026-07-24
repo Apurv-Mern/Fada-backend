@@ -8,6 +8,7 @@ const {
 } = require("../../../utils/jwtUtil");
 const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
+const { sendOtpEmail } = require("../../../utils/emailUtil");
 
 /*
 @API: POST /employee/auth/register
@@ -49,6 +50,12 @@ exports.employeeRegister = async (req, res) => {
       isActive: false,
       isEmailVerified: false,
     });
+
+    try {
+      await sendOtpEmail(email, { name, otp, purpose: "registration" });
+    } catch (emailError) {
+      console.error("Failed to send registration OTP email:", emailError.message);
+    }
 
     return res.apiSuccess(
       "Employee registered successfully. Please verify OTP.",
@@ -358,6 +365,18 @@ exports.loginWithOtp = async (req, res) => {
 
     const otp = generateOTP(6);
     await employee.update({ otp });
+
+    if (usernameFilter.email) {
+      try {
+        await sendOtpEmail(usernameFilter.email, {
+          name: employee.name,
+          otp,
+          purpose: "login",
+        });
+      } catch (emailError) {
+        console.error("Failed to send login OTP email:", emailError.message);
+      }
+    }
 
     return res.apiSuccess("OTP sent successfully", usernameFilter);
   } catch (error) {

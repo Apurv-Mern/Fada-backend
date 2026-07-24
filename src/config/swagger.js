@@ -33,8 +33,7 @@ const options = {
     "./src/docs/swagger/auth.js",
     "./src/docs/swagger/admin.js",
     "./src/docs/swagger/masters.js",
-    "./src/docs/swagger/employees.js",
-    "./src/docs/swagger/outlets.js",
+    "./src/docs/swagger/dealers.js",
   ],
 };
 

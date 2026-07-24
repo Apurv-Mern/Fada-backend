@@ -8,7 +8,7 @@ const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
-
+const { addEmailJob } = require("./queues");
 const app = express();
 
 /**
@@ -120,6 +120,29 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+
+
+app.post("/test-email", async (req, res) => {
+  await addEmailJob({
+    to: req.body.email,
+    subject: "Test Email",
+    templateName: "otp.ejs",
+    data: {
+      name: "John Doe",
+      otp: "123456",
+      purpose: "registration",
+    },
+  });
+
+  res.json({
+    status: true,
+    message: "Email sent successfully",
+  });
+});
+
+
+
 
 /**
  * 404 Handler

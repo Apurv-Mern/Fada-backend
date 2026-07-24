@@ -27,7 +27,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       appliesTo: {
-        type: DataTypes.ENUM("employee", "dealer"),
+        type: DataTypes.ENUM("employee", "dealer","both"),
         allowNull: false,
       },
       isActive: {
