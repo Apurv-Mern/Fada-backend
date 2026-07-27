@@ -32,9 +32,41 @@
  *                 type: string
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful. Check admin.mustChangePassword to prompt password change after forgot-password flow.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminLoginResponse'
  *       401:
  *         description: Invalid credentials
+ *       403:
+ *         description: Account is not active
+ *       404:
+ *         description: Admin not found
+ */
+
+/**
+ * @swagger
+ * /admin/auth/forgot-password:
+ *   post:
+ *     tags: [Admin Auth]
+ *     summary: Forgot admin password
+ *     description: Sends a temporary password to the admin email if the account exists and is active
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AdminForgotPasswordRequest'
+ *     responses:
+ *       200:
+ *         description: Temporary password sent if account exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       422:
+ *         description: Validation error
  */
 
 /**
@@ -43,9 +75,22 @@
  *   post:
  *     tags: [Admin Auth]
  *     summary: Refresh admin access token
+ *     description: Requires refreshToken HttpOnly cookie from login
  *     responses:
  *       200:
  *         description: Token refreshed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         accessToken:
+ *                           type: string
  *       401:
  *         description: Refresh token missing or invalid
  */
@@ -56,9 +101,33 @@
  *   post:
  *     tags: [Admin Auth]
  *     summary: Admin logout
+ *     description: Clears refreshToken cookie and invalidates session
  *     responses:
  *       200:
  *         description: Logged out successfully
+ */
+
+/**
+ * @swagger
+ * /admin/auth/change-password:
+ *   post:
+ *     tags: [Admin Auth]
+ *     summary: Change admin password
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AdminChangePasswordRequest'
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       401:
+ *         description: Current password is incorrect
+ *       422:
+ *         description: Validation error
  */
 
 /**

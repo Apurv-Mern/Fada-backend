@@ -15,6 +15,8 @@ const employeeAttributes = {
   exclude: ["password", "otp", "refreshToken", "mpin"],
 };
 
+const employeeStatus = ["temporary", "pending", "approved", "rejected"];
+
 const employeeValidationRules = {
   name: "required|string",
   email: "email",
@@ -256,13 +258,13 @@ const loadEmployee = async (employeeId, transaction) =>
   });
 
 /*
-@API: GET /admin/employees?search=&dealerId=&departmentId=&outletId=&isActive=&limit=&offset=
+@API: GET /admin/employees?search=&dealerId=&departmentId=&outletId=&isActive=&status=&limit=&offset=
 @Desc: Get all employees
 @Access: Private
 */
 exports.getEmployees = async (req, res) => {
   try {
-    const { search, dealerId, departmentId, outletId, isActive } = req.query;
+    const { search, dealerId, departmentId, outletId, isActive, status } = req.query;
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
@@ -272,12 +274,16 @@ exports.getEmployees = async (req, res) => {
       where.isActive = isActive === "true" || isActive === "1";
     }
 
+    if (status) {
+      where.status = status;
+    }
+
     if (search) {
       where[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
         { phone: { [Op.like]: `%${search}%` } },
-        { fadaId: { [Op.like]: `%${search}%` } },
+        { fadaId: { [Op.like]: `%${search}%` } }, 
       ];
     }
 
@@ -550,6 +556,63 @@ exports.deleteEmployee = async (req, res) => {
     });
 
     return res.apiSuccess("Employee deleted successfully");
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+/*
+@API: PUT /admin/employees/:id/status/:status
+@Desc: Update the status of an employee
+@Access: Private
+*/
+exports.updateEmployeeStatus = async (req, res) => {
+  try {
+    const employee = await Employee.findByPk(req.params.id);
+    if (!employee) {
+      return res.apiError("Employee not found", 404);
+    }
+
+    if (!employeeStatus.includes(req.params.status)) {
+      return res.apiError("Invalid status", 400);
+    }
+
+    await employee.update({ status: req.params.status });
+    return res.apiSuccess("Employee status updated successfully");
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: GET /admin/employees/stats
+@Desc: Get the stats of an employee
+@Access: Private
+*/
+exports.getEmployeeStats = async (req, res) => {
+  try {
+  
+
+    const [allEmployees,approvedEmployees,pendingEmployees,rejectedEmployees,temporaryEmployees,activeEmployees,inactiveEmployees] = await Promise.all([
+      Employee.count(),
+      Employee.count({ where: { status: "approved" } }),
+      Employee.count({ where: { status: "pending" } }),
+      Employee.count({ where: { status: "rejected" } }),
+      Employee.count({ where: { status: "temporary" } }),
+      Employee.count({ where: { isActive: true } }),
+      Employee.count({ where: { isActive: false } }),
+    ]);
+
+    return res.apiSuccess("Employee stats fetched successfully", {
+      allEmployees: allEmployees,
+      approvedEmployees: approvedEmployees,
+      pendingEmployees: pendingEmployees,
+      rejectedEmployees: rejectedEmployees,
+      temporaryEmployees: temporaryEmployees,
+      activeEmployees: activeEmployees,
+      inactiveEmployees: inactiveEmployees,
+    });
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

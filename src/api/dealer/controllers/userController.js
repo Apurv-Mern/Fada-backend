@@ -25,7 +25,7 @@ exports.getProfile = async (req, res) => {
     const profile = await DealerProfile.findOne({
         attributes: ["id", "name", "email", "phone","dealerCode","status","isActive",
             [sequelize.literal(`(SELECT COUNT(*) FROM Outlets WHERE Outlets.dealerId = ${id})`), "totalOutlets"],
-            [sequelize.literal(`(SELECT COUNT(*) FROM EmployeeAssignments WHERE dealerId = ${id}) and isActive=true`), "totalActiveEmployees"],
+            [sequelize.literal(`(SELECT COUNT(*) FROM EmployeeAssignments WHERE dealerId = ${id}) and isActive=true`), "allEmployees"],
         ],
       where: { id },
       include: [

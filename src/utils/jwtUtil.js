@@ -12,4 +12,35 @@ const verifyToken = (token, secretKey) => {
   return jwt.verify(token, secretKey);
 };
 
-module.exports = { generateAccessToken, generateRefreshToken, verifyToken };
+const verifyRefreshToken = (token) =>
+  verifyToken(token, process.env.JWT_REFRESH_SECRET);
+
+const verifyAccessToken = (token) =>
+  verifyToken(token, process.env.JWT_ACCESS_SECRET);
+
+const extractBearerToken = (authHeader) => {
+  if (!authHeader || typeof authHeader !== "string") {
+    return null;
+  }
+
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const token = match[1].trim();
+  if (!token || token === "undefined" || token === "null") {
+    return null;
+  }
+
+  return token;
+};
+
+module.exports = {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyToken,
+  verifyRefreshToken,
+  verifyAccessToken,
+  extractBearerToken,
+};

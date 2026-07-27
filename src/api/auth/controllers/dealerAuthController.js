@@ -4,6 +4,7 @@ const { comparePassword, hashPassword } = require("../../../utils/passwordUtil")
 const {
     generateAccessToken,
     generateRefreshToken,
+    verifyRefreshToken,
 } = require("../../../utils/jwtUtil");
 const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
 const { addEmailJob, addSmsJob } = require("../../../queues");
@@ -147,10 +148,30 @@ exports.verifyOtp = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days
         });
 
-        return res.apiSuccess(
-            "OTP verified successfully. Please create your profile.",
-            { accessToken },
-        );
+         
+
+        return res.status(200).json({
+            success: true,
+            message: "OTP verified successfully. Please create your profile.",
+            accessToken,
+            dealer: {
+                id: dealer.id,
+                dealerCode: dealer.dealerCode,
+                name: dealer.name,
+                email: dealer.email,
+                phone: dealer.phone,
+                role: "dealer",
+                status: dealer.status,
+                isEmailVerified: dealer.isEmailVerified,
+                isActive: dealer.isActive,
+                createdAt: dealer.createdAt,
+                updatedAt: dealer.updatedAt,
+            },
+        });
+
+
+
+
     } catch (error) {
         return res.apiError("Internal server error", 500, error);
     }
@@ -245,9 +266,16 @@ exports.dealerLogin = async (req, res) => {
             accessToken,
             dealer: {
                 id: dealer.id,
+                dealerCode: dealer.dealerCode,
                 name: dealer.name,
                 email: dealer.email,
+                phone: dealer.phone,
                 role: "dealer",
+                status: dealer.status,
+                isEmailVerified: dealer.isEmailVerified,
+                isActive: dealer.isActive,
+                createdAt: dealer.createdAt,
+                updatedAt: dealer.updatedAt,
             },
         });
     } catch (error) {
@@ -477,14 +505,23 @@ exports.verifyLoginOtp = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        return res.apiSuccess("Login successful", {
+        return res.status(200).json({
+            success: true,
+            message: "Login successful",
             accessToken,
-            id: dealer.id,
-            name: dealer.name,
-            email: dealer.email,
-            phone: dealer.phone,
-            status: dealer.status,
-            role: "dealer",
+            dealer: {
+                id: dealer.id,
+                dealerCode: dealer.dealerCode,
+                name: dealer.name,
+                email: dealer.email,
+                phone: dealer.phone,
+                role: "dealer",
+                status: dealer.status,
+                isEmailVerified: dealer.isEmailVerified,
+                isActive: dealer.isActive,
+                createdAt: dealer.createdAt,
+                updatedAt: dealer.updatedAt,
+            },
         });
     } catch (error) {
         return res.apiError("Internal server error", 500, error);

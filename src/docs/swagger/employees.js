@@ -109,6 +109,12 @@
  *           type: boolean
  *         description: Filter by active status
  *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [temporary, pending, approved, rejected]
+ *         description: Filter by employee status
+ *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
@@ -155,6 +161,62 @@
  *         description: Duplicate email or unique constraint violation
  *       422:
  *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /admin/employees/stats:
+ *   get:
+ *     tags: [Admin Employees]
+ *     summary: Get employee statistics
+ *     description: Returns counts for all, status-based, and active/inactive employees
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employee stats fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/EmployeeStatsResponse'
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /admin/employees/{id}/status/{status}:
+ *   put:
+ *     tags: [Admin Employees]
+ *     summary: Update employee status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [temporary, pending, approved, rejected]
+ *     responses:
+ *       200:
+ *         description: Employee status updated successfully
+ *       400:
+ *         description: Invalid status
+ *       404:
+ *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
  */
 
 /**

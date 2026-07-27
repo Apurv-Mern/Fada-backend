@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
       profilePicture: DataTypes.STRING,
       isActive: DataTypes.BOOLEAN,
       refreshToken: DataTypes.TEXT,
+      mustChangePassword: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
     },
     {
       sequelize,

@@ -34,6 +34,70 @@
  *           type: string
  *         accessToken:
  *           type: string
+ *     AdminUser:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         role:
+ *           type: string
+ *           example: admin
+ *         mustChangePassword:
+ *           type: boolean
+ *           description: True when admin must change password after forgot-password flow
+ *     AdminLoginResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: Login successful
+ *         accessToken:
+ *           type: string
+ *         admin:
+ *           $ref: '#/components/schemas/AdminUser'
+ *     AdminChangePasswordRequest:
+ *       type: object
+ *       required: [currentPassword, newPassword, confirmPassword]
+ *       properties:
+ *         currentPassword:
+ *           type: string
+ *         newPassword:
+ *           type: string
+ *           minLength: 6
+ *         confirmPassword:
+ *           type: string
+ *     AdminForgotPasswordRequest:
+ *       type: object
+ *       required: [email]
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *     EmployeeStatsResponse:
+ *       type: object
+ *       properties:
+ *         allEmployees:
+ *           type: integer
+ *         approvedEmployees:
+ *           type: integer
+ *         pendingEmployees:
+ *           type: integer
+ *         rejectedEmployees:
+ *           type: integer
+ *         temporaryEmployees:
+ *           type: integer
+ *         activeEmployees:
+ *           type: integer
+ *         inactiveEmployees:
+ *           type: integer
  *     DealerProfileDetails:
  *       type: object
  *       properties:
@@ -96,7 +160,7 @@
  *           type: boolean
  *         totalOutlets:
  *           type: integer
- *         totalActiveEmployees:
+ *         allEmployees:
  *           type: integer
  *         profile:
  *           $ref: '#/components/schemas/DealerProfileDetails'
@@ -253,7 +317,7 @@
  *               type: integer
  *             totalOutlets:
  *               type: integer
- *             totalActiveEmployees:
+ *             allEmployees:
  *               type: integer
  *             documents:
  *               type: object

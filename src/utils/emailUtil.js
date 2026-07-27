@@ -6,7 +6,7 @@ const config = require("../config/config");
 const transporter = nodemailer.createTransport({
   host: config.smtp.host,
   port: Number(config.smtp.port),
-  secure: Number(config.smtp.port) === 465,
+  secure: false,
   auth: {
     user: config.smtp.user,
     pass: config.smtp.pass,
@@ -44,19 +44,40 @@ const buildOtpTemplateData = (data = {}) => {
   };
 };
 
-const renderEmailTemplate = async (data) => { 
-  return ejs.renderFile(`${OTP_TEMPLATE_PATH}/${data.templateName}`, data);
+const renderEmailTemplate = async (payload) => {
+  const templateData =
+    payload.templateName === "otp.ejs"
+      ? buildOtpTemplateData(payload.data || payload)
+      : {
+          appName: "FADA-ID",
+          websiteUrl: process.env.APP_WEBSITE || "https://www.fada-id.com",
+          websiteLabel: (process.env.APP_WEBSITE || "www.fada-id.com").replace(
+            /^https?:\/\//,
+            "",
+          ),
+          supportEmail: process.env.SUPPORT_EMAIL || "support@fada-id.com",
+          supportPhone: process.env.SUPPORT_PHONE || "+91 123 456 7890",
+          year: new Date().getFullYear(),
+          ...(payload.data || payload),
+        };
+
+  return ejs.renderFile(`${OTP_TEMPLATE_PATH}/${payload.templateName}`, templateData);
 };
 
 const sendEmail = async (data) => {
   console.log("Sending email to", data.to);
   const html = await renderEmailTemplate(data);
+ try {
   const result = await transporter.sendMail({
     from: config.smtp.from,
     to: data.to,
     subject: data.subject,
     html,
   });
+ } catch (error) {
+  console.error("Error sending email:", error);
+  
+ }
 
   console.log("Email sent successfully to", data.to, "messageId:", result.messageId);
   return result;

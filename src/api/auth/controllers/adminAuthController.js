@@ -1,6 +1,12 @@
 const { Admin } = require("../../../database/models");
-const { comparePassword } = require("../../../utils/passwordUtil");
-const { generateAccessToken, generateRefreshToken } = require("../../../utils/jwtUtil");
+const Validator = require("validatorjs");
+const {
+    comparePassword,
+    hashPassword,
+    generateTempPassword,
+} = require("../../../utils/passwordUtil");
+const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require("../../../utils/jwtUtil");
+const { addEmailJob } = require("../../../queues");
 
 
 /*
@@ -19,6 +25,10 @@ exports.adminLogin = async (req, res) => {
 
         if (!admin) {
             return res.apiError("Admin not found", 404);
+        }
+
+        if (admin.isActive === false) {
+            return res.apiError("Your account is not active. Please contact support", 403);
         }
 
         const isPasswordValid = await comparePassword(password, admin.password);
@@ -62,7 +72,8 @@ exports.adminLogin = async (req, res) => {
                 id: admin.id,
                 name: admin.name,
                 email: admin.email,
-                role: "admin"
+                role: "admin",
+                mustChangePassword: admin.mustChangePassword,
             },
         });
     } catch (error) {
@@ -155,5 +166,105 @@ exports.logout = async (req, res) => {
         return res.apiSuccess("Logged out successfully", null, { authenticated: false });
     } catch (error) {
         return res.apiError("Logout failed", 500, error);
+    }
+};
+
+/*
+@API: POST /admin/auth/change-password
+@Body: { currentPassword, newPassword, confirmPassword }
+@Desc: Change admin password
+@Access: Private
+*/
+exports.changePassword = async (req, res) => {
+    try {
+        const validator = new Validator(req.body, {
+            currentPassword: "required|string",
+            newPassword: "required|string|min:6",
+            confirmPassword: "required|string|same:newPassword",
+        });
+
+        if (validator.fails()) {
+            return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+        }
+
+        const { currentPassword, newPassword } = req.body;
+        const admin = await Admin.findByPk(req.auth.id);
+
+        if (!admin) {
+            return res.apiError("Admin not found", 404);
+        }
+
+        const isCurrentPasswordValid = await comparePassword(
+            currentPassword,
+            admin.password,
+        );
+
+        if (!isCurrentPasswordValid) {
+            return res.apiError("Current password is incorrect", 401);
+        }
+
+        const isSamePassword = await comparePassword(newPassword, admin.password);
+        if (isSamePassword) {
+            return res.apiError(
+                "New password must be different from current password",
+                422,
+            );
+        }
+
+        await admin.update({
+            password: await hashPassword(newPassword),
+            mustChangePassword: false,
+        });
+
+        return res.apiSuccess("Password changed successfully");
+    } catch (error) {
+        return res.apiError("Internal server error", 500, error);
+    }
+};
+
+/*
+@API: POST /admin/auth/forgot-password
+@Body: { email }
+@Desc: Send temporary password to admin email
+@Access: Public
+*/
+exports.forgotPassword = async (req, res) => {
+    try {
+        const validator = new Validator(req.body, {
+            email: "required|email",
+        });
+
+        if (validator.fails()) {
+            return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+        }
+
+        const { email } = req.body;
+        const admin = await Admin.findOne({ where: { email } });
+
+        if (admin && admin.isActive !== false) {
+            const tempPassword = generateTempPassword(8);
+
+            await admin.update({
+                password: await hashPassword(tempPassword),
+                mustChangePassword: true,
+                refreshToken: null,
+            });
+
+            await addEmailJob({
+                to: admin.email,
+                subject: "FADA-ID Admin Temporary Password",
+                templateName: "temp-password.ejs",
+                data: {
+                    name: admin.name || "Admin",
+                    tempPassword,
+                },
+            });
+        }
+
+        return res.apiSuccess(
+            "If an account exists with this email, a temporary password has been sent",
+        );
+    } catch (error) {
+        return res.apiError("Internal server error", 500, error);
     }
 };
