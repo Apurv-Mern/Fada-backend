@@ -120,7 +120,7 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AdminChangePasswordRequest'
+ *             $ref: '#/components/schemas/ChangePasswordRequest'
  *     responses:
  *       200:
  *         description: Password changed successfully
@@ -182,11 +182,21 @@
  *                 format: email
  *               otp:
  *                 type: string
+ *                 minLength: 4
+ *                 maxLength: 8
  *     responses:
  *       200:
- *         description: OTP verified
+ *         description: OTP verified, dealer logged in
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DealerLoginResponse'
+ *       400:
+ *         description: OTP verification not required or OTP missing
  *       401:
  *         description: Invalid OTP
+ *       404:
+ *         description: Dealer not found
  */
 
 /**
@@ -195,6 +205,7 @@
  *   post:
  *     tags: [Dealer Auth]
  *     summary: Dealer password login
+ *     description: Accepts email or phone. If email is not verified, sends OTP instead of logging in.
  *     requestBody:
  *       required: true
  *       content:
@@ -205,11 +216,28 @@
  *             properties:
  *               email:
  *                 type: string
+ *                 description: Dealer email or 10-digit phone number
+ *                 example: dealer@example.com
  *               password:
  *                 type: string
+ *                 minLength: 6
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful or OTP sent for email verification
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/DealerLoginResponse'
+ *                 - $ref: '#/components/schemas/DealerEmailVerificationPendingResponse'
+ *       401:
+ *         description: Invalid password
+ *       403:
+ *         description: Account rejected
+ *       404:
+ *         description: Dealer not found or password not set
+ *       422:
+ *         description: Validation error
  */
 
 /**
@@ -218,6 +246,7 @@
  *   post:
  *     tags: [Dealer Auth]
  *     summary: Send OTP for dealer login
+ *     description: Sends OTP to dealer email or phone for passwordless login
  *     requestBody:
  *       required: true
  *       content:
@@ -228,9 +257,17 @@
  *             properties:
  *               email:
  *                 type: string
+ *                 description: Dealer email or 10-digit phone number
+ *                 example: dealer@example.com
  *     responses:
  *       200:
- *         description: OTP sent
+ *         description: OTP sent successfully
+ *       403:
+ *         description: Account rejected, temporary, or inactive
+ *       404:
+ *         description: Dealer not found
+ *       422:
+ *         description: Email or phone is required
  */
 
 /**
@@ -249,11 +286,24 @@
  *             properties:
  *               email:
  *                 type: string
+ *                 description: Dealer email or 10-digit phone number
  *               otp:
  *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 6
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DealerLoginResponse'
+ *       401:
+ *         description: Invalid OTP
+ *       403:
+ *         description: Account rejected or registration incomplete
+ *       404:
+ *         description: Dealer not found
  */
 
 /**
@@ -262,9 +312,26 @@
  *   post:
  *     tags: [Dealer Auth]
  *     summary: Refresh dealer access token
+ *     description: Requires refreshToken HttpOnly cookie from login
  *     responses:
  *       200:
  *         description: Token refreshed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         accessToken:
+ *                           type: string
+ *       401:
+ *         description: Refresh token missing or invalid
+ *       403:
+ *         description: Invalid refresh token
  */
 
 /**
@@ -273,9 +340,44 @@
  *   post:
  *     tags: [Dealer Auth]
  *     summary: Dealer logout
+ *     description: Clears refreshToken cookie and invalidates session
  *     responses:
  *       200:
  *         description: Logged out successfully
+ */
+
+/**
+ * @swagger
+ * /dealer/auth/change-password:
+ *   post:
+ *     tags: [Dealer Auth]
+ *     summary: Change dealer password
+ *     description: Requires dealer Bearer token. New password must be at least 6 characters.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ChangePasswordRequest'
+ *           example:
+ *             currentPassword: oldPassword123
+ *             newPassword: newPassword123
+ *             confirmPassword: newPassword123
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       400:
+ *         description: Password is not set on account
+ *       401:
+ *         description: Current password is incorrect or unauthorized
+ *       422:
+ *         description: Validation error or new password same as current
  */
 
 /**

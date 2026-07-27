@@ -74,6 +74,9 @@
  *           minLength: 6
  *         confirmPassword:
  *           type: string
+ *     ChangePasswordRequest:
+ *       allOf:
+ *         - $ref: '#/components/schemas/AdminChangePasswordRequest'
  *     AdminForgotPasswordRequest:
  *       type: object
  *       required: [email]
@@ -98,6 +101,66 @@
  *           type: integer
  *         inactiveEmployees:
  *           type: integer
+ *     DealerUser:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         dealerCode:
+ *           type: string
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         role:
+ *           type: string
+ *           example: dealer
+ *         status:
+ *           type: string
+ *           enum: [temporary, pending, approved, rejected]
+ *         isEmailVerified:
+ *           type: boolean
+ *         isActive:
+ *           type: boolean
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     DealerLoginResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: Login successful
+ *         accessToken:
+ *           type: string
+ *         dealer:
+ *           $ref: '#/components/schemas/DealerUser'
+ *     DealerEmailVerificationPendingResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/ApiSuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               type: object
+ *               properties:
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                 isEmailVerified:
+ *                   type: boolean
+ *                   example: false
+ *                 isActive:
+ *                   type: boolean
+ *                   example: false
  *     DealerProfileDetails:
  *       type: object
  *       properties:

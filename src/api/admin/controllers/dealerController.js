@@ -369,7 +369,7 @@ exports.saveDealerLocation = async (req, res) => {
 exports.getKeyContact = async (req, res) => {
   try {
     const keyContacts = await KeyContact.findAll({
-      where: { dealerId: dealer.id },
+      where: { dealerId: req.params.dealerId },
     });
 
     return res.apiSuccess("Key contacts fetched successfully", keyContacts);

@@ -1,4 +1,5 @@
 const swaggerJsdoc = require("swagger-jsdoc");
+const { applyTagGroups } = require("./swaggerTags");
 
 const options = {
   definition: {
@@ -6,15 +7,16 @@ const options = {
     info: {
       title: "FADA Backend API",
       version: "1.0.0",
-      description: "API documentation for FADA Backend",
+      description:
+        "FADA Backend API documentation grouped by Admin, Dealer, Employee, and Common endpoints.",
     },
     servers: [
       {
-        url: `http://localhost:3005`,
+        url: "http://localhost:3005",
         description: "Local server",
       },
       {
-        url: `https://api.fadaid.com`,
+        url: "https://api.fadaid.com",
         description: "Live server",
       },
     ],
@@ -40,6 +42,6 @@ const options = {
   ],
 };
 
-const swaggerSpec = swaggerJsdoc(options);
+const swaggerSpec = applyTagGroups(swaggerJsdoc(options));
 
 module.exports = swaggerSpec;

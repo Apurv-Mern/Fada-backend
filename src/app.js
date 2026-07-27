@@ -88,7 +88,17 @@ app.use(cookieParser());
 /**
  * Swagger Docs
  */
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    swaggerOptions: {
+      tagsSorter: "alpha",
+      operationsSorter: "alpha",
+      docExpansion: "none",
+    },
+  }),
+);
 app.get("/api-docs.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(swaggerSpec);
