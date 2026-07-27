@@ -124,20 +124,11 @@ exports.updateProfile = async (req, res) => {
     }
 
     if (Object.keys(profileData).length > 0) {
-      const profile = await DealerProfile.findOne({
-        where: { dealerId: id },
-        transaction,
-      });
+      const profile = await DealerProfile.findOne({ where: { dealerId: id }, transaction });
       if (!profile) {
-        await DealerProfile.create(
-          { dealerId: id, ...profileData },
-          { transaction },
-        );
+        await DealerProfile.create({ dealerId: id, ...profileData }, { transaction });
       } else {
-        await DealerProfile.update(profileData, {
-          where: { dealerId: id },
-          transaction,
-        });
+        await DealerProfile.update(profileData, { where: { dealerId: id }, transaction });
       }
     }
     if (Object.keys(dealerData).length > 0) {
