@@ -33,6 +33,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      country: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "India",
+      },
       gstNumber: {
         type: DataTypes.STRING(15),
         allowNull: false,

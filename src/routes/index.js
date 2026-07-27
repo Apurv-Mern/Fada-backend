@@ -1,6 +1,7 @@
 const authRoutes = require("./../api/auth/routes");
 const apiReponser = require("./../middlewares/apiResponder");
 const adminRoutes = require("./../api/admin/routes");
+const dealerRoutes = require("./../api/dealer/routes");
 module.exports = (app) => {
   //This middleware is used for send-api-response
   app.use(apiReponser);
@@ -12,7 +13,7 @@ module.exports = (app) => {
   app.use("/admin", adminRoutes);
 
   // Routes for Web-application
-  //app.use("/dealers", dealerRoutes);
+  app.use("/dealers", dealerRoutes);
 
   //Version 1 routes for Mobile-application
   //app.use("/api/v1", apiV1Routes);

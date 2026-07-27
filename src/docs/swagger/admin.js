@@ -175,7 +175,7 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [pinCode, city, state, gstNumber, address]
+ *             required: [pinCode, city, state, country, gstNumber, address]
  *             properties:
  *               pinCode:
  *                 type: string
@@ -184,6 +184,9 @@
  *                 type: string
  *               state:
  *                 type: string
+ *               country:
+ *                 type: string
+ *                 example: India
  *               gstNumber:
  *                 type: string
  *                 example: "29ABCDE1234F1Z5"

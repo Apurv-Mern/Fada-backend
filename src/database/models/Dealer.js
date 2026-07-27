@@ -13,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
         as: "location",
       });
 
+      Dealer.hasOne(models.DealerProfile, {
+        foreignKey: "dealerId",
+        as: "profile",
+      });
+
       Dealer.hasMany(models.KeyContact, {
         foreignKey: "dealerId",
         as: "keyContacts",

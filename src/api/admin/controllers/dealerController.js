@@ -10,6 +10,7 @@ const locationValidationRules = {
   pinCode: "required|string|size:6",
   city: "required|string",
   state: "required|string",
+  country: "required|string",
   gstNumber: "required|string|size:15",
   address: "required|string",
 };
@@ -238,7 +239,7 @@ exports.saveDealerLocation = async (req, res) => {
             return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
         }
 
-        const { pinCode, city, state, gstNumber, address } = req.body;
+        const { pinCode, city, state, country, gstNumber, address } = req.body;
         const existingLocation = await findDealerLocationByDealerId(dealer.id);
 
         if (existingLocation) {
@@ -258,6 +259,7 @@ exports.saveDealerLocation = async (req, res) => {
                 pinCode,
                 city,
                 state,
+                country,
                 gstNumber,
                 address,
             });
@@ -278,6 +280,7 @@ exports.saveDealerLocation = async (req, res) => {
             pinCode,
             city,
             state,
+            country,
             gstNumber,
             address,
         });
