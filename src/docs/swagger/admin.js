@@ -63,6 +63,31 @@
 
 /**
  * @swagger
+ * /admin/dealers/stats:
+ *   get:
+ *     tags: [Admin Dealers]
+ *     summary: Get dealer statistics
+ *     description: Returns counts for all, status-based, and active/inactive dealers
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dealer stats fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/DealerStatsResponse'
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
  * /admin/dealers/{id}:
  *   get:
  *     tags: [Admin Dealers]

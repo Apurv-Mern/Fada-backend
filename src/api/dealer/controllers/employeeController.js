@@ -217,8 +217,8 @@ exports.createEmployee = async (req, res) => {
       );
     });
 
-    const employee = await loadEmployee(employeeId, dealerId);
-    return res.apiSuccess("Employee created successfully", employee);
+    //const employee = await loadEmployee(employeeId, dealerId);
+    return res.apiSuccess("Employee created successfully");
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
       return res.apiError("Employee with duplicate unique field already exists", 409);

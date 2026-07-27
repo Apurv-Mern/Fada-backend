@@ -1,5 +1,6 @@
 const { Op } = require("sequelize");
 const {
+  Outlet,
   OutletFunction,
   Brand,
   OutletBrandCategory,
@@ -76,7 +77,7 @@ const validateFunctions = async (functions, res) => {
       continue;
     }
 
-    normalized.push(match.slug);
+    normalized.push(match.id);
   }
 
   if (invalid.length) {
@@ -129,9 +130,41 @@ const validateBrandCategories = async (brandCategories, res) => {
   return true;
 };
 
+const normalizeOutletCode = (code) => {
+  if (code === undefined || code === null) return null;
+
+  const trimmed = String(code).trim();
+  return trimmed || null;
+};
+
+const validateOutletCode = async ({
+  code,
+  dealerId,
+  excludeOutletId,
+  res,
+}) => {
+  const normalizedCode = normalizeOutletCode(code);
+  if (!normalizedCode) return { valid: true, code: null };
+
+  const where = {
+    dealerId,
+    code: normalizedCode,
+    ...(excludeOutletId ? { id: { [Op.ne]: excludeOutletId } } : {}),
+  };
+
+  const existing = await Outlet.findOne({ where });
+  if (existing) {
+    res.apiError("An outlet with this code already exists", 409);
+    return { valid: false };
+  }
+
+  return { valid: true, code: normalizedCode };
+};
+
 const syncBrandCategories = async (outletId, brandCategories, transaction) => {
   await OutletBrandCategory.destroy({
     where: { outletId },
+    force: true,
     transaction,
   });
 
@@ -147,18 +180,27 @@ const syncBrandCategories = async (outletId, brandCategories, transaction) => {
   );
 };
 
-const buildOutletPayload = (body, dealerId) => ({
-  dealerId,
-  name: body.name,
-  code: body.code ?? null,
-  manager: body.manager ?? null,
-  pinCode: body.pinCode ?? null,
-  city: body.city ?? null,
-  state: body.state ?? null,
-  address: body.address ?? null,
-  functions: body.functions ?? [],
-  isActive: body.isActive ?? true,
-});
+const buildOutletPayload = (body, dealerId, normalizedFunctions) => {
+  const payload = {
+    dealerId,
+    name: body.name,
+    code: normalizeOutletCode(body.code),
+    manager: body.manager ?? null,
+    pinCode: body.pinCode ?? null,
+    city: body.city ?? null,
+    state: body.state ?? null,
+    address: body.address ?? null,
+    isActive: body.isActive ?? true,
+  };
+
+  if (normalizedFunctions !== undefined) {
+    payload.functions = normalizedFunctions;
+  } else if (body.functions !== undefined) {
+    payload.functions = body.functions;
+  }
+
+  return payload;
+};
 
 const enrichOutletFunctions = async (outlet) => {
   if (!outlet?.functions?.length) {
@@ -194,6 +236,7 @@ module.exports = {
   brandCategoryIncludes,
   validateFunctions,
   validateBrandCategories,
+  validateOutletCode,
   syncBrandCategories,
   buildOutletPayload,
   enrichOutletFunctions,

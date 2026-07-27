@@ -5,8 +5,9 @@ const {
   KeyContact,
   DealerProfile,
 } = require("../../../database/models");
-const Validator = require("validatorjs")
+const Validator = require("validatorjs");
 
+const getDealerId = (req) => req.auth.id;
 
 /*
 @API: GET /dealer/contact-persons
@@ -15,10 +16,10 @@ const Validator = require("validatorjs")
 */
 exports.getContactPersons = async (req, res) => {
     try {
-        const { id } = req.auth.id;
+        const dealerId = getDealerId(req);
         const contactPersons = await KeyContact.findAll({ 
             attributes: ["id", "name", "email", "phone","designation","isActive"],
-            where: { dealerId: id } 
+            where: { dealerId } 
         });
         return res.apiSuccess("Contact persons fetched successfully", contactPersons);
     } catch (error) {
@@ -39,7 +40,7 @@ exports.getContactPersons = async (req, res) => {
 */
 exports.createContactPerson = async (req, res) => {
     try {
-        const { id } = req.auth.id;
+        const dealerId = getDealerId(req);
 
         const validator = new Validator(req.body, {
             name: "required|string",
@@ -51,7 +52,7 @@ exports.createContactPerson = async (req, res) => {
         if (validator.fails()) {
             return res.apiError(validator.errors.all(), 400);   
         }
-        await KeyContact.create({ dealerId: id,isActive: true, ...req.body });
+        await KeyContact.create({ dealerId, isActive: true, ...req.body });
         return res.apiSuccess("Contact person created successfully");
     } catch (error) {
         return res.apiError(error.message, 500, error);
@@ -71,7 +72,7 @@ exports.createContactPerson = async (req, res) => {
 */
 exports.updateContactPerson = async (req, res) => {
     try {
-        const { id } = req.auth.id;
+        const dealerId = getDealerId(req);
 
         const validator = new Validator(req.body, {
             name: "required|string",
@@ -85,7 +86,7 @@ exports.updateContactPerson = async (req, res) => {
             return res.apiError(validator.errors.all(), 400);   
         }
 
-        await KeyContact.update({ ...req.body }, { where: { id : req.params.id , dealerId: id } });
+        await KeyContact.update({ ...req.body }, { where: { id: req.params.id, dealerId } });
         return res.apiSuccess("Contact person updated successfully");
     } catch (error) {
         return res.apiError(error.message, 500, error);
@@ -99,8 +100,8 @@ exports.updateContactPerson = async (req, res) => {
 */
 exports.deleteContactPerson = async (req, res) => {
     try {
-        const { id } = req.auth.id;
-        await KeyContact.destroy({ where: { id : req.params.id , dealerId: id } });
+        const dealerId = getDealerId(req);
+        await KeyContact.destroy({ where: { id: req.params.id, dealerId } });
         return res.apiSuccess("Contact person deleted successfully");
     } catch (error) {
         return res.apiError(error.message, 500, error);
@@ -119,8 +120,11 @@ exports.deleteContactPerson = async (req, res) => {
 */
 exports.updateContactPersonStatus = async (req, res) => {
     try {
-        const { id } = req.auth.id;
-        await KeyContact.update({ isActive: req.body.isActive }, { where: { id : req.params.id , dealerId: id } });
+        const dealerId = getDealerId(req);
+        await KeyContact.update(
+            { isActive: req.body.isActive },
+            { where: { id: req.params.id, dealerId } },
+        );
         return res.apiSuccess("Contact person status updated successfully");
     } catch (error) {
         return res.apiError(error.message, 500, error);

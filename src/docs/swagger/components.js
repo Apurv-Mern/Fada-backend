@@ -101,6 +101,23 @@
  *           type: integer
  *         inactiveEmployees:
  *           type: integer
+ *     DealerStatsResponse:
+ *       type: object
+ *       properties:
+ *         totalDealers:
+ *           type: integer
+ *         totalTemporaryDealers:
+ *           type: integer
+ *         totalApprovedDealers:
+ *           type: integer
+ *         totalRejectedDealers:
+ *           type: integer
+ *         totalPendingDealers:
+ *           type: integer
+ *         totalActiveDealers:
+ *           type: integer
+ *         totalInactiveDealers:
+ *           type: integer
  *     DealerUser:
  *       type: object
  *       properties:

@@ -11,6 +11,7 @@ const {
   brandCategoryIncludes,
   validateFunctions,
   validateBrandCategories,
+  validateOutletCode,
   syncBrandCategories,
   buildOutletPayload,
   enrichOutletFunctions,
@@ -159,6 +160,13 @@ exports.createOutlet = async (req, res) => {
     if (!functionsResult.valid) return;
     if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
 
+    const codeResult = await validateOutletCode({
+      code: req.body.code,
+      dealerId: req.body.dealerId,
+      res,
+    });
+    if (!codeResult.valid) return;
+
     const dealer = await Dealer.findByPk(req.body.dealerId);
     if (!dealer) {
       return res.apiError("Company not found", 404);
@@ -168,7 +176,7 @@ exports.createOutlet = async (req, res) => {
 
     await sequelize.transaction(async (transaction) => {
       const createdOutlet = await Outlet.create(
-        buildOutletPayload(req.body, req.body.dealerId),
+        buildOutletPayload(req.body, req.body.dealerId, functionsResult.normalized),
         {
         transaction,
       });
@@ -208,9 +216,11 @@ exports.updateOutlet = async (req, res) => {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
+    let normalizedFunctions;
     if (req.body.functions !== undefined) {
       const functionsResult = await validateFunctions(req.body.functions, res);
       if (!functionsResult.valid) return;
+      normalizedFunctions = functionsResult.normalized;
     }
 
     if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
@@ -225,9 +235,17 @@ exports.updateOutlet = async (req, res) => {
       return res.apiError("Company not found", 404);
     }
 
+    const codeResult = await validateOutletCode({
+      code: req.body.code,
+      dealerId: req.body.dealerId,
+      excludeOutletId: existingOutlet.id,
+      res,
+    });
+    if (!codeResult.valid) return;
+
     await sequelize.transaction(async (transaction) => {
       await existingOutlet.update(
-        buildOutletPayload(req.body, req.body.dealerId),
+        buildOutletPayload(req.body, req.body.dealerId, normalizedFunctions),
         { transaction }
       );
 
@@ -271,6 +289,7 @@ exports.deleteOutlet = async (req, res) => {
         where: { outletId: outlet.id },
         transaction,
       });
+      await outlet.update({ code: null }, { transaction });
       await outlet.destroy({ transaction });
     });
 

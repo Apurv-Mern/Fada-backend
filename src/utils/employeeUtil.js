@@ -168,10 +168,10 @@ const validateAssignment = async (assignment, res, dealerId = null) => {
     return { valid: false };
   }
 
-  if (parsed.data.outletId) {
+  /* if (assignment.outletId) {
     const outlet = await Outlet.findOne({
       where: {
-        id: parsed.data.outletId,
+        id: assignment.outletId,
         dealerId: resolvedDealerId,
       },
     });
@@ -180,7 +180,7 @@ const validateAssignment = async (assignment, res, dealerId = null) => {
       res.apiError("Branch not found for the selected dealership", 404);
       return { valid: false };
     }
-  }
+  } */
 
   return {
     valid: true,

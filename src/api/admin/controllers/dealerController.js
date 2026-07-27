@@ -48,14 +48,50 @@ const findKeyContactByDealerId = async (dealerId) =>
   KeyContact.findOne({
     where: { dealerId },
   });
+
 /*
-@API: GET /admin/dealers?search=searchTerm&limit=limit&offset=offset
+@API: GET /admin/dealers/stats
+@Desc: Get the stats of dealers
+@Access: Private     
+*/
+exports.getDealerStats = async (req, res) => {
+  try {
+
+    const [totalDealers, totalTemporaryDealers, totalApprovedDealers, totalRejectedDealers, 
+      totalPendingDealers, totalActiveDealers, totalInactiveDealers] = await Promise.all([
+      Dealer.count(),
+      Dealer.count({ where: { status: "temporary" } }),
+      Dealer.count({ where: { status: "approved" } }),
+      Dealer.count({ where: { status: "rejected" } }),
+      Dealer.count({ where: { status: "pending" } }),
+      Dealer.count({ where: { isActive: true } }),
+      Dealer.count({ where: { isActive: false } }),
+    ]);
+ 
+    return res.apiSuccess("Dealer stats fetched successfully", {
+      totalDealers: totalDealers,
+      totalTemporaryDealers: totalTemporaryDealers,
+      totalApprovedDealers: totalApprovedDealers,
+      totalRejectedDealers: totalRejectedDealers,
+      totalPendingDealers: totalPendingDealers,
+      totalActiveDealers: totalActiveDealers,
+      totalInactiveDealers: totalInactiveDealers,
+    }); 
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+
+/*
+@API: GET /admin/dealers?search=searchTerm&limit=limit&offset=offset&status=status&isActive=
 @Desc: Get all dealers
 @Access: Private     
 */
 exports.getDealers = async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, status, isActive } = req.query;
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
@@ -69,6 +105,14 @@ exports.getDealers = async (req, res) => {
           ],
         }
       : {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (isActive) {
+      where.isActive = Boolean(isActive === "true");
+    }
 
     const { rows: dealers, count: total } = await Dealer.findAndCountAll({
       attributes: dealerAttributes,
