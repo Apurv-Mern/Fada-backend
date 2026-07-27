@@ -177,4 +177,225 @@
  *           type: string
  *         isActive:
  *           type: boolean
+ *     AdminDealerDetailResponse:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         dealerCode:
+ *           type: string
+ *         email:
+ *           type: string
+ *         phone:
+ *           type: string
+ *         profilePicture:
+ *           type: string
+ *           nullable: true
+ *         status:
+ *           type: string
+ *           enum: [temporary, pending, approved, rejected]
+ *         isActive:
+ *           type: boolean
+ *         isEmailVerified:
+ *           type: boolean
+ *         registeredAt:
+ *           type: string
+ *           format: date-time
+ *         lastUpdatedAt:
+ *           type: string
+ *           format: date-time
+ *         businessProfile:
+ *           $ref: '#/components/schemas/DealerProfileDetails'
+ *         registeredAddress:
+ *           type: object
+ *           nullable: true
+ *           properties:
+ *             address:
+ *               type: string
+ *             city:
+ *               type: string
+ *             state:
+ *               type: string
+ *             pinCode:
+ *               type: string
+ *             country:
+ *               type: string
+ *             gstNumber:
+ *               type: string
+ *             fullAddress:
+ *               type: string
+ *         primaryContact:
+ *           type: object
+ *           nullable: true
+ *           properties:
+ *             name:
+ *               type: string
+ *             designation:
+ *               type: string
+ *             phone:
+ *               type: string
+ *             email:
+ *               type: string
+ *         contacts:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/KeyContact'
+ *         documents:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/DealerBusinessDocumentItem'
+ *         summary:
+ *           type: object
+ *           properties:
+ *             contactsCount:
+ *               type: integer
+ *             totalOutlets:
+ *               type: integer
+ *             totalActiveEmployees:
+ *               type: integer
+ *             documents:
+ *               type: object
+ *               properties:
+ *                 totalRequired:
+ *                   type: integer
+ *                 totalUploaded:
+ *                   type: integer
+ *                 approved:
+ *                   type: integer
+ *                 pending:
+ *                   type: integer
+ *                 rejected:
+ *                   type: integer
+ *     DealerDocumentUpload:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         documentUrl:
+ *           type: string
+ *         status:
+ *           type: string
+ *           enum: [pending, approved, rejected]
+ *         isVerified:
+ *           type: boolean
+ *         uploadedAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     DealerBusinessDocumentItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         category:
+ *           type: string
+ *         notes:
+ *           type: string
+ *         isMandatory:
+ *           type: boolean
+ *         isVerificationRequired:
+ *           type: boolean
+ *         isUploaded:
+ *           type: boolean
+ *         upload:
+ *           $ref: '#/components/schemas/DealerDocumentUpload'
+ *     DealerBusinessDocumentUploadRequest:
+ *       type: object
+ *       required: [documentId, documentUrl]
+ *       properties:
+ *         documentId:
+ *           type: integer
+ *         documentUrl:
+ *           type: string
+ *           example: http://localhost:3005/uploads/file.png
+ *     OutletBrandCategoryInput:
+ *       type: object
+ *       required: [brandId]
+ *       properties:
+ *         brandId:
+ *           type: integer
+ *         vehicleClassId:
+ *           type: integer
+ *           nullable: true
+ *     DealerOutletCreateRequest:
+ *       type: object
+ *       required: [name]
+ *       properties:
+ *         name:
+ *           type: string
+ *         code:
+ *           type: string
+ *         manager:
+ *           type: string
+ *         pinCode:
+ *           type: string
+ *         city:
+ *           type: string
+ *         state:
+ *           type: string
+ *         address:
+ *           type: string
+ *         functions:
+ *           type: array
+ *           items:
+ *             oneOf:
+ *               - type: string
+ *               - type: integer
+ *         brandCategories:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/OutletBrandCategoryInput'
+ *         isActive:
+ *           type: boolean
+ *     DealerEmployeeAssignmentInput:
+ *       type: object
+ *       properties:
+ *         outletId:
+ *           type: integer
+ *           nullable: true
+ *         startDate:
+ *           type: string
+ *           format: date
+ *         endDate:
+ *           type: string
+ *           format: date
+ *           nullable: true
+ *         isActive:
+ *           type: boolean
+ *     DealerEmployeeCreateRequest:
+ *       type: object
+ *       required: [name]
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         score:
+ *           type: integer
+ *         joinedDate:
+ *           type: string
+ *           format: date
+ *         isActive:
+ *           type: boolean
+ *         designation:
+ *           $ref: '#/components/schemas/EmployeeDesignationInput'
+ *         assignment:
+ *           $ref: '#/components/schemas/DealerEmployeeAssignmentInput'
+ *     FileUploadResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *         file:
+ *           type: string
+ *           description: Public URL of uploaded file
  */

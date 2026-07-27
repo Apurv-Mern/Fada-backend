@@ -10,7 +10,7 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 const { addEmailJob } = require("./queues");
 const app = express();
-
+const upload = require("./utils/fileUtil");
 /**
  * If you're behind Nginx or a reverse proxy,
  * keep this enabled. It is also required for
@@ -69,7 +69,7 @@ app.use(
   })
 );
 
-
+app.use("/uploads", express.static(upload.uploadsDir));
 
 /**
  * Middlewares
@@ -142,6 +142,12 @@ app.post("/test-email", async (req, res) => {
 });
 
 
+app.post("/file-upload", upload.single("file"), (req, res) => {
+  res.json({
+    success: true,
+    file: process.env.API_URL + "/uploads/" + req.file.filename,
+  });
+});
 
 
 /**

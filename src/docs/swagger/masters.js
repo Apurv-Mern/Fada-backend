@@ -43,7 +43,7 @@
  *                 type: string
  *               appliesTo:
  *                 type: string
- *                 enum: [employee, dealer]
+ *                 enum: [employee, dealer, both]
  *               isActive:
  *                 type: boolean
  *               sortOrder:
@@ -368,28 +368,6 @@
  *     responses:
  *       200:
  *         description: Organization structures fetched
- */
-
-/**
- * @swagger
- * /health:
- *   get:
- *     tags: [System]
- *     summary: Health check
- *     responses:
- *       200:
- *         description: Server is healthy
- */
-
-/**
- * @swagger
- * /api:
- *   get:
- *     tags: [System]
- *     summary: API status
- *     responses:
- *       200:
- *         description: Server running
  */
 
 /**

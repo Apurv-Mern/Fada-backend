@@ -78,6 +78,15 @@
  *     responses:
  *       200:
  *         description: Dealer fetched
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AdminDealerDetailResponse'
  *   put:
  *     tags: [Admin Dealers]
  *     summary: Update dealer
@@ -328,4 +337,74 @@
  *         description: Key contact deleted
  *       404:
  *         description: Key contact not found
+ */
+
+/**
+ * @swagger
+ * /admin/dealers/{dealerId}/business-documents:
+ *   get:
+ *     tags: [Admin Dealers]
+ *     summary: Get dealer business documents
+ *     description: Returns document master list with dealer upload status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: dealerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Business documents fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/DealerBusinessDocumentItem'
+ */
+
+/**
+ * @swagger
+ * /admin/dealers/{dealerId}/business-documents/{dealerDocumentId}/verify:
+ *   put:
+ *     tags: [Admin Dealers]
+ *     summary: Verify dealer business document
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: dealerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: dealerDocumentId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [pending, approved, rejected]
+ *     responses:
+ *       200:
+ *         description: Document status updated successfully
+ *       404:
+ *         description: Dealer document not found
+ *       422:
+ *         description: Validation error
  */

@@ -30,10 +30,13 @@ const options = {
   },
   apis: [
     "./src/docs/swagger/components.js",
+    "./src/docs/swagger/common.js",
     "./src/docs/swagger/auth.js",
     "./src/docs/swagger/admin.js",
     "./src/docs/swagger/masters.js",
     "./src/docs/swagger/dealers.js",
+    "./src/docs/swagger/outlets.js",
+    "./src/docs/swagger/employees.js",
   ],
 };
 

@@ -201,12 +201,12 @@ exports.dealerLogin = async (req, res) => {
       );
     }
 
-    if (!dealer.isActive && dealer.status !== "temporary") {
+    /* if (!dealer.isActive && dealer.status !== "temporary") {
       return res.apiError(
         "Your account is not active. Please activate your account to login",
         403,
       );
-    }
+    } */
 
     const isPasswordValid = await comparePassword(password, dealer.password);
     if (!isPasswordValid) {
