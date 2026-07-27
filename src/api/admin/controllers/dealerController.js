@@ -61,13 +61,13 @@ exports.getDealers = async (req, res) => {
 
     const where = search
       ? {
-          [Op.or]: [
-            { name: { [Op.like]: `%${search}%` } },
-            { dealerCode: { [Op.like]: `%${search}%` } },
-            { email: { [Op.like]: `%${search}%` } },
-            { phone: { [Op.like]: `%${search}%` } },
-          ],
-        }
+        [Op.or]: [
+          { name: { [Op.like]: `%${search}%` } },
+          { dealerCode: { [Op.like]: `%${search}%` } },
+          { email: { [Op.like]: `%${search}%` } },
+          { phone: { [Op.like]: `%${search}%` } },
+        ],
+      }
       : {};
 
     const { rows: dealers, count: total } = await Dealer.findAndCountAll({
@@ -161,7 +161,7 @@ exports.getDealerById = async (req, res) => {
         }, */
       ],
     });
- 
+
     if (!dealer) {
       return res.apiError("Dealer not found", 404);
     }
