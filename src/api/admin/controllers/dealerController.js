@@ -1,4 +1,5 @@
 const {
+  sequelize,
   Dealer,
   DealerLocation,
   KeyContact,
@@ -115,7 +116,17 @@ exports.getDealers = async (req, res) => {
     }
 
     const { rows: dealers, count: total } = await Dealer.findAndCountAll({
-      attributes: dealerAttributes,
+      attributes: ["id", "name","email","phone", "dealerCode","brands","isGroupHoldingEntity","parentDealerId",
+        "status","isActive","isEmailVerified",
+        [
+          sequelize.literal(`(
+            SELECT COUNT(*)
+            FROM Outlets
+            WHERE Outlets.dealerId = Dealer.id
+          )`),
+          "outletCount",
+        ],
+      ],
       include: [
         {
           model: DealerLocation,
@@ -142,6 +153,26 @@ exports.getDealers = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
+
+
+/*
+@API: GET /admin/dealers/group-holding
+@Desc: Get all dealers group by holding
+@Access: Private     
+*/
+exports.getDealersGroupByHolding = async (req, res) => {
+  try {
+    const dealers = await Dealer.findAll({
+      attributes: ["id", "name", "dealerCode","brands"],
+       where: { isGroupHoldingEntity:  true},
+    });
+
+    return res.apiSuccess("Group holding dealers fetched successfully", dealers);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+ 
 
 /*
 @API: GET /admin/dealers/:id
@@ -242,6 +273,9 @@ exports.createDealer = async (req, res) => {
       email: "required|email",
       phone: "required|string",
       dealerCode: "required|string",
+      brands: "required|array",
+      isGroupHoldingEntity: "boolean",
+      parentCompanyId: "integer",
     });
     if (validator.fails()) {
       return res.apiError(validator.errors.all(), 400);
@@ -252,6 +286,9 @@ exports.createDealer = async (req, res) => {
       email: req.body.email,
       phone: req.body.phone,
       dealerCode: req.body.dealerCode,
+      isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
+      parentDealerId : req.body.parentCompanyId ?? null,
+      brands: req.body.brands,
     });
     return res.apiSuccess("Dealer created successfully", dealer);
   } catch (error) {
@@ -271,6 +308,9 @@ exports.updateDealer = async (req, res) => {
       email: "required|email",
       phone: "required|string",
       dealerCode: "required|string",
+      brands: "required|array",
+      isGroupHoldingEntity: "boolean",
+      parentCompanyId: "integer",
     });
     if (validator.fails()) {
       return res.apiError(validator.errors.all(), 400);
@@ -281,6 +321,9 @@ exports.updateDealer = async (req, res) => {
         email: req.body.email,
         phone: req.body.phone,
         dealerCode: req.body.dealerCode,
+        isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
+        parentDealerId : req.body.parentCompanyId ?? null,
+        brands: req.body.brands,
       },
       {
         where: { id: req.params.id },

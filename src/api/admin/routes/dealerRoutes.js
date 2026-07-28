@@ -4,6 +4,7 @@ const adminAuth = require("../../../middlewares/adminAuth");
 
 router.get("/", adminAuth, dealerController.getDealers);
 router.get("/stats", adminAuth, dealerController.getDealerStats);
+router.get("/group-holding", adminAuth, dealerController.getDealersGroupByHolding);
 router.post("/", adminAuth, dealerController.createDealer);
 router.put("/:dealerId/location", adminAuth, dealerController.saveDealerLocation);
 router.get("/:dealerId/key-contact", adminAuth, dealerController.getKeyContact);

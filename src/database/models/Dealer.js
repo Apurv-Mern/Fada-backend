@@ -37,6 +37,16 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "dealerId",
         as: "documents",
       });
+
+      Dealer.belongsTo(models.Dealer, {
+        foreignKey: "parentDealerId",
+        as: "parentDealer",
+      });
+
+      Dealer.hasMany(models.Dealer, {
+        foreignKey: "parentDealerId",
+        as: "childDealers",
+      });
     }
   }
   Dealer.init(
@@ -62,6 +72,20 @@ module.exports = (sequelize, DataTypes) => {
       status: {
         type: DataTypes.ENUM("temporary", "pending", "approved", "rejected"),
         defaultValue: "pending",
+      },
+      parentDealerId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      isGroupHoldingEntity: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      brands: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: [],
       },
     },
     {
