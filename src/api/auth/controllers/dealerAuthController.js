@@ -254,7 +254,7 @@ exports.dealerLogin = async (req, res) => {
       );
     }
 
-     
+
     const isPasswordValid = await comparePassword(password, dealer.password);
     if (!isPasswordValid) {
       return res.apiError("Invalid password", 401);
@@ -476,31 +476,31 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     const dealer = await Dealer.findOne({ where: { email } });
 
-    if (
-      dealer &&
-      dealer.isActive !== false &&
-      dealer.status !== "rejected" &&
-      dealer.status !== "temporary"
-    ) {
-      
-      const otp = generateOTP(6);
+    /*  if (
+       dealer &&
+       dealer.isActive !== false &&
+       dealer.status !== "rejected" &&
+       dealer.status !== "temporary"
+     ) { */
 
-      await dealer.update({
-        refreshToken: null,
+    const otp = generateOTP(6);
+
+    await dealer.update({
+      refreshToken: null,
+      otp: otp,
+    });
+
+    await addEmailJob({
+      to: dealer.email,
+      subject: "FADA-ID Dealer OTP",
+      templateName: "otp.ejs",
+      data: {
+        name: dealer.name || "Dealer",
         otp: otp,
-      });
-
-      await addEmailJob({
-        to: dealer.email,
-        subject: "FADA-ID Dealer OTP",
-        templateName: "otp.ejs",
-        data: {
-          name: dealer.name || "Dealer",
-          otp: otp,
-          purpose: "forgot-password",
-        },
-      });
-    }
+        purpose: "forgot-password",
+      },
+    });
+    /*  } */
 
     return res.apiSuccess(
       "If an account exists with this email, an OTP has been sent to your email",
@@ -535,12 +535,12 @@ exports.verifyForgotPasswordOtp = async (req, res) => {
       return res.apiError("Invalid OTP", 401);
     }
 
-    if (
-      dealer.isActive === false ||
-      dealer.status === "rejected" ||
-      dealer.status === "temporary"
-    ) {
-      return res.apiError("Invalid OTP", 401);
+    /* if (dealer.isActive === false) {
+      return res.apiError("Account is inactive. Please contact support", 403);
+    } */
+
+    if (dealer.status === "rejected" || dealer.status === "temporary") {
+      return res.apiError(dealer.status === "rejected" ? "Your account has been rejected" : "Your account is not verified", 401);
     }
 
     if (!dealer.otp) {
@@ -610,13 +610,13 @@ exports.resetPassword = async (req, res) => {
       return res.apiError("Dealer not found", 404);
     }
 
-    if (
+    /* if (
       dealer.isActive === false ||
       dealer.status === "rejected" ||
       dealer.status === "temporary"
     ) {
       return res.apiError("Account is not eligible for password reset", 403);
-    }
+    } */
 
     if (dealer.email !== payload.email) {
       return res.apiError("Invalid or expired reset token", 401);
@@ -766,11 +766,11 @@ exports.verifyLoginOtp = async (req, res) => {
       refreshToken,
     };
 
-    if (dealer.status === "temporary") {
-      dealerData.status = "pending";
-      dealerData.isEmailVerified = true;
-      dealerData.isActive = true;
-    }
+    /* if (dealer.status === "temporary") { */
+    dealerData.status = "pending";
+    dealerData.isEmailVerified = true;
+    dealerData.isActive = true;
+    /*  } */
 
     await dealer.update(dealerData);
 
