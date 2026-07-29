@@ -4,10 +4,14 @@ const masterRoutes = require("./masterRoutes");
 const outletRoutes = require("./outletRoutes");
 const employeeRoutes = require("./employeeRoutes");
 const auth = require("../../../middlewares/adminAuth");
-
+const dashboardRoutes = require("./dashboardRoutes");
+const scoreRuleRoutes = require("./scoreRuleRoutes");
+const scoreStageRoutes = require("./scoreStageRoutes");
 router.use("/dealers", auth, dealerRoutes);
 router.use("/masters", auth, masterRoutes);
 router.use("/outlets", auth, outletRoutes);
 router.use("/employees", auth, employeeRoutes);
-
+router.use("/dashboard", auth, dashboardRoutes);
+router.use("/score-rules", auth, scoreRuleRoutes);
+router.use("/score-stages", auth, scoreStageRoutes);
 module.exports = router;

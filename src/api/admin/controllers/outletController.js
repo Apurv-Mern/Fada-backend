@@ -9,8 +9,10 @@ const {
 } = require("../../../database/models");
 const {
   brandCategoryIncludes,
+  brandIncludes,
   validateFunctions,
   validateBrandCategories,
+  validateBrandId,
   validateOutletCode,
   syncBrandCategories,
   buildOutletPayload,
@@ -26,6 +28,7 @@ const outletValidationRules = {
   city: "string",
   state: "string",
   address: "string",
+  brandId: "integer",
   isActive: "boolean",
 };
 
@@ -35,7 +38,8 @@ const outletIncludes = [
     as: "company",
     attributes: ["id", "name", "dealerCode"],
   },
-  ...brandCategoryIncludes,
+  
+  ...brandIncludes,
 ];
 
 const findOutletOrError = async (outletId, res, transaction) => {
@@ -53,13 +57,13 @@ const findOutletOrError = async (outletId, res, transaction) => {
 };
 
 /*
-@API: GET /admin/outlets?search=&dealerId=&isActive=&limit=&offset=
+@API: GET /admin/outlets?search=&dealerId=&isActive=&limit=&offset=&brandId=
 @Desc: Get all outlets
 @Access: Private
 */
 exports.getOutlets = async (req, res) => {
   try {
-    const { search, dealerId, isActive } = req.query;
+    const { search, dealerId, isActive, brandId } = req.query;
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
@@ -71,6 +75,10 @@ exports.getOutlets = async (req, res) => {
 
     if (isActive !== undefined) {
       where.isActive = isActive === "true" || isActive === "1";
+    }
+
+    if (brandId) {
+      where.brandId = brandId;
     }
 
     if (search) {
@@ -159,6 +167,7 @@ exports.createOutlet = async (req, res) => {
     const functionsResult = await validateFunctions(req.body.functions ?? [], res);
     if (!functionsResult.valid) return;
     if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
+    if (!(await validateBrandId(req.body.brandId, res))) return;
 
     const codeResult = await validateOutletCode({
       code: req.body.code,
@@ -181,11 +190,11 @@ exports.createOutlet = async (req, res) => {
         transaction,
       });
 
-      await syncBrandCategories(
+     /*  await syncBrandCategories(
         createdOutlet.id,
         req.body.brandCategories,
         transaction
-      );
+      ); */
 
       outletId = createdOutlet.id;
     });
@@ -224,6 +233,7 @@ exports.updateOutlet = async (req, res) => {
     }
 
     if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
+    if (!(await validateBrandId(req.body.brandId, res))) return;
 
     const existingOutlet = await Outlet.findByPk(req.params.id);
     if (!existingOutlet) {
@@ -249,13 +259,13 @@ exports.updateOutlet = async (req, res) => {
         { transaction }
       );
 
-      if (req.body.brandCategories !== undefined) {
+      /* if (req.body.brandCategories !== undefined) {
         await syncBrandCategories(
           existingOutlet.id,
           req.body.brandCategories,
           transaction
         );
-      }
+      } */
     });
 
     const outlet = await Outlet.findByPk(existingOutlet.id, {
@@ -294,6 +304,25 @@ exports.deleteOutlet = async (req, res) => {
     });
 
     return res.apiSuccess("Outlet deleted successfully");
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+/*
+@API: PUT /admin/outlets/:id/active-inactive
+@Desc: Activate/deactivate an outlet
+@Access: Private
+*/
+exports.activeInactiveOutlets = async (req, res) => {
+  try {
+    const outlet = await Outlet.findByPk(req.params.id);
+    if (!outlet) {
+      return res.apiError("Outlet not found", 404);
+    }
+    await outlet.update({ isActive: !outlet.isActive });
+    return res.apiSuccess(outlet.isActive ? "Outlet activated successfully" : "Outlet deactivated successfully");
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

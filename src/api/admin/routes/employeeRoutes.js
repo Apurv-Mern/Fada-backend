@@ -8,5 +8,5 @@ router.post("/", employeeController.createEmployee);
 router.put("/:id/status/:status", employeeController.updateEmployeeStatus);
 router.put("/:id", employeeController.updateEmployee);
 router.delete("/:id", employeeController.deleteEmployee);
-
+router.put("/:id/active-inactive", employeeController.activeInactiveEmployee);
 module.exports = router;

@@ -242,6 +242,140 @@
 
 /**
  * @swagger
+ * /dealer/auth/forgot-password:
+ *   post:
+ *     tags: [Dealer Auth]
+ *     summary: "Forgot password — Step 1: Request OTP"
+ *     description: |
+ *       Starts the dealer forgot-password flow. Sends a 6-digit OTP to the dealer email if the account exists and is eligible (active, not rejected, not temporary).
+ *
+ *       **Flow:**
+ *       1. `POST /dealer/auth/forgot-password` — request OTP
+ *       2. `POST /dealer/auth/forgot-password/verify-otp` — verify OTP, receive resetToken
+ *       3. `POST /dealer/auth/forgot-password/reset` — set new password
+ *       4. `POST /dealer/auth/login` — login with new password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerForgotPasswordRequest'
+ *     responses:
+ *       200:
+ *         description: Generic success message (does not reveal whether email exists)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *             example:
+ *               success: true
+ *               message: If an account exists with this email, an OTP has been sent to your email
+ *               data: null
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /dealer/auth/forgot-password/verify-otp:
+ *   post:
+ *     tags: [Dealer Auth]
+ *     summary: "Forgot password — Step 2: Verify OTP"
+ *     description: |
+ *       Validates the OTP from Step 1. Does not log in or reset the password.
+ *       Returns a short-lived `resetToken` (15 minutes) for Step 3.
+ *       OTP is cleared after successful verification (one-time use).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerVerifyForgotPasswordOtpRequest'
+ *     responses:
+ *       200:
+ *         description: OTP verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DealerVerifyForgotPasswordOtpResponse'
+ *       400:
+ *         description: No OTP found — request a new one via forgot-password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       401:
+ *         description: Invalid OTP or ineligible account
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /dealer/auth/forgot-password/reset:
+ *   post:
+ *     tags: [Dealer Auth]
+ *     summary: "Forgot password — Step 3: Reset password"
+ *     description: |
+ *       Sets a new password using the `resetToken` from Step 2.
+ *       Clears refresh tokens and forces re-login with the new password.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerResetPasswordRequest'
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *             example:
+ *               success: true
+ *               message: Password reset successfully
+ *               data: null
+ *       401:
+ *         description: Invalid or expired reset token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       403:
+ *         description: Account not eligible for password reset
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       404:
+ *         description: Dealer not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       422:
+ *         description: Validation error or new password same as current
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ */
+
+/**
+ * @swagger
  * /dealer/auth/login-otp:
  *   post:
  *     tags: [Dealer Auth]
@@ -386,6 +520,7 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Register employee
+ *     description: Creates a temporary employee account and sends a 6-digit OTP to email. FADA ID is auto-generated.
  *     requestBody:
  *       required: true
  *       content:
@@ -408,9 +543,34 @@
  *                 enum: [male, female, other]
  *     responses:
  *       200:
- *         description: Employee registered, FADA ID generated
+ *         description: Employee registered, OTP sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         fadaId:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                           format: email
  *       409:
  *         description: Email already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
  */
 
 /**
@@ -419,6 +579,7 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Verify employee registration OTP
+ *     description: Verifies registration OTP and returns access token. Status moves from temporary to pending.
  *     requestBody:
  *       required: true
  *       content:
@@ -432,9 +593,29 @@
  *                 format: email
  *               otp:
  *                 type: string
+ *                 minLength: 4
+ *                 maxLength: 8
  *     responses:
  *       200:
- *         description: OTP verified
+ *         description: OTP verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         accessToken:
+ *                           type: string
+ *       400:
+ *         description: OTP verification not required or OTP missing
+ *       401:
+ *         description: Invalid OTP
+ *       404:
+ *         description: Employee not found
  */
 
 /**
@@ -443,6 +624,7 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Employee password login
+ *     description: Accepts email or 10-digit phone number with password.
  *     requestBody:
  *       required: true
  *       content:
@@ -453,11 +635,26 @@
  *             properties:
  *               email:
  *                 type: string
+ *                 description: Employee email or 10-digit phone number
+ *                 example: employee@example.com
  *               password:
  *                 type: string
+ *                 minLength: 6
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmployeeLoginResponse'
+ *       401:
+ *         description: Invalid password
+ *       403:
+ *         description: Account rejected or inactive
+ *       404:
+ *         description: Employee not found or password not set
+ *       422:
+ *         description: Validation error
  */
 
 /**
@@ -466,6 +663,7 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Send OTP for employee login
+ *     description: Sends a 6-digit OTP to employee email or phone for passwordless login.
  *     requestBody:
  *       required: true
  *       content:
@@ -476,9 +674,21 @@
  *             properties:
  *               email:
  *                 type: string
+ *                 description: Employee email or 10-digit phone number
+ *                 example: employee@example.com
  *     responses:
  *       200:
- *         description: OTP sent
+ *         description: OTP sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       403:
+ *         description: Registration incomplete or account rejected
+ *       404:
+ *         description: Employee not found
+ *       422:
+ *         description: Email or phone is required
  */
 
 /**
@@ -497,11 +707,28 @@
  *             properties:
  *               email:
  *                 type: string
+ *                 description: Employee email or 10-digit phone number
  *               otp:
  *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 6
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmployeeOtpLoginResponse'
+ *       400:
+ *         description: No OTP found
+ *       401:
+ *         description: Invalid OTP
+ *       403:
+ *         description: Registration incomplete or account rejected
+ *       404:
+ *         description: Employee not found
+ *       422:
+ *         description: Validation error
  */
 
 /**
@@ -510,9 +737,26 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Refresh employee access token
+ *     description: Requires refreshToken HttpOnly cookie from login
  *     responses:
  *       200:
  *         description: Token refreshed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         accessToken:
+ *                           type: string
+ *       401:
+ *         description: Refresh token missing or invalid
+ *       403:
+ *         description: Invalid refresh token
  */
 
 /**
@@ -521,9 +765,14 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Employee logout
+ *     description: Clears refreshToken cookie and invalidates session
  *     responses:
  *       200:
  *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
  */
 
 /**

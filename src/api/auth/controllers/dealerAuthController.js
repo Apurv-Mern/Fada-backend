@@ -3,11 +3,13 @@ const { Dealer } = require("../../../database/models");
 const {
   comparePassword,
   hashPassword,
+  generateTempPassword,
 } = require("../../../utils/passwordUtil");
 const {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
+  verifyAccessToken,
 } = require("../../../utils/jwtUtil");
 const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
 const { addEmailJob, addSmsJob } = require("../../../queues");
@@ -298,6 +300,7 @@ exports.dealerLogin = async (req, res) => {
         status: dealer.status,
         isEmailVerified: dealer.isEmailVerified,
         isActive: dealer.isActive,
+        mustChangePassword: dealer.mustChangePassword,
         createdAt: dealer.createdAt,
         updatedAt: dealer.updatedAt,
       },
@@ -445,9 +448,198 @@ exports.changePassword = async (req, res) => {
 
     await dealer.update({
       password: await hashPassword(newPassword),
+      mustChangePassword: false,
     });
 
     return res.apiSuccess("Password changed successfully");
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /dealer/auth/forgot-password
+@Body: { email }
+@Desc: Send OTP to dealer email for password reset
+@Access: Public
+*/
+exports.forgotPassword = async (req, res) => {
+  try {
+    const validator = new Validator(req.body, {
+      email: "required|email",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const { email } = req.body;
+    const dealer = await Dealer.findOne({ where: { email } });
+
+    if (
+      dealer &&
+      dealer.isActive !== false &&
+      dealer.status !== "rejected" &&
+      dealer.status !== "temporary"
+    ) {
+      
+      const otp = generateOTP(6);
+
+      await dealer.update({
+        refreshToken: null,
+        otp: otp,
+      });
+
+      await addEmailJob({
+        to: dealer.email,
+        subject: "FADA-ID Dealer OTP",
+        templateName: "otp.ejs",
+        data: {
+          name: dealer.name || "Dealer",
+          otp: otp,
+          purpose: "forgot-password",
+        },
+      });
+    }
+
+    return res.apiSuccess(
+      "If an account exists with this email, an OTP has been sent to your email",
+    );
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /dealer/auth/forgot-password/verify-otp
+@Body: { email, otp }
+@Desc: Verify forgot password OTP only (does not login or reset password)
+@Access: Public
+*/
+exports.verifyForgotPasswordOtp = async (req, res) => {
+  try {
+    const validator = new Validator(req.body, {
+      email: "required|email",
+      otp: "required|string|size:6",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const { email, otp } = req.body;
+
+    const dealer = await Dealer.findOne({ where: { email } });
+
+    if (!dealer) {
+      return res.apiError("Invalid OTP", 401);
+    }
+
+    if (
+      dealer.isActive === false ||
+      dealer.status === "rejected" ||
+      dealer.status === "temporary"
+    ) {
+      return res.apiError("Invalid OTP", 401);
+    }
+
+    if (!dealer.otp) {
+      return res.apiError("No OTP found. Please request a new OTP", 400);
+    }
+
+    if (String(dealer.otp) !== String(otp)) {
+      return res.apiError("Invalid OTP", 401);
+    }
+
+    const resetToken = generateAccessToken(
+      {
+        id: dealer.id,
+        email: dealer.email,
+        role: "dealer",
+        purpose: "password-reset",
+      },
+      "15m",
+    );
+
+    await dealer.update({ otp: null });
+
+    return res.apiSuccess("OTP verified successfully", null, { resetToken });
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /dealer/auth/forgot-password/reset
+@Body: { resetToken, newPassword, confirmPassword }
+@Desc: Reset dealer password using reset token from OTP verification
+@Access: Public
+*/
+exports.resetPassword = async (req, res) => {
+  try {
+    const validator = new Validator(req.body, {
+      resetToken: "required|string",
+      newPassword: "required|string|min:6",
+      confirmPassword: "required|string|same:newPassword",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const { resetToken, newPassword } = req.body;
+
+    let payload;
+    try {
+      payload = verifyAccessToken(resetToken);
+    } catch {
+      return res.apiError("Invalid or expired reset token", 401);
+    }
+
+    if (
+      payload.role !== "dealer" ||
+      payload.purpose !== "password-reset" ||
+      !payload.id
+    ) {
+      return res.apiError("Invalid or expired reset token", 401);
+    }
+
+    const dealer = await Dealer.findByPk(payload.id);
+
+    if (!dealer) {
+      return res.apiError("Dealer not found", 404);
+    }
+
+    if (
+      dealer.isActive === false ||
+      dealer.status === "rejected" ||
+      dealer.status === "temporary"
+    ) {
+      return res.apiError("Account is not eligible for password reset", 403);
+    }
+
+    if (dealer.email !== payload.email) {
+      return res.apiError("Invalid or expired reset token", 401);
+    }
+
+    if (dealer.password) {
+      const isSamePassword = await comparePassword(newPassword, dealer.password);
+      if (isSamePassword) {
+        return res.apiError(
+          "New password must be different from current password",
+          422,
+        );
+      }
+    }
+
+    await dealer.update({
+      password: await hashPassword(newPassword),
+      mustChangePassword: false,
+      refreshToken: null,
+      otp: null,
+    });
+
+    return res.apiSuccess("Password reset successfully");
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
   }

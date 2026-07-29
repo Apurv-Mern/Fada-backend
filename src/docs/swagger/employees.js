@@ -281,3 +281,31 @@
  *       404:
  *         description: Employee not found
  */
+
+/**
+ * @swagger
+ * /admin/employees/{id}/active-inactive:
+ *   put:
+ *     tags: [Admin Employees]
+ *     summary: Toggle employee active status
+ *     description: Flips the employee isActive flag (active → inactive or vice versa)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Employee active status toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       404:
+ *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
+ */

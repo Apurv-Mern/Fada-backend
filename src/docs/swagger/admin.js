@@ -20,6 +20,20 @@
  *           type: string
  *         description: Search by name, dealerCode, email, or phone
  *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [temporary, pending, approved, rejected]
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: parentDealerId
+ *         schema:
+ *           type: integer
+ *         description: Filter child dealers by parent group-holding dealer
+ *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
@@ -44,21 +58,47 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [name, email, phone, dealerCode]
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *               phone:
- *                 type: string
- *               dealerCode:
- *                 type: string
+ *             $ref: '#/components/schemas/AdminDealerUpsertRequest'
+ *           example:
+ *             name: ABC Motors
+ *             email: dealer@example.com
+ *             phone: "9876543210"
+ *             dealerCode: DLR-001
+ *             brands: [1, 2]
+ *             isGroupHoldingEntity: false
+ *             parentCompanyId: null
  *     responses:
  *       200:
  *         description: Dealer created
+ *       422:
+ *         description: Validation error or invalid brand IDs
+ */
+
+/**
+ * @swagger
+ * /admin/dealers/group-holding:
+ *   get:
+ *     tags: [Admin Dealers]
+ *     summary: Get group holding dealers
+ *     description: Returns dealers marked as group holding entities (for parent company dropdowns)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Group holding dealers fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/GroupHoldingDealerItem'
+ *       401:
+ *         description: Unauthorized
  */
 
 /**
@@ -128,20 +168,12 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [name, email, phone, dealerCode]
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               phone:
- *                 type: string
- *               dealerCode:
- *                 type: string
+ *             $ref: '#/components/schemas/AdminDealerUpsertRequest'
  *     responses:
  *       200:
  *         description: Dealer updated
+ *       422:
+ *         description: Validation error or invalid brand IDs
  *   delete:
  *     tags: [Admin Dealers]
  *     summary: Delete dealer

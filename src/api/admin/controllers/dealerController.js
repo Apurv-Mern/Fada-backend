@@ -9,6 +9,7 @@ const {
 } = require("../../../database/models");
 const { Op } = require("sequelize");
 const Validator = require("validatorjs");
+const { validateDealerBrands } = require("../../../utils/outletUtil");
 
 const dealerAttributes = {
   exclude: ["password", "otp", "refreshToken"],
@@ -92,7 +93,7 @@ exports.getDealerStats = async (req, res) => {
 */
 exports.getDealers = async (req, res) => {
   try {
-    const { search, status, isActive } = req.query;
+    const { search, status, isActive,parentDealerId } = req.query;
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
@@ -113,6 +114,10 @@ exports.getDealers = async (req, res) => {
 
     if (isActive) {
       where.isActive = Boolean(isActive === "true");
+    }
+
+    if (parentDealerId) {
+      where.parentDealerId = parentDealerId;
     }
 
     const { rows: dealers, count: total } = await Dealer.findAndCountAll({
@@ -281,6 +286,9 @@ exports.createDealer = async (req, res) => {
       return res.apiError(validator.errors.all(), 400);
     }
 
+    const brandsResult = await validateDealerBrands(req.body.brands, res);
+    if (!brandsResult.valid) return;
+
     const dealer = await Dealer.create({
       name: req.body.name,
       email: req.body.email,
@@ -288,7 +296,7 @@ exports.createDealer = async (req, res) => {
       dealerCode: req.body.dealerCode,
       isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
       parentDealerId : req.body.parentCompanyId ?? null,
-      brands: req.body.brands,
+      brands: brandsResult.normalized,
     });
     return res.apiSuccess("Dealer created successfully", dealer);
   } catch (error) {
@@ -315,6 +323,10 @@ exports.updateDealer = async (req, res) => {
     if (validator.fails()) {
       return res.apiError(validator.errors.all(), 400);
     }
+
+    const brandsResult = await validateDealerBrands(req.body.brands, res);
+    if (!brandsResult.valid) return;
+
     const dealer = await Dealer.update(
       {
         name: req.body.name,
@@ -323,7 +335,7 @@ exports.updateDealer = async (req, res) => {
         dealerCode: req.body.dealerCode,
         isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
         parentDealerId : req.body.parentCompanyId ?? null,
-        brands: req.body.brands,
+        brands: brandsResult.normalized,
       },
       {
         where: { id: req.params.id },

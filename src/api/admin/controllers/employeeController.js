@@ -10,7 +10,7 @@ const {
   Outlet,
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
-
+const dayjs = require("dayjs");
 const employeeAttributes = {
   exclude: ["password", "otp", "refreshToken", "mpin"],
 };
@@ -57,12 +57,7 @@ const employeeIncludes = [
         model: OrganizationStructure,
         as: "designation",
         attributes: ["id", "name", "slug", "flag", "level", "parentId"],
-      },
-      {
-        model: Dealer,
-        as: "dealership",
-        attributes: ["id", "name", "dealerCode"],
-      },
+      }, 
     ],
   },
   {
@@ -202,20 +197,17 @@ const syncDesignation = async (
     dealerId,
     departmentId: designation.departmentId,
     designationId: designation.designationId,
-    startDate: designation.startDate ?? joinedDate ?? null,
-    endDate: designation.endDate ?? null,
+    startDate: dayjs().format("YYYY-MM-DD"),
+    endDate:  null,
     isActive: designation.isActive ?? true,
   };
 
   const existing = await EmployeeDesignation.findOne({
-    where: { employeeId },
+    where: { employeeId,departmentId: designation.departmentId,designationId: designation.designationId },
     transaction,
   });
 
-  if (existing) {
-    await existing.update(payload, { transaction });
-    return;
-  }
+  await existing.update({ endDate: dayjs().format("YYYY-MM-DD"), isActive: false }, { transaction });
 
   await EmployeeDesignation.create(payload, { transaction });
 };
@@ -613,6 +605,25 @@ exports.getEmployeeStats = async (req, res) => {
       activeEmployees: activeEmployees,
       inactiveEmployees: inactiveEmployees,
     });
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+/*
+@API: PUT /admin/employees/:id/active-inactive
+@Desc: Activate/deactivate an employee
+@Access: Private
+*/
+exports.activeInactiveEmployee = async (req, res) => {
+  try {
+    const employee = await Employee.findByPk(req.params.id);
+    if (!employee) {
+      return res.apiError("Employee not found", 404);
+    }
+    await employee.update({ isActive: !employee.isActive });
+    return res.apiSuccess(employee.isActive ? "Employee activated successfully" : "Employee deactivated successfully");
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

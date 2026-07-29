@@ -118,6 +118,151 @@
  *           type: integer
  *         totalInactiveDealers:
  *           type: integer
+ *     DashboardStatsResponse:
+ *       type: object
+ *       properties:
+ *         dealer:
+ *           type: object
+ *           properties:
+ *             total:
+ *               type: integer
+ *             active:
+ *               type: integer
+ *             inactive:
+ *               type: integer
+ *             pending:
+ *               type: integer
+ *         outlet:
+ *           type: object
+ *           properties:
+ *             total:
+ *               type: integer
+ *             active:
+ *               type: integer
+ *             inactive:
+ *               type: integer
+ *         employee:
+ *           type: object
+ *           properties:
+ *             total:
+ *               type: integer
+ *             active:
+ *               type: integer
+ *             inactive:
+ *               type: integer
+ *             pending:
+ *               type: integer
+ *         recentDealers:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/RecentDealerSummary'
+ *     RecentDealerSummary:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         dealerCode:
+ *           type: string
+ *         status:
+ *           type: string
+ *           enum: [temporary, pending, approved, rejected]
+ *         isActive:
+ *           type: boolean
+ *     AdminDealerUpsertRequest:
+ *       type: object
+ *       required: [name, email, phone, dealerCode, brands]
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         dealerCode:
+ *           type: string
+ *         brands:
+ *           type: array
+ *           description: Array of brand master IDs (multiselect)
+ *           items:
+ *             type: integer
+ *           example: [1, 2]
+ *         isGroupHoldingEntity:
+ *           type: boolean
+ *           default: false
+ *         parentCompanyId:
+ *           type: integer
+ *           nullable: true
+ *           description: Parent group-holding dealer ID
+ *     GroupHoldingDealerItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         dealerCode:
+ *           type: string
+ *         brands:
+ *           type: array
+ *           items:
+ *             type: integer
+ *     EmployeeUser:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         role:
+ *           type: string
+ *           example: employee
+ *         status:
+ *           type: string
+ *           enum: [temporary, pending, approved, rejected]
+ *     EmployeeLoginResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: Login successful
+ *         accessToken:
+ *           type: string
+ *         employee:
+ *           $ref: '#/components/schemas/EmployeeUser'
+ *     EmployeeOtpLoginResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/ApiSuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                 id:
+ *                   type: integer
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 phone:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                   example: employee
  *     DealerUser:
  *       type: object
  *       properties:
@@ -142,6 +287,9 @@
  *           type: boolean
  *         isActive:
  *           type: boolean
+ *         mustChangePassword:
+ *           type: boolean
+ *           description: True when dealer must change password (legacy temp-password flow)
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -178,6 +326,58 @@
  *                 isActive:
  *                   type: boolean
  *                   example: false
+ *     DealerForgotPasswordRequest:
+ *       type: object
+ *       required: [email]
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: dealer@example.com
+ *     DealerVerifyForgotPasswordOtpRequest:
+ *       type: object
+ *       required: [email, otp]
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: dealer@example.com
+ *         otp:
+ *           type: string
+ *           minLength: 6
+ *           maxLength: 6
+ *           example: "123456"
+ *     DealerVerifyForgotPasswordOtpResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: OTP verified successfully
+ *         resetToken:
+ *           type: string
+ *           description: Short-lived JWT (15 min) with purpose password-reset
+ *         data:
+ *           type: object
+ *           nullable: true
+ *           example: null
+ *     DealerResetPasswordRequest:
+ *       type: object
+ *       required: [resetToken, newPassword, confirmPassword]
+ *       properties:
+ *         resetToken:
+ *           type: string
+ *           description: Token returned from forgot-password/verify-otp
+ *         newPassword:
+ *           type: string
+ *           minLength: 6
+ *           example: newSecurePassword123
+ *         confirmPassword:
+ *           type: string
+ *           minLength: 6
+ *           example: newSecurePassword123
  *     DealerProfileDetails:
  *       type: object
  *       properties:

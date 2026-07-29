@@ -9,6 +9,12 @@ router.post("/login-otp", dealerAuthController.loginWithOtp);
 router.post("/login-otp/verify", dealerAuthController.verifyLoginOtp);
 router.post("/refresh-token", dealerAuthController.refreshToken);
 router.post("/logout", dealerAuthController.logout);
+router.post("/forgot-password", dealerAuthController.forgotPassword);
+router.post(
+  "/forgot-password/verify-otp",
+  dealerAuthController.verifyForgotPasswordOtp,
+);
+router.post("/forgot-password/reset", dealerAuthController.resetPassword);
 router.post("/change-password", dealerAuth, dealerAuthController.changePassword);
 
 module.exports = router;

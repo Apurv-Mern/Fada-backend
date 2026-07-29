@@ -7,8 +7,10 @@ const {
 } = require("../../../database/models");
 const {
   brandCategoryIncludes,
+  brandIncludes,
   validateFunctions,
   validateBrandCategories,
+  validateBrandId,
   validateOutletCode,
   syncBrandCategories,
   buildOutletPayload,
@@ -23,10 +25,11 @@ const outletValidationRules = {
   city: "string",
   state: "string",
   address: "string",
+  brandId: "integer",
   isActive: "boolean",
 };
 
-const outletIncludes = [...brandCategoryIncludes];
+const outletIncludes = [...brandCategoryIncludes, ...brandIncludes];
 
 const getDealerId = (req) => req.auth.id;
 
@@ -151,6 +154,7 @@ exports.createOutlet = async (req, res) => {
     const functionsResult = await validateFunctions(req.body.functions ?? [], res);
     if (!functionsResult.valid) return;
     if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
+    if (!(await validateBrandId(req.body.brandId, res))) return;
 
     const codeResult = await validateOutletCode({
       code: req.body.code,
@@ -212,6 +216,7 @@ exports.updateOutlet = async (req, res) => {
     }
 
     if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
+    if (!(await validateBrandId(req.body.brandId, res))) return;
 
     const existingOutlet = await Outlet.findOne({
       where: { id: req.params.id, dealerId },

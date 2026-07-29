@@ -22,12 +22,17 @@ module.exports = (sequelize, DataTypes) => {
         through: models.OutletBrandCategory,
         foreignKey: "outletId",
         otherKey: "brandId",
-        as: "brands",
+        as: "linkedBrands",
       });
 
       Outlet.hasMany(models.EmployeeAssignment, {
         foreignKey: "outletId",
         as: "employeeAssignments",
+      });
+
+      Outlet.belongsTo(models.Brand, {
+        foreignKey: "brandId",
+        as: "brand",
       });
     }
   }
@@ -69,6 +74,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: false,
         defaultValue: [],
+      },
+      brandId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
       },
       isActive: {
         type: DataTypes.BOOLEAN,

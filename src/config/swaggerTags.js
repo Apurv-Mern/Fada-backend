@@ -40,12 +40,27 @@ const TAG_GROUPS = {
       name: "Master Outlet Functions",
       description: "Outlet function master data",
     },
+    {
+      source: "Admin Score Rules",
+      name: "Score Rules",
+      description: "Score engine rule management",
+    },
+    {
+      source: "Admin Score Stages",
+      name: "Score Stages",
+      description: "Score progression tier management",
+    },
+    {
+      source: "Admin Dashboard",
+      name: "Dashboard",
+      description: "Admin dashboard statistics and summaries",
+    },
   ],
   Dealer: [
     {
       source: "Dealer Auth",
       name: "Auth",
-      description: "Dealer registration, login, OTP, and password management",
+      description: "Dealer registration, login, OTP, forgot-password, and password management",
     },
     {
       source: "Dealer Profile",

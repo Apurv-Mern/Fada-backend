@@ -9,5 +9,5 @@ router.get("/:id",adminAuth, outletController.getOutletById);
 router.post("/",adminAuth, outletController.createOutlet);
 router.put("/:id",adminAuth, outletController.updateOutlet);
 router.delete("/:id",adminAuth, outletController.deleteOutlet);
-
+router.put("/:id/active-inactive",adminAuth, outletController.activeInactiveOutlets);
 module.exports = router;

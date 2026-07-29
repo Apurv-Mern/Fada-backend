@@ -130,6 +130,48 @@ const validateBrandCategories = async (brandCategories, res) => {
   return true;
 };
 
+const validateBrandId = async (brandId, res) => {
+  if (brandId === undefined || brandId === null) return true;
+
+  const brand = await Brand.findByPk(brandId);
+  if (!brand) {
+    res.apiError("Brand not found", 404);
+    return false;
+  }
+
+  return true;
+};
+
+const validateDealerBrands = async (brands, res) => {
+  if (!Array.isArray(brands)) {
+    res.apiError("brands must be an array", 422);
+    return { valid: false };
+  }
+
+  if (!brands.length) {
+    return { valid: true, normalized: [] };
+  }
+
+  const brandIds = [...new Set(brands.map(Number))];
+  if (brandIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+    res.apiError("Each brand must be a valid integer id", 422);
+    return { valid: false };
+  }
+
+  if (brandIds.length !== brands.length) {
+    res.apiError("Duplicate brands are not allowed", 422);
+    return { valid: false };
+  }
+
+  const existingBrands = await Brand.findAll({ where: { id: brandIds } });
+  if (existingBrands.length !== brandIds.length) {
+    res.apiError("One or more brands not found", 404);
+    return { valid: false };
+  }
+
+  return { valid: true, normalized: brandIds };
+};
+
 const normalizeOutletCode = (code) => {
   if (code === undefined || code === null) return null;
 
@@ -180,18 +222,30 @@ const syncBrandCategories = async (outletId, brandCategories, transaction) => {
   );
 };
 
+const brandIncludes = [
+  {
+    model: Brand,
+    as: "brand",
+    attributes: ["id", "name", "slug"],
+  },
+];
+
 const buildOutletPayload = (body, dealerId, normalizedFunctions) => {
   const payload = {
     dealerId,
     name: body.name,
     code: normalizeOutletCode(body.code),
-    manager: body.manager ?? null,
+    manager: body.manager ?? null, 
     pinCode: body.pinCode ?? null,
     city: body.city ?? null,
     state: body.state ?? null,
     address: body.address ?? null,
     isActive: body.isActive ?? true,
   };
+
+  if (body.brandId !== undefined) {
+    payload.brandId = body.brandId ?? null;
+  }
 
   if (normalizedFunctions !== undefined) {
     payload.functions = normalizedFunctions;
@@ -234,8 +288,11 @@ const enrichOutletFunctions = async (outlet) => {
 
 module.exports = {
   brandCategoryIncludes,
+  brandIncludes,
   validateFunctions,
   validateBrandCategories,
+  validateBrandId,
+  validateDealerBrands,
   validateOutletCode,
   syncBrandCategories,
   buildOutletPayload,

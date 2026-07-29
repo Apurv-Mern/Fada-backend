@@ -843,3 +843,23 @@ exports.deleteOutletFunction = async (req, res) => {
 };
 
 
+
+
+/*
+@API: GET /admin/masters/dealers
+@Desc: Get all dealers
+@Access: Private
+*/
+exports.getDealers = async (req, res) => {
+  try {
+    const dealers = await Dealer.findAll({
+      attributes: ["id", "name", "dealerCode"],
+      where: {isActive: true,status: "approved"}
+    });
+    return res.apiSuccess("Dealers fetched successfully", dealers);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+

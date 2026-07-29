@@ -80,4 +80,10 @@ router.delete(
   masterController.deleteOutletFunction
 );
 
+router.get(
+  "/dealers",
+  authMiddleware,
+  masterController.getDealers
+);
+
 module.exports = router;
