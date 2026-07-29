@@ -5,16 +5,12 @@ const {
   Outlet,
   OutletBrandCategory,
   Dealer,
-  Brand,
 } = require("../../../database/models");
 const {
-  brandCategoryIncludes,
-  brandIncludes,
+  buildOutletIncludes,
   validateFunctions,
-  validateBrandCategories,
   validateBrandId,
   validateOutletCode,
-  syncBrandCategories,
   buildOutletPayload,
   enrichOutletFunctions,
 } = require("../../../utils/outletUtil");
@@ -28,23 +24,15 @@ const outletValidationRules = {
   city: "string",
   state: "string",
   address: "string",
-  brandId: "integer",
+  brandId: "required|integer",
   isActive: "boolean",
 };
 
-const outletIncludes = [
-  {
-    model: Dealer,
-    as: "company",
-    attributes: ["id", "name", "dealerCode"],
-  },
-  
-  ...brandIncludes,
-];
+const adminOutletIncludes = buildOutletIncludes({ includeCompany: true });
 
 const findOutletOrError = async (outletId, res, transaction) => {
   const outlet = await Outlet.findByPk(outletId, {
-    include: outletIncludes,
+    include: adminOutletIncludes,
     transaction,
   });
 
@@ -92,7 +80,7 @@ exports.getOutlets = async (req, res) => {
 
     const { rows: outlets, count: total } = await Outlet.findAndCountAll({
       where,
-      include: outletIncludes,
+      include: adminOutletIncludes,
       order: [["id", "DESC"]],
       limit,
       offset,
@@ -166,7 +154,6 @@ exports.createOutlet = async (req, res) => {
 
     const functionsResult = await validateFunctions(req.body.functions ?? [], res);
     if (!functionsResult.valid) return;
-    if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
     if (!(await validateBrandId(req.body.brandId, res))) return;
 
     const codeResult = await validateOutletCode({
@@ -181,26 +168,12 @@ exports.createOutlet = async (req, res) => {
       return res.apiError("Company not found", 404);
     }
 
-    let outletId;
+    const createdOutlet = await Outlet.create(
+      buildOutletPayload(req.body, req.body.dealerId, functionsResult.normalized),
+    );
 
-    await sequelize.transaction(async (transaction) => {
-      const createdOutlet = await Outlet.create(
-        buildOutletPayload(req.body, req.body.dealerId, functionsResult.normalized),
-        {
-        transaction,
-      });
-
-     /*  await syncBrandCategories(
-        createdOutlet.id,
-        req.body.brandCategories,
-        transaction
-      ); */
-
-      outletId = createdOutlet.id;
-    });
-
-    const outlet = await Outlet.findByPk(outletId, {
-      include: outletIncludes,
+    const outlet = await Outlet.findByPk(createdOutlet.id, {
+      include: adminOutletIncludes,
     });
 
     return res.apiSuccess("Outlet created successfully", outlet);
@@ -232,7 +205,6 @@ exports.updateOutlet = async (req, res) => {
       normalizedFunctions = functionsResult.normalized;
     }
 
-    if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
     if (!(await validateBrandId(req.body.brandId, res))) return;
 
     const existingOutlet = await Outlet.findByPk(req.params.id);
@@ -253,23 +225,12 @@ exports.updateOutlet = async (req, res) => {
     });
     if (!codeResult.valid) return;
 
-    await sequelize.transaction(async (transaction) => {
-      await existingOutlet.update(
-        buildOutletPayload(req.body, req.body.dealerId, normalizedFunctions),
-        { transaction }
-      );
-
-      /* if (req.body.brandCategories !== undefined) {
-        await syncBrandCategories(
-          existingOutlet.id,
-          req.body.brandCategories,
-          transaction
-        );
-      } */
-    });
+    await existingOutlet.update(
+      buildOutletPayload(req.body, req.body.dealerId, normalizedFunctions),
+    );
 
     const outlet = await Outlet.findByPk(existingOutlet.id, {
-      include: outletIncludes,
+      include: adminOutletIncludes,
     });
 
     return res.apiSuccess("Outlet updated successfully", outlet);

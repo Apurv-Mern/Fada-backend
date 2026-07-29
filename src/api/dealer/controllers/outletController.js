@@ -1,18 +1,11 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
+const { sequelize, Outlet } = require("../../../database/models");
 const {
-  sequelize,
-  Outlet,
-  OutletBrandCategory,
-} = require("../../../database/models");
-const {
-  brandCategoryIncludes,
-  brandIncludes,
+  buildOutletIncludes,
   validateFunctions,
-  validateBrandCategories,
   validateBrandId,
   validateOutletCode,
-  syncBrandCategories,
   buildOutletPayload,
   enrichOutletFunctions,
 } = require("../../../utils/outletUtil");
@@ -25,11 +18,11 @@ const outletValidationRules = {
   city: "string",
   state: "string",
   address: "string",
-  brandId: "integer",
+  brandId: "required|integer",
   isActive: "boolean",
 };
 
-const outletIncludes = [...brandCategoryIncludes, ...brandIncludes];
+const outletIncludes = buildOutletIncludes();
 
 const getDealerId = (req) => req.auth.id;
 
@@ -153,7 +146,6 @@ exports.createOutlet = async (req, res) => {
 
     const functionsResult = await validateFunctions(req.body.functions ?? [], res);
     if (!functionsResult.valid) return;
-    if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
     if (!(await validateBrandId(req.body.brandId, res))) return;
 
     const codeResult = await validateOutletCode({
@@ -163,28 +155,15 @@ exports.createOutlet = async (req, res) => {
     });
     if (!codeResult.valid) return;
 
-    let outletId;
+    const outlet = await Outlet.create(
+      buildOutletPayload(req.body, dealerId, functionsResult.normalized),
+    );
 
-    await sequelize.transaction(async (transaction) => {
-      const createdOutlet = await Outlet.create(
-        buildOutletPayload(req.body, dealerId, functionsResult.normalized),
-        { transaction },
-      );
-
-      await syncBrandCategories(
-        createdOutlet.id,
-        req.body.brandCategories,
-        transaction,
-      );
-
-      outletId = createdOutlet.id;
-    });
-
-    const outlet = await Outlet.findByPk(outletId, {
+    const createdOutlet = await Outlet.findByPk(outlet.id, {
       include: outletIncludes,
     });
 
-    return res.apiSuccess("Outlet created successfully", outlet);
+    return res.apiSuccess("Outlet created successfully", createdOutlet);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
       return res.apiError("An outlet with this code already exists", 409);
@@ -215,7 +194,6 @@ exports.updateOutlet = async (req, res) => {
       normalizedFunctions = functionsResult.normalized;
     }
 
-    if (!(await validateBrandCategories(req.body.brandCategories, res))) return;
     if (!(await validateBrandId(req.body.brandId, res))) return;
 
     const existingOutlet = await Outlet.findOne({
@@ -234,21 +212,9 @@ exports.updateOutlet = async (req, res) => {
     });
     if (!codeResult.valid) return;
 
-    await sequelize.transaction(async (transaction) => {
-      await existingOutlet.update(
-        buildOutletPayload(req.body, dealerId, normalizedFunctions),
-        {
-        transaction,
-      });
-
-      if (req.body.brandCategories !== undefined) {
-        await syncBrandCategories(
-          existingOutlet.id,
-          req.body.brandCategories,
-          transaction,
-        );
-      }
-    });
+    await existingOutlet.update(
+      buildOutletPayload(req.body, dealerId, normalizedFunctions),
+    );
 
     const outlet = await Outlet.findByPk(existingOutlet.id, {
       include: outletIncludes,
@@ -281,7 +247,6 @@ exports.deleteOutlet = async (req, res) => {
     }
 
     await sequelize.transaction(async (transaction) => {
-      await syncBrandCategories(outlet.id, [], transaction);
       await outlet.update({ code: null }, { transaction });
       await outlet.destroy({ transaction });
     });

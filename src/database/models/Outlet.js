@@ -98,7 +98,7 @@ module.exports = (sequelize, DataTypes) => {
           fields: ["dealerId", "code"],
         },
       ],
-    }
+    },
   );
   return Outlet;
 };

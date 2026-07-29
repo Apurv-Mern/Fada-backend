@@ -3,23 +3,30 @@ const {
   Outlet,
   OutletFunction,
   Brand,
-  OutletBrandCategory,
+  Dealer,
 } = require("../database/models");
 
-const brandCategoryIncludes = [
+const brandIncludes = [
   {
-    model: OutletBrandCategory,
-    as: "brandCategories",
-    attributes: ["id", "brandId", "vehicleClassId"],
-    include: [
-      {
-        model: Brand,
-        as: "brand",
-        attributes: ["id", "name", "slug"],
-      },
-    ],
+    model: Brand,
+    as: "brand",
+    attributes: ["id", "name", "slug"],
   },
 ];
+
+const buildOutletIncludes = ({ includeCompany = false } = {}) => {
+  const includes = [...brandIncludes];
+
+  if (includeCompany) {
+    includes.unshift({
+      model: Dealer,
+      as: "company",
+      attributes: ["id", "name", "dealerCode"],
+    });
+  }
+
+  return includes;
+};
 
 const validateFunctions = async (functions, res) => {
   if (functions === undefined) {
@@ -91,43 +98,6 @@ const validateFunctions = async (functions, res) => {
   }
 
   return { valid: true, normalized };
-};
-
-const validateBrandCategories = async (brandCategories, res) => {
-  if (brandCategories === undefined) return true;
-
-  if (!Array.isArray(brandCategories)) {
-    res.apiError("brandCategories must be an array", 422);
-    return false;
-  }
-
-  for (const item of brandCategories) {
-    if (!item.brandId) {
-      res.apiError("brandId is required for each brand category", 422);
-      return false;
-    }
-  }
-
-  const brandIds = [
-    ...new Set(brandCategories.map((item) => Number(item.brandId))),
-  ];
-  const brands = await Brand.findAll({ where: { id: brandIds } });
-
-  if (brands.length !== brandIds.length) {
-    res.apiError("One or more brands not found", 404);
-    return false;
-  }
-
-  const keys = brandCategories.map(
-    (item) => `${item.brandId}-${item.vehicleClassId ?? "null"}`,
-  );
-
-  if (keys.length !== new Set(keys).size) {
-    res.apiError("Duplicate brand and vehicle class combinations", 422);
-    return false;
-  }
-
-  return true;
 };
 
 const validateBrandId = async (brandId, res) => {
@@ -203,39 +173,12 @@ const validateOutletCode = async ({
   return { valid: true, code: normalizedCode };
 };
 
-const syncBrandCategories = async (outletId, brandCategories, transaction) => {
-  await OutletBrandCategory.destroy({
-    where: { outletId },
-    force: true,
-    transaction,
-  });
-
-  if (!brandCategories?.length) return;
-
-  await OutletBrandCategory.bulkCreate(
-    brandCategories.map((item) => ({
-      outletId,
-      brandId: item.brandId,
-      vehicleClassId: item.vehicleClassId ?? null,
-    })),
-    { transaction },
-  );
-};
-
-const brandIncludes = [
-  {
-    model: Brand,
-    as: "brand",
-    attributes: ["id", "name", "slug"],
-  },
-];
-
 const buildOutletPayload = (body, dealerId, normalizedFunctions) => {
   const payload = {
     dealerId,
     name: body.name,
     code: normalizeOutletCode(body.code),
-    manager: body.manager ?? null, 
+    manager: body.manager ?? null,
     pinCode: body.pinCode ?? null,
     city: body.city ?? null,
     state: body.state ?? null,
@@ -287,14 +230,12 @@ const enrichOutletFunctions = async (outlet) => {
 };
 
 module.exports = {
-  brandCategoryIncludes,
   brandIncludes,
+  buildOutletIncludes,
   validateFunctions,
-  validateBrandCategories,
   validateBrandId,
   validateDealerBrands,
   validateOutletCode,
-  syncBrandCategories,
   buildOutletPayload,
   enrichOutletFunctions,
 };
