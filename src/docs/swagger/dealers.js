@@ -177,6 +177,22 @@
  *     responses:
  *       200:
  *         description: Outlets fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         outlets:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/DealerOutletItem'
+ *                         pagination:
+ *                           type: object
  *   post:
  *     tags: [Dealer Outlets]
  *     summary: Create outlet
@@ -188,9 +204,29 @@
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/DealerOutletCreateRequest'
+ *           example:
+ *             name: Sanganer
+ *             code: OUT-02541
+ *             brandId: 1
+ *             manager: Shambhu
+ *             pinCode: "303908"
+ *             city: Jaipur
+ *             state: Rajasthan
+ *             address: "jaipur, kotkhawada"
+ *             functions: ["sales", "service"]
+ *             isActive: true
  *     responses:
  *       200:
  *         description: Outlet created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/DealerOutletItem'
  */
 
 /**

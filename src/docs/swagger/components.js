@@ -658,18 +658,43 @@
  *         documentUrl:
  *           type: string
  *           example: http://localhost:3005/uploads/file.png
- *     OutletBrandCategoryInput:
+ *     MasterIdNameItem:
  *       type: object
- *       required: [brandId]
  *       properties:
- *         brandId:
+ *         id:
  *           type: integer
- *         vehicleClassId:
+ *         name:
+ *           type: string
+ *     DocumentTypeMasterItem:
+ *       type: object
+ *       properties:
+ *         id:
  *           type: integer
- *           nullable: true
+ *         name:
+ *           type: string
+ *         category:
+ *           type: string
+ *         notes:
+ *           type: string
+ *         isMandatory:
+ *           type: boolean
+ *         isVerificationRequired:
+ *           type: boolean
+ *         appliesTo:
+ *           type: string
+ *           enum: [dealer, employee, both]
+ *     OutletBrandSummary:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         slug:
+ *           type: string
  *     DealerOutletCreateRequest:
  *       type: object
- *       required: [name]
+ *       required: [name, brandId]
  *       properties:
  *         name:
  *           type: string
@@ -685,16 +710,33 @@
  *           type: string
  *         address:
  *           type: string
+ *         brandId:
+ *           type: integer
+ *           description: Primary brand for the outlet
  *         functions:
  *           type: array
+ *           description: Outlet function slugs or IDs from master
  *           items:
  *             oneOf:
  *               - type: string
  *               - type: integer
- *         brandCategories:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/OutletBrandCategoryInput'
+ *         isActive:
+ *           type: boolean
+ *     DealerOutletItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         dealerId:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         code:
+ *           type: string
+ *         brandId:
+ *           type: integer
+ *         brand:
+ *           $ref: '#/components/schemas/OutletBrandSummary'
  *         isActive:
  *           type: boolean
  *     DealerEmployeeAssignmentInput:

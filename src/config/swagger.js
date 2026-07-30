@@ -37,6 +37,7 @@ const options = {
     "./src/docs/swagger/admin.js",
     "./src/docs/swagger/masters.js",
     "./src/docs/swagger/dealers.js",
+    "./src/docs/swagger/dealer-masters.js",
     "./src/docs/swagger/outlets.js",
     "./src/docs/swagger/employees.js",
     "./src/docs/swagger/score-rules.js",

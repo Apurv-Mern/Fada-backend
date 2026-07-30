@@ -87,6 +87,11 @@ const TAG_GROUPS = {
       name: "Business Documents",
       description: "Dealer business document uploads",
     },
+    {
+      source: "Dealer Masters",
+      name: "Masters",
+      description: "Read-only master data for dealer forms and dropdowns",
+    },
   ],
   Employee: [
     {

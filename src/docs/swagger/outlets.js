@@ -9,18 +9,9 @@
  * @swagger
  * components:
  *   schemas:
- *     OutletBrandCategoryInput:
- *       type: object
- *       required: [brandId]
- *       properties:
- *         brandId:
- *           type: integer
- *         vehicleClassId:
- *           type: integer
- *           nullable: true
  *     OutletCreateRequest:
  *       type: object
- *       required: [dealerId, name]
+ *       required: [dealerId, name, brandId]
  *       properties:
  *         dealerId:
  *           type: integer
@@ -39,6 +30,9 @@
  *           type: string
  *         address:
  *           type: string
+ *         brandId:
+ *           type: integer
+ *           description: Primary brand for the outlet
  *         functions:
  *           type: array
  *           description: Outlet function slugs or IDs from master
@@ -46,10 +40,6 @@
  *             oneOf:
  *               - type: string
  *               - type: integer
- *         brandCategories:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/OutletBrandCategoryInput'
  *         isActive:
  *           type: boolean
  *           default: true
@@ -80,6 +70,11 @@
  *         name: isActive
  *         schema:
  *           type: boolean
+ *       - in: query
+ *         name: brandId
+ *         schema:
+ *           type: integer
+ *         description: Filter outlets by primary brand id
  *       - in: query
  *         name: limit
  *         schema:
@@ -115,10 +110,8 @@
  *             city: Jaipur
  *             state: Rajasthan
  *             address: "jaipur, kotkhawada"
+ *             brandId: 1
  *             functions: ["sales", "service"]
- *             brandCategories:
- *               - brandId: 1
- *                 vehicleClassId: null
  *             isActive: true
  *     responses:
  *       200:
