@@ -520,30 +520,21 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Register employee
- *     description: Creates a temporary employee account and sends a 6-digit OTP to email. FADA ID is auto-generated.
+ *     description: |
+ *       Creates a temporary employee account and sends OTPs:
+ *       - **emailOTP** → email
+ *       - **otp** → SMS on phone
+ *
+ *       FADA ID is auto-generated. Verify both OTPs via `verify-registration-otp` to receive login password by email.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [name, email, dob, gender]
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *               dob:
- *                 type: string
- *                 format: date
- *                 example: "1995-06-15"
- *               gender:
- *                 type: string
- *                 enum: [male, female, other]
+ *             $ref: '#/components/schemas/EmployeeRegisterRequest'
  *     responses:
  *       200:
- *         description: Employee registered, OTP sent
+ *         description: Employee registered, OTPs sent
  *         content:
  *           application/json:
  *             schema:
@@ -560,41 +551,172 @@
  *                           type: string
  *                           format: email
  *       409:
- *         description: Email already exists
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
+ *         description: Email or phone already exists
  *       422:
  *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
  */
 
 /**
  * @swagger
- * /employee/auth/verify-otp:
+ * /employee/auth/verify-registration-otp:
  *   post:
  *     tags: [Employee Auth]
- *     summary: Verify employee registration OTP
- *     description: Verifies registration OTP and returns access token. Status moves from temporary to pending.
+ *     summary: Verify registration OTPs
+ *     description: |
+ *       Verifies email and phone OTPs from registration.
+ *       Activates the account (status `pending`), sets verified flags, and emails a temporary login password.
+ *       Does not return an access token — use password login after checking email.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [email, otp]
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               otp:
- *                 type: string
- *                 minLength: 4
- *                 maxLength: 8
+ *             $ref: '#/components/schemas/EmployeeVerifyRegistrationOtpRequest'
+ *     responses:
+ *       200:
+ *         description: Registration verified; login password sent to email
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       401:
+ *         description: Invalid email OTP or phone OTP
+ *       404:
+ *         description: Employee not found
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /employee/auth/login:
+ *   post:
+ *     tags: [Employee Auth]
+ *     summary: Employee password login
+ *     description: Login with email and password (password is emailed after registration OTP verification).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeLoginRequest'
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmployeeLoginResponse'
+ *       401:
+ *         description: Invalid email or password
+ *       403:
+ *         description: Account rejected or inactive
+ *       404:
+ *         description: Employee not found
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /employee/auth/send-login-otp:
+ *   post:
+ *     tags: [Employee Auth]
+ *     summary: Send login OTP
+ *     description: |
+ *       Sends a 6-digit OTP for passwordless login.
+ *       - **Email** → stored in `emailOTP`, sent via email
+ *       - **Phone** → stored in `otp`, sent via SMS
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeSendLoginOtpRequest'
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       403:
+ *         description: Account rejected or inactive
+ *       404:
+ *         description: User not found
+ *       422:
+ *         description: Invalid email or phone
+ */
+
+/**
+ * @swagger
+ * /employee/auth/verify-login-otp:
+ *   post:
+ *     tags: [Employee Auth]
+ *     summary: Verify login OTP
+ *     description: Verifies OTP from send-login-otp and returns access token (sets refreshToken cookie).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeVerifyLoginOtpRequest'
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/EmployeeOtpLoginResponse'
+ *       400:
+ *         description: No OTP found
+ *       401:
+ *         description: Invalid OTP
+ *       403:
+ *         description: Account rejected
+ *       404:
+ *         description: Employee not found
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /employee/auth/forgot-password:
+ *   post:
+ *     tags: [Employee Auth]
+ *     summary: "Forgot password — Step 1: Send OTP"
+ *     description: Sends OTP to email (`emailOTP`) or phone (`otp`) based on username.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeForgotPasswordRequest'
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *       403:
+ *         description: Account rejected or inactive
+ *       404:
+ *         description: Employee not found
+ *       422:
+ *         description: Invalid email or phone
+ */
+
+/**
+ * @swagger
+ * /employee/auth/verify-forgot-password-otp:
+ *   post:
+ *     tags: [Employee Auth]
+ *     summary: "Forgot password — Step 2: Verify OTP"
+ *     description: Returns a short-lived `resetPasswordToken` (15 min) for step 3.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeVerifyForgotPasswordOtpRequest'
  *     responses:
  *       200:
  *         description: OTP verified successfully
@@ -608,123 +730,38 @@
  *                     data:
  *                       type: object
  *                       properties:
- *                         accessToken:
+ *                         resetPasswordToken:
  *                           type: string
- *       400:
- *         description: OTP verification not required or OTP missing
  *       401:
  *         description: Invalid OTP
- *       404:
- *         description: Employee not found
- */
-
-/**
- * @swagger
- * /employee/auth/login:
- *   post:
- *     tags: [Employee Auth]
- *     summary: Employee password login
- *     description: Accepts email or 10-digit phone number with password.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:
- *                 type: string
- *                 description: Employee email or 10-digit phone number
- *                 example: employee@example.com
- *               password:
- *                 type: string
- *                 minLength: 6
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/EmployeeLoginResponse'
- *       401:
- *         description: Invalid password
  *       403:
  *         description: Account rejected or inactive
  *       404:
- *         description: Employee not found or password not set
+ *         description: Employee not found
  *       422:
  *         description: Validation error
  */
 
 /**
  * @swagger
- * /employee/auth/login-otp:
+ * /employee/auth/reset-password:
  *   post:
  *     tags: [Employee Auth]
- *     summary: Send OTP for employee login
- *     description: Sends a 6-digit OTP to employee email or phone for passwordless login.
+ *     summary: "Forgot password — Step 3: Reset password"
+ *     description: Sets a new password using the Bearer token from verify-forgot-password-otp.
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [email]
- *             properties:
- *               email:
- *                 type: string
- *                 description: Employee email or 10-digit phone number
- *                 example: employee@example.com
+ *             $ref: '#/components/schemas/EmployeeResetPasswordRequest'
  *     responses:
  *       200:
- *         description: OTP sent successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiSuccessResponse'
- *       403:
- *         description: Registration incomplete or account rejected
- *       404:
- *         description: Employee not found
- *       422:
- *         description: Email or phone is required
- */
-
-/**
- * @swagger
- * /employee/auth/login-otp/verify:
- *   post:
- *     tags: [Employee Auth]
- *     summary: Verify employee login OTP
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, otp]
- *             properties:
- *               email:
- *                 type: string
- *                 description: Employee email or 10-digit phone number
- *               otp:
- *                 type: string
- *                 minLength: 6
- *                 maxLength: 6
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/EmployeeOtpLoginResponse'
- *       400:
- *         description: No OTP found
+ *         description: Password reset successfully
  *       401:
- *         description: Invalid OTP
- *       403:
- *         description: Registration incomplete or account rejected
+ *         description: Invalid or expired reset token
  *       404:
  *         description: Employee not found
  *       422:
@@ -772,7 +809,13 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     authenticated:
+ *                       type: boolean
+ *                       example: false
  */
 
 /**

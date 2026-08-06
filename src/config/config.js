@@ -51,6 +51,11 @@ module.exports = {
     useDefault: process.env.USE_DEFAULT_OTP === "true",
   },
 
+  password: { 
+    useDefault: process.env.USE_DEFAULT_PASSWORD === "true",
+    default: process.env.DEFAULT_PASSWORD || "12345678",
+  },
+
   logging: {
     level: process.env.LOG_LEVEL || "info",
   },

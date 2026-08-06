@@ -1,0 +1,443 @@
+const {
+  sequelize,
+  Employee,
+  EmployeeAddress,
+  Document,
+  EmployeeDocument,
+  EmployeeAssignment,
+  Dealer,
+  Outlet,
+  OrganizationStructure,
+} = require("../../../../database/models");
+
+
+/*
+@API: GET /employee/profile
+@Desc: Get employee profile
+@Access: Private
+*/
+exports.getProfile = async (req, res) => {
+  try {
+    const id = req.auth.id;
+
+    const employee = await Employee.findByPk(id, {
+      attributes: [
+        "id",
+        "name",
+        "bloodGroup",
+        "email",
+        "phone",
+        "dob", 
+        "gender",
+        "isPhoneVerified",
+        "isEmailVerified",
+        "status",
+        "score",
+        "isActive",
+        "isVerified",
+      ],  
+      include: [
+        {
+          model: EmployeeAssignment,
+          as: "employeements",
+          attributes: [
+            "id",
+            "employeementType",
+            "city",
+            "startDate",
+            "endDate",
+            "isCurrentlyWorking",
+            "highlights",
+          ],
+          required: false,
+          where: { 
+            isCurrentlyWorking: true,
+          },
+          include: [
+            {
+              model: Dealer,
+              as: "dealership",
+              attributes: ["id", "name"],
+            },
+            {
+              model: Outlet,
+              as: "branch",
+              attributes: ["id", "name"],
+            },
+            {
+              model: OrganizationStructure,
+              as: "designation",
+              attributes: ["id", "name"],
+            },
+          ],
+        },
+      ],
+    });
+
+    return res.apiSuccess("Employee profile fetched successfully", employee);
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+
+/*
+@API: GET /employee/personal-details
+@Desc: Get employee personal details
+@Access: Private
+*/
+exports.getPersonalDetails = async (req, res) => {
+  try {
+    const id = req.auth.id;
+
+    const employee = await Employee.findByPk(id, {
+      attributes: [
+        "id",
+        "name",
+        "bloodGroup",
+        "email",
+        "phone",
+        "dob",
+        "gender",
+        "isPhoneVerified",
+        "isEmailVerified",
+      ],
+      include: [
+        {
+          model: EmployeeAddress,
+          as: "addresses",
+          attributes: [
+            "id",
+            "addressLine1",
+            "addressLine2",
+            "city",
+            "state",
+            "country",
+            "pincode",
+            "isActive",
+          ],
+          required: false,
+        },
+      ],
+    });
+
+    return res.apiSuccess("Personal details fetched successfully", {
+      employee,
+    });
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: PUT /employee/personal-details
+@Desc: Update employee personal details
+@Body: {
+  name: string,
+  bloodGroup: string,
+  dob: date,
+  gender: string,
+  address?: array,
+  "address.addressLine1": string,
+  "address.addressLine2": string,
+  "address.city": string,
+  "address.state": string,
+  "address.country": string,
+  "address.pincode": string,
+}
+@Access: Private
+*/
+exports.updatePersonalDetails = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const id = req.auth.id;
+
+    const { name, bloodGroup, dob, gender, address } = req.body;
+
+    const validator = new Validator(req.body, {
+      name: "required|string",
+      bloodGroup: "required|in:A+,A-,B+,B-,AB+,AB-,O+,O-",
+      dob: "required|date",
+      gender: "required|in:male,female,other",
+      address: "required|array",
+      "address.addressLine1": "required|string",
+      "address.addressLine2": "string",
+      "address.city": "required|string",
+      "address.state": "required|string",
+      "address.country": "string",
+      "address.pincode": "required|string",
+    });
+
+    if (validator.fails()) {
+      await transaction.rollback();
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const employee = await Employee.update(
+      { name, bloodGroup, dob, gender },
+      { where: { id }, transaction },
+    );
+
+    if (address) {
+      await EmployeeAddress.update(address, {
+        where: { employeeId: id },
+        transaction,
+      });
+    }
+
+    await transaction.commit();
+
+    return res.apiSuccess("Personal details updated successfully", {
+      employee,
+    });
+  } catch (error) {
+    await transaction.rollback();
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: GET /employee/documents
+@Desc: Get employee documents
+@Access: Private
+*/
+exports.getDocuments = async (req, res) => {
+  try {
+    const id = req.auth.id;
+
+    const documents = await Document.findAll({
+      attributes: [
+        "id",
+        "name",
+        "code",
+        "category",
+        "isMandatory",
+        "isVerificationRequired",
+        "notes",
+      ],
+      where: { appliesTo: { [Op.in]: ["employee", "both"] }, isActive: true },
+      include: [
+        {
+          model: EmployeeDocument,
+          as: "employeeDocuments",
+          attributes: [
+            "id",
+            "documentId",
+            "frontImage",
+            "backImage",
+            "isVerified",
+            "status",
+          ],
+          where: { employeeId: id },
+          required: false,
+        },
+      ],
+    });
+
+    return res.apiSuccess("Employee documents fetched successfully", documents);
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /employee/documents
+@Desc: Upload employee documents
+@Body: {
+  documentId: number,
+  frontImage: string,
+  backImage: string,
+}
+@Access: Private
+*/
+exports.uploadDocuments = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const id = req.auth.id;
+    const { documentId, frontImage, backImage } = req.body;
+
+    const document = await Document.findByPk(documentId, { transaction });
+
+    if (!document) {
+      await transaction.rollback();
+      return res.apiError("Document not found", 404);
+    }
+
+    const validator = new Validator(req.body, {
+      documentId: "required|number",
+      frontImage: "required|string",
+      backImage: "required|string",
+    });
+
+    if (validator.fails()) {
+      await transaction.rollback();
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    await EmployeeDocument.destroy({
+      where: { employeeId: id, documentId },
+      transaction,
+    });
+
+    await EmployeeDocument.create(
+      {
+        employeeId: id,
+        documentId,
+        frontImage,
+        backImage,
+        status: "pending",
+      },
+      { transaction },
+    );
+
+    await transaction.commit();
+
+    return res.apiSuccess("Employee document uploaded successfully");
+  } catch (error) {
+    await transaction.rollback();
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: DELETE /employee/documents/{documentId}
+@Desc: Delete employee document
+@Access: Private
+*/
+exports.deleteDocument = async (req, res) => {
+  try {
+    const id = req.auth.id;
+    const documentId = req.params.documentId;
+
+    const employeeDocument = await EmployeeDocument.findOne({
+      where: { employeeId: id, documentId },
+    });
+
+    if (!employeeDocument) {
+      return res.apiError("Employee document not found", 404);
+    }
+
+    await EmployeeDocument.destroy({
+      where: { employeeId: id, documentId },
+    });
+
+    return res.apiSuccess("Employee document deleted successfully");
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /employee/employeements
+@Desc: Create employee employeement
+@Body: {
+  dealerId: number,
+  outletId: number,
+  designationId: Number,
+  city: string,
+  employeementType: string,
+  isCurrentlyWorking: Boolean,
+  startDate: Date,
+  endDate: Date,
+  highlights: String,
+}
+@Access: Private
+*/
+exports.createEmployeement = async (req, res) => {
+  try {
+    const id = req.auth.id;
+
+    const validator = new Validator(req.body, {
+      dealerId: "required|number",
+      outletId: "required|number",
+      designationId: "required|number",
+      city: "required|string",
+      employeementType: "required|string",
+      isCurrentlyWorking: "required|boolean",
+      startDate: "required|date",
+      endDate: "date",
+      highlights: "required|string",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const {
+      dealerId,
+      outletId,
+      designationId,
+      city,
+      employeementType,
+      isCurrentlyWorking,
+      startDate,
+      endDate,
+      highlights,
+    } = req.body;
+
+    await EmployeeAssignment.create({
+      employeeId: id,
+      dealerId,
+      outletId,
+      designationId,
+      city,
+      employeementType,
+      isCurrentlyWorking,
+      startDate,
+      endDate,
+      highlights,
+    });
+
+    return res.apiSuccess("Employee employeement created successfully");
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: GET /employee/employeements
+@Desc: Get employee employeements
+@Access: Private
+*/
+exports.getEmployeements = async (req, res) => {
+  try {
+    const id = req.auth.id;
+
+    const employeements = await EmployeeAssignment.findAll({
+      attributes: [
+        "id",
+        "employeementType",
+        "city",
+        "startDate",
+        "endDate",
+        "isCurrentlyWorking",
+        "highlights",
+      ],
+      where: { employeeId: id },
+      include: [
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name"],
+        }, 
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "designation",
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+
+    return res.apiSuccess(
+      "Employee employeements fetched successfully",
+      employeements,
+    );
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};

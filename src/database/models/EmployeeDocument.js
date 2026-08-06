@@ -20,15 +20,14 @@ module.exports = (sequelize, DataTypes) => {
   EmployeeDocument.init(
     {
       employeeId: DataTypes.INTEGER,
-      documentType: DataTypes.STRING,
-      documentNumber: DataTypes.STRING,
+      documentId: DataTypes.INTEGER, 
       frontImage: DataTypes.STRING,
       backImage: DataTypes.STRING,
       isApproved: DataTypes.BOOLEAN,
       approvedBy: DataTypes.INTEGER,
-      approvedAt: DataTypes.DATE,
-      isRequired: DataTypes.BOOLEAN,
-      isActive: DataTypes.BOOLEAN,
+      approvedAt: DataTypes.DATE, 
+      isVerified: DataTypes.BOOLEAN, 
+      status: DataTypes.ENUM("pending", "approved", "rejected"),
     },
     {
       sequelize,

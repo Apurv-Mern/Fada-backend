@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "documentId",
         as: "dealerDocuments",
       });
+      Document.hasMany(models.EmployeeDocument, {
+        foreignKey: "documentId",
+        as: "employeeDocuments",
+      });
     }
   }
   Document.init(

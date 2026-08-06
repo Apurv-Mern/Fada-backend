@@ -6,9 +6,9 @@ const options = {
     openapi: "3.0.0",
     info: {
       title: "FADA Backend API",
-      version: "1.0.0",
+      version: "1.1.1",
       description:
-        "FADA Backend API documentation grouped by Admin, Dealer, Employee, and Common endpoints.",
+        "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints.",
     },
     servers: [
       {
@@ -43,9 +43,21 @@ const options = {
     "./src/docs/swagger/score-rules.js",
     "./src/docs/swagger/score-stages.js",
     "./src/docs/swagger/dashboard.js",
+    "./src/docs/swagger/employee*.js",
   ],
 };
 
 const swaggerSpec = applyTagGroups(swaggerJsdoc(options));
+
+const employeeMobilePathCount = Object.keys(swaggerSpec.paths || {}).filter(
+  (path) => path.startsWith("/api/v1/employee"),
+).length;
+
+if (employeeMobilePathCount < 15) {
+  console.warn(
+    `[swagger] Employee mobile app documentation incomplete (${employeeMobilePathCount} paths). ` +
+      "Ensure src/docs/swagger/employee-app.js exists and matches src/api/app/v1/routes.",
+  );
+}
 
 module.exports = swaggerSpec;

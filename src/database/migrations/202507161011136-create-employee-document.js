@@ -19,11 +19,14 @@ module.exports = {
         onDelete: "SET NULL"
       },
 
-      documentType: {
-        type: Sequelize.STRING,
-      },
-      documentNumber: {
-        type: Sequelize.STRING,
+      documentId: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: "Documents",
+          key: "id"
+        },
+        onUpdate: "CASCADE",
+        onDelete: "SET NULL"
       },
       frontImage: {
         type: Sequelize.STRING,
@@ -45,9 +48,13 @@ module.exports = {
       approvedAt: {
         type: Sequelize.DATE,
       },
-      isRequired: {
+      isVerified: {
         type: Sequelize.BOOLEAN,
         defaultValue: false,
+      },
+      status: {
+        type: Sequelize.ENUM("pending", "approved", "rejected"),
+        defaultValue: "pending",
       },
       createdAt: {
         allowNull: false,

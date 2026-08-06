@@ -20,6 +20,36 @@ module.exports = (sequelize, DataTypes) => {
         as: "documents",
       });
 
+      Employee.hasMany(models.EmployeeCertificate, {
+        foreignKey: "employeeId",
+        as: "certificates",
+      });
+
+      Employee.hasMany(models.EmployeeSkill, {
+        foreignKey: "employeeId",
+        as: "skills",
+      });
+
+      Employee.hasMany(models.EmployeeTraining, {
+        foreignKey: "employeeId",
+        as: "trainings",
+      });
+
+      Employee.hasMany(models.EmployeeAppreciation, {
+        foreignKey: "employeeId",
+        as: "appreciations",
+      });
+
+      Employee.hasMany(models.EmployeePromotion, {
+        foreignKey: "employeeId",
+        as: "promotions",
+      });
+
+      Employee.hasMany(models.EmployeeJourney, {
+        foreignKey: "employeeId",
+        as: "journeys",
+      });
+
       Employee.hasOne(models.EmployeeDesignation, {
         foreignKey: "employeeId",
         as: "designation",
@@ -44,9 +74,11 @@ module.exports = (sequelize, DataTypes) => {
       password: DataTypes.TEXT,
       phone: DataTypes.STRING,
       otp: DataTypes.STRING,
+      emailOTP: DataTypes.STRING,
       mpin: DataTypes.STRING,
       dob: DataTypes.STRING,
       gender: DataTypes.STRING,
+      bloodGroup: DataTypes.STRING,
       profilePicture: DataTypes.STRING,
       isActive: DataTypes.BOOLEAN,
       isVerified: DataTypes.BOOLEAN,

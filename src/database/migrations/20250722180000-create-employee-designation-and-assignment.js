@@ -105,6 +105,34 @@ module.exports = {
         onUpdate: "CASCADE",
         onDelete: "SET NULL",
       },
+      designationId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: "OrganizationStructures",
+          key: "id",
+        },
+        onUpdate: "CASCADE",
+        onDelete: "RESTRICT",
+      },
+      city: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      employeementType: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        defaultValue: "full-time",
+      },
+      isCurrentlyWorking: {
+        type: Sequelize.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+      },
+      highlights: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      }, 
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

@@ -1,6 +1,10 @@
 const Validator = require("validatorjs");
 const { Employee } = require("../../../database/models");
-const { comparePassword } = require("../../../utils/passwordUtil");
+const {
+  comparePassword,
+  hashPassword,
+  generateTempPassword,
+} = require("../../../utils/passwordUtil");
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -8,8 +12,8 @@ const {
 } = require("../../../utils/jwtUtil");
 const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
-const { sendOtpEmail } = require("../../../utils/emailUtil");
-
+const { addEmailJob, addSmsJob } = require("../../../queues");
+const { Op } = require("sequelize");
 /*
 @API: POST /employee/auth/register
 @Body: { name, email, dob, gender }
@@ -21,45 +25,62 @@ exports.employeeRegister = async (req, res) => {
     const validator = new Validator(req.body, {
       name: "required|string",
       email: "required|email",
-      dob: "required|date",
-      gender: "required|string|in:male,female,other",
+      phone: "required|min:10|max:10|regex:/^[0-9]+$/",
     });
 
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    const { name, email, dob, gender } = req.body;
+    const { name, email, phone } = req.body;
 
-    const existingEmployee = await Employee.findOne({ where: { email } });
-    if (existingEmployee) {
+    const existingEmployee = await Employee.findOne({
+      where: { [Op.or]: [{ email }, { phone }] },
+    });
+    if (existingEmployee && existingEmployee.email === email) {
       return res.apiError("An employee with this email already exists", 409);
+    }
+    if (existingEmployee && existingEmployee.phone === phone) {
+      return res.apiError("An employee with this phone already exists", 409);
     }
 
     const otp = generateOTP(6);
     const fadaId = await generateFadaId(Employee);
-
+    const emailOTP = generateOTP(6);
     const employee = await Employee.create({
       fadaId,
       name,
       email,
-      dob,
-      gender,
+      phone,
       otp,
+      emailOTP,
       status: "temporary",
       isActive: false,
       isEmailVerified: false,
+      isPhoneVerified: false,
     });
 
-    try {
-      await sendOtpEmail(email, { name, otp, purpose: "registration" });
-    } catch (emailError) {
-      console.error("Failed to send registration OTP email:", emailError.message);
-    }
+    await Promise.all([
+      addEmailJob({
+        to: email,
+        subject: "Employee Registration OTP",
+        templateName: "otp.ejs",
+        data: {
+          name,
+          otp: emailOTP,
+          purpose: "registration",
+        },
+      }),
+      addSmsJob({
+        to: phone,
+        message: `Your Employee Registration OTP is ${otp}`,
+        purpose: "registration",
+      }),
+    ]);
 
     return res.apiSuccess(
       "Employee registered successfully. Please verify OTP.",
-      { fadaId: employee.fadaId, email: employee.email }
+      { fadaId: employee.fadaId, email: employee.email },
     );
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
@@ -67,77 +88,67 @@ exports.employeeRegister = async (req, res) => {
 };
 
 /*
-@API: POST /employee/auth/verify-otp
-@Body: { email, otp }
+@API: POST /employee/auth/verify-registration-otp
+@Body: { email, emailOTP, phone, otp }
 @Desc: Verify employee registration OTP
 @Access: Public
 */
-exports.verifyOtp = async (req, res) => {
+exports.verifyRegistrationOtp = async (req, res) => {
   try {
     const validator = new Validator(req.body, {
       email: "required|email",
-      otp: "required|string|min:4|max:8",
+      emailOTP: "required|string|min:6|max:6",
+      phone: "required|min:10|max:10|regex:/^[0-9]+$/",
+      otp: "required|string|min:6|max:6",
     });
 
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    const { email, otp } = req.body;
+    const { email, emailOTP, phone, otp } = req.body;
 
-    const employee = await Employee.findOne({ where: { email } });
-    if (!employee) {
-      return res.apiError("Employee not found", 404);
+    const employee = await Employee.findOne({
+      where: { [Op.or]: [{ email }, { phone }] },
+    });
+
+    if (employee.email === email) {
+      if (employee.emailOTP !== emailOTP) {
+        return res.apiError("Invalid email OTP", 401);
+      }
     }
 
-    if (employee.status !== "temporary") {
-      return res.apiError(
-        "OTP verification is not required for this account",
-        400
-      );
+    if (employee.phone === phone) {
+      if (employee.otp !== otp) {
+        return res.apiError("Invalid phone OTP", 401);
+      }
     }
 
-    if (!employee.otp) {
-      return res.apiError(
-        "No OTP found. Please register again or request a new OTP",
-        400
-      );
-    }
-
-    if (String(employee.otp) !== String(otp)) {
-      return res.apiError("Invalid OTP", 401);
-    }
+    const randomPassword = generateTempPassword(10);
+    const hashedPassword = await hashPassword(randomPassword);
 
     await employee.update({
       otp: null,
+      emailOTP: null,
       status: "pending",
       isEmailVerified: true,
+      isPhoneVerified: true,
+      isActive: true,
+      password: hashedPassword,
     });
 
-    const accessToken = generateAccessToken({
-      id: employee.id,
-      email: employee.email,
-      role: "employee",
-    });
-
-    const refreshToken = generateRefreshToken({
-      id: employee.id,
-      email: employee.email,
-      role: "employee",
-    });
-
-    await employee.update({ refreshToken });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+    await addEmailJob({
+      to: email,
+      subject: "Welcome to FADA-ID – Your Login Password",
+      templateName: "employee-temp-password.ejs",
+      data: {
+        name: employee.name,
+        password: randomPassword,
+      },
     });
 
     return res.apiSuccess(
-      "OTP verified successfully. Please create your profile.",
-      { accessToken }
+      "Registration OTP verified successfully. Please check your email for your login password.",
     );
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
@@ -154,62 +165,53 @@ exports.employeeLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email) {
-      return res.apiError("Provide either email or phone", 422);
-    }
-
-    if (!password) {
-      return res.apiError("Password is required", 422);
-    }
-
-    const usernameFilter = verifyUserName(email);
-    if (usernameFilter.error) {
-      return res.apiError("Invalid email or phone", 422);
-    }
-
-    const employee = await Employee.findOne({
-      where: usernameFilter,
+    const validator = new Validator(req.body, {
+      email: "required|email",
+      password: "required|string",
     });
 
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    
+    const employee = await Employee.findOne({ where: { email } });
+ 
     if (!employee) {
       return res.apiError("Employee not found", 404);
     }
 
     if (employee.status === "rejected") {
       return res.apiError(
-        "Your account has been rejected. Please contact support",
-        403
+        "Your account has been rejected. Please contact to administrator to know more about your account status.",
+        403,
       );
     }
-
-    if (!employee.password) {
-      return res.apiError(
-        "Your password is not set. Please set your password to login",
-        404
-      );
-    }
+ 
 
     if (!employee.isActive && employee.status !== "temporary") {
       return res.apiError(
-        "Your account is not active. Please activate your account to login",
-        403
+        "Your account is not active. Please contact to administrator.",
+        403,
       );
     }
 
     const isPasswordValid = await comparePassword(password, employee.password);
     if (!isPasswordValid) {
-      return res.apiError("Invalid password", 401);
+      return res.apiError("Invalid email or password", 401);
     }
 
     const accessToken = generateAccessToken({
       id: employee.id,
       email: employee.email,
+      phone: employee.phone,
       role: "employee",
     });
 
     const refreshToken = generateRefreshToken({
       id: employee.id,
       email: employee.email,
+      phone: employee.phone,
       role: "employee",
     });
 
@@ -228,8 +230,11 @@ exports.employeeLogin = async (req, res) => {
       accessToken,
       employee: {
         id: employee.id,
+        fadaId: employee.fadaId,
         name: employee.name,
         email: employee.email,
+        phone: employee.phone,
+        status: employee.status,
         role: "employee",
       },
     });
@@ -263,12 +268,14 @@ exports.refreshToken = async (req, res) => {
     const accessToken = generateAccessToken({
       id: employee.id,
       email: employee.email,
+      phone: employee.phone,
       role: "employee",
     });
 
     const newRefreshToken = generateRefreshToken({
       id: employee.id,
       email: employee.email,
+      phone: employee.phone,
       role: "employee",
     });
 
@@ -322,90 +329,104 @@ exports.logout = async (req, res) => {
 };
 
 /*
-@API: POST /employee/auth/login-otp
-@Body: { email }
+@API: POST /employee/auth/send-login-otp
+@Body: { username }
 @Desc: Send OTP for employee login via email or phone
 @Access: Public
 */
-exports.loginWithOtp = async (req, res) => {
+exports.sendLoginOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { username } = req.body;
 
-    if (!email) {
-      return res.apiError("Email or phone is required", 422);
+    const validator = new Validator(req.body, {
+      username: "required",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    const usernameFilter = verifyUserName(email);
+    const usernameFilter = verifyUserName(username);
     if (usernameFilter.error) {
       return res.apiError("Invalid email or phone", 422);
     }
 
+    const whereClause = usernameFilter.email ? { email: usernameFilter.email } : { phone: usernameFilter.phone };
+
     const employee = await Employee.findOne({
-      where: usernameFilter,
+      where: whereClause,
     });
 
     if (!employee) {
-      return res.apiError("Employee not found", 404);
+      return res.apiError("user not found", 404);
     }
 
-    if (employee.status === "temporary") {
-      return res.apiError(
-        "Please complete registration OTP verification first",
-        403
-      );
-    }
+     
 
     if (employee.status === "rejected") {
       return res.apiError("Your account has been rejected", 403);
     }
 
-    if (employee.isActive === false && employee.status !== "pending") {
-      return res.apiError("Your account is inactive", 403);
+    if (!employee.isActive && employee.status !== "temporary") {
+      return res.apiError("Your account is not active. Please contact to administrator.", 403);
     }
 
     const otp = generateOTP(6);
-    await employee.update({ otp });
+
+    const data = usernameFilter.email ? { emailOTP: otp } : { otp:otp };
+     
+    await employee.update(data);
 
     if (usernameFilter.email) {
-      try {
-        await sendOtpEmail(usernameFilter.email, {
+       await addEmailJob({
+        to: employee.email,
+        subject: "FADA-ID Login OTP",
+        templateName: "otp.ejs",
+        data: {
           name: employee.name,
           otp,
           purpose: "login",
-        });
-      } catch (emailError) {
-        console.error("Failed to send login OTP email:", emailError.message);
-      }
+        },
+      });
+    }else if (usernameFilter.phone) {
+      await addSmsJob({
+        to: employee.phone,
+        message: `Your Employee Login OTP is ${otp}`,
+        purpose: "login",
+      });
     }
 
-    return res.apiSuccess("OTP sent successfully", usernameFilter);
+    return res.apiSuccess("OTP sent successfully");
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
   }
 };
 
 /*
-@API: POST /employee/auth/login-otp/verify
-@Body: { email, otp }
+@API: POST /employee/auth/verify-login-otp
+@Body: { username, otp }
 @Desc: Verify OTP and login employee via email or phone
 @Access: Public
 */
 exports.verifyLoginOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { username, otp } = req.body;
 
-    if (!email) {
-      return res.apiError("Email or phone is required", 422);
+    const validator = new Validator(req.body, {
+      username: "required",
+      otp: "required|string|min:6|max:6",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    if (!otp || String(otp).length !== 6) {
-      return res.apiError("Invalid OTP", 422);
-    }
-
-    const usernameFilter = verifyUserName(email);
+    const usernameFilter = verifyUserName(username);
     if (usernameFilter.error) {
       return res.apiError("Invalid email or phone", 422);
     }
+
+    const isEmail = usernameFilter.email ? true : false;
 
     const employee = await Employee.findOne({
       where: usernameFilter,
@@ -414,40 +435,36 @@ exports.verifyLoginOtp = async (req, res) => {
     if (!employee) {
       return res.apiError("Employee not found", 404);
     }
-
-    if (employee.status === "temporary") {
-      return res.apiError(
-        "Please complete registration OTP verification first",
-        403
-      );
-    }
-
+ 
     if (employee.status === "rejected") {
-      return res.apiError("Your account has been rejected", 403);
+      return res.apiError("Your account has been rejected. Please contact to administrator.", 403);
     }
 
-    if (!employee.otp) {
+    if (isEmail ?!employee.emailOTP : !employee.otp) {
       return res.apiError("No OTP found. Please request a new OTP", 400);
     }
 
-    if (String(employee.otp) !== String(otp)) {
+    if (String(isEmail ? employee.emailOTP : employee.otp) !== String(otp)) {
       return res.apiError("Invalid OTP", 401);
     }
 
     const accessToken = generateAccessToken({
       id: employee.id,
       email: employee.email,
+      phone: employee.phone,
       role: "employee",
     });
 
     const refreshToken = generateRefreshToken({
       id: employee.id,
       email: employee.email,
+      phone: employee.phone,
       role: "employee",
     });
 
     await employee.update({
       otp: null,
+      emailOTP: null,
       refreshToken,
     });
 
@@ -461,6 +478,7 @@ exports.verifyLoginOtp = async (req, res) => {
     return res.apiSuccess("Login successful", {
       accessToken,
       id: employee.id,
+      fadaId: employee.fadaId,
       name: employee.name,
       email: employee.email,
       phone: employee.phone,
@@ -471,3 +489,171 @@ exports.verifyLoginOtp = async (req, res) => {
     return res.apiError("Internal server error", 500, error);
   }
 };
+
+/*
+@API: POST /employee/auth/forgot-password
+@Body: { username }
+@Desc: Forgot employee password
+@Access: Public
+*/
+exports.forgotPassword = async (req, res) => {
+  try {
+      const { username } = req.body;
+
+    const validator = new Validator(req.body, {
+      username: "required",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const usernameFilter = verifyUserName(username);
+    if (usernameFilter.error) {
+      return res.apiError("Invalid email or phone", 422);
+    }
+
+    const employee = await Employee.findOne({ where: usernameFilter });
+    if (!employee) {
+      return res.apiError("Employee not found", 404);
+    }
+
+    if (employee.status === "rejected") {
+      return res.apiError("Your account has been rejected. Please contact to administrator.", 403);
+    }
+
+    if (!employee.isActive && employee.status !== "temporary") {
+      return res.apiError("Your account is not active. Please contact to administrator.", 403);
+    }
+
+    const otp = generateOTP(6);
+
+    const data = usernameFilter.email ? { emailOTP: otp } : { otp:otp };
+     
+    await employee.update(data);
+    
+    if (usernameFilter.email) {
+      await addEmailJob({
+        to: employee.email,
+        subject: "FADA-ID Forgot Password OTP",
+        templateName: "otp.ejs",
+        data: {
+          name: employee.name,
+          otp,
+          purpose: "OTP",
+        },
+      });
+    }else if (usernameFilter.phone) {
+      await addSmsJob({
+        to: employee.phone,
+        message: `Your FADA-ID OTP is ${otp}`,
+        purpose: "OTP",
+      });
+    }
+
+    return res.apiSuccess("OTP sent successfully");
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /employee/auth/verify-forgot-password-otp
+@Body: { username, otp }
+@Desc: Verify forgot password OTP
+@Access: Public
+*/
+exports.verifyForgotPasswordOtp = async (req, res) => {
+  try {
+    const { username, otp } = req.body;
+
+    const validator = new Validator(req.body, {
+      username: "required",
+      otp: "required|string|min:6|max:6",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const usernameFilter = verifyUserName(username);
+    if (usernameFilter.error) {
+      return res.apiError("Invalid email or phone", 422);
+    }
+
+    const isEmail = usernameFilter.email ? true : false;
+
+    const employee = await Employee.findOne({ where: usernameFilter });
+    if (!employee) {
+      return res.apiError("Employee not found", 404);
+    }
+
+    if (employee.status === "rejected") {
+      return res.apiError("Your account has been rejected. Please contact to administrator.", 403);
+    }
+
+    if (!employee.isActive && employee.status !== "temporary") {
+      return res.apiError("Your account is not active. Please contact to administrator.", 403);
+    }
+
+    if (isEmail ? employee.emailOTP !== otp : employee.otp !== otp) {
+      return res.apiError("Invalid OTP", 401);
+    }
+
+    const resetPasswordToken = generateAccessToken({id: employee.id}, "15m");
+
+    await employee.update({
+      otp: null,
+      emailOTP: null,
+    });
+
+    return res.apiSuccess("OTP verified successfully",{resetPasswordToken});
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /employee/auth/reset-password
+@Body: {  password, confirmPassword }
+@Desc: Reset employee password
+@Access: Public
+*/
+exports.resetPassword = async (req, res) => {
+  try {
+     
+    const validator = new Validator(req.body, {
+      password: "required|string",
+      confirmPassword: "required|string|same:password",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const { password, confirmPassword } = req.body;
+
+    const id = req.auth.id;
+
+    const employee = await Employee.findByPk(id);
+    if (!employee) {
+      return res.apiError("Employee not found", 404);
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    await employee.update({
+      password: hashedPassword,
+    });
+
+    return res.apiSuccess("Password reset successfully");
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+
+
+
+
+  

@@ -97,7 +97,52 @@ const TAG_GROUPS = {
     {
       source: "Employee Auth",
       name: "Auth",
-      description: "Employee registration, login, OTP, and token management",
+      description: "Employee registration, dual OTP verification, login, forgot password, and tokens",
+    },
+    {
+      source: "Employee App Profile",
+      name: "Profile",
+      description: "Profile summary and personal details with addresses",
+    },
+    {
+      source: "Employee App Documents",
+      name: "Documents",
+      description: "Identity document checklist and uploads",
+    },
+    {
+      source: "Employee App Employment",
+      name: "Employment",
+      description: "Employment history records",
+    },
+    {
+      source: "Employee App Certificates",
+      name: "Certificates",
+      description: "Professional certificates and credentials",
+    },
+    {
+      source: "Employee App Skills",
+      name: "Skills",
+      description: "Skills, categories, and proficiency",
+    },
+    {
+      source: "Employee App Trainings",
+      name: "Trainings",
+      description: "Completed trainings and key learnings",
+    },
+    {
+      source: "Employee App Appreciations",
+      name: "Appreciations",
+      description: "Awards, recognition, and quotes",
+    },
+    {
+      source: "Employee App Promotions",
+      name: "Promotions",
+      description: "Role promotions and career milestones",
+    },
+    {
+      source: "Employee App Journey",
+      name: "Journey",
+      description: "Journey timeline entries with attachments",
     },
   ],
   Common: [

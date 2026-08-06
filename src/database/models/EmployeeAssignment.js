@@ -17,6 +17,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "outletId",
         as: "branch",
       });
+
+      EmployeeAssignment.belongsTo(models.OrganizationStructure, {
+        foreignKey: "designationId",
+        as: "designation",
+      });
     }
   }
   EmployeeAssignment.init(
@@ -32,6 +37,28 @@ module.exports = (sequelize, DataTypes) => {
       },
       outletId: {
         type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      designationId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      city: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      employeementType: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: "full-time",
+      },
+      isCurrentlyWorking: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+      },
+      highlights: {
+        type: DataTypes.TEXT,
         allowNull: true,
       },
       startDate: {

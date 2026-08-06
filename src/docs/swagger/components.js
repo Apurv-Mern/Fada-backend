@@ -214,6 +214,8 @@
  *       properties:
  *         id:
  *           type: integer
+ *         fadaId:
+ *           type: string
  *         name:
  *           type: string
  *         email:
@@ -221,12 +223,321 @@
  *           format: email
  *         phone:
  *           type: string
+ *           example: "9876543210"
+ *         bloodGroup:
+ *           type: string
+ *           enum: [A+, A-, B+, B-, AB+, AB-, O+, O-]
+ *         dob:
+ *           type: string
+ *           format: date
+ *         gender:
+ *           type: string
+ *           enum: [male, female, other]
  *         role:
  *           type: string
  *           example: employee
  *         status:
  *           type: string
  *           enum: [temporary, pending, approved, rejected]
+ *     EmployeeRegisterRequest:
+ *       type: object
+ *       required: [name, email, phone]
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *           minLength: 10
+ *           maxLength: 10
+ *           pattern: "^[0-9]+$"
+ *           example: "9876543210"
+ *     EmployeeVerifyRegistrationOtpRequest:
+ *       type: object
+ *       required: [email, emailOTP, phone, otp]
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *         emailOTP:
+ *           type: string
+ *           minLength: 6
+ *           maxLength: 6
+ *           description: OTP sent to email
+ *         phone:
+ *           type: string
+ *           minLength: 10
+ *           maxLength: 10
+ *           example: "9876543210"
+ *         otp:
+ *           type: string
+ *           minLength: 6
+ *           maxLength: 6
+ *           description: OTP sent via SMS to phone
+ *     EmployeeLoginRequest:
+ *       type: object
+ *       required: [email, password]
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *         password:
+ *           type: string
+ *     EmployeeSendLoginOtpRequest:
+ *       type: object
+ *       required: [username]
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: Employee email or 10-digit phone number
+ *           example: employee@example.com
+ *     EmployeeVerifyLoginOtpRequest:
+ *       type: object
+ *       required: [username, otp]
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: Same email or phone used in send-login-otp
+ *         otp:
+ *           type: string
+ *           minLength: 6
+ *           maxLength: 6
+ *     EmployeeForgotPasswordRequest:
+ *       type: object
+ *       required: [username]
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: Employee email or 10-digit phone number
+ *     EmployeeVerifyForgotPasswordOtpRequest:
+ *       type: object
+ *       required: [username, otp]
+ *       properties:
+ *         username:
+ *           type: string
+ *         otp:
+ *           type: string
+ *           minLength: 6
+ *           maxLength: 6
+ *     EmployeeResetPasswordRequest:
+ *       type: object
+ *       required: [password, confirmPassword]
+ *       properties:
+ *         password:
+ *           type: string
+ *           minLength: 6
+ *         confirmPassword:
+ *           type: string
+ *           minLength: 6
+ *     EmployeeAddressInput:
+ *       type: object
+ *       required: [addressLine1, city, state, pincode]
+ *       properties:
+ *         addressLine1:
+ *           type: string
+ *         addressLine2:
+ *           type: string
+ *         city:
+ *           type: string
+ *         state:
+ *           type: string
+ *         country:
+ *           type: string
+ *         pincode:
+ *           type: string
+ *     EmployeePersonalDetailsUpdateRequest:
+ *       type: object
+ *       required: [name, bloodGroup, dob, gender, address]
+ *       properties:
+ *         name:
+ *           type: string
+ *         bloodGroup:
+ *           type: string
+ *           enum: [A+, A-, B+, B-, AB+, AB-, O+, O-]
+ *         dob:
+ *           type: string
+ *           format: date
+ *         gender:
+ *           type: string
+ *           enum: [male, female, other]
+ *         address:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/EmployeeAddressInput'
+ *     EmployeeDocumentUploadRequest:
+ *       type: object
+ *       required: [documentId, frontImage, backImage]
+ *       properties:
+ *         documentId:
+ *           type: integer
+ *         frontImage:
+ *           type: string
+ *           description: URL of front side image
+ *         backImage:
+ *           type: string
+ *           description: URL of back side image
+ *     EmployeeEmployeementCreateRequest:
+ *       type: object
+ *       required:
+ *         - dealerId
+ *         - outletId
+ *         - designationId
+ *         - city
+ *         - employeementType
+ *         - isCurrentlyWorking
+ *         - startDate
+ *         - highlights
+ *       properties:
+ *         dealerId:
+ *           type: integer
+ *         outletId:
+ *           type: integer
+ *         designationId:
+ *           type: integer
+ *         city:
+ *           type: string
+ *         employeementType:
+ *           type: string
+ *           example: full-time
+ *         isCurrentlyWorking:
+ *           type: boolean
+ *         startDate:
+ *           type: string
+ *           format: date
+ *         endDate:
+ *           type: string
+ *           format: date
+ *           nullable: true
+ *         highlights:
+ *           type: string
+ *     EmployeeCertificateUpsertRequest:
+ *       type: object
+ *       required:
+ *         - certificateName
+ *         - issuingAuthority
+ *         - issueDate
+ *         - certificateNumber
+ *         - attachment
+ *       properties:
+ *         certificateName:
+ *           type: string
+ *           example: BYD EV Level 2 Certification
+ *         issuingAuthority:
+ *           type: string
+ *           example: BYD India
+ *         issueDate:
+ *           type: string
+ *           format: date
+ *         certificateNumber:
+ *           type: string
+ *         description:
+ *           type: string
+ *         attachment:
+ *           type: string
+ *           description: URL or path to certificate PDF or image
+ *     EmployeeSkillUpsertRequest:
+ *       type: object
+ *       required:
+ *         - skillName
+ *         - skillCategory
+ *         - proficiencyLevel
+ *       properties:
+ *         skillName:
+ *           type: string
+ *           example: ADAS Calibration
+ *         skillCategory:
+ *           type: string
+ *           example: Electronics
+ *         proficiencyLevel:
+ *           type: string
+ *           example: Intermediate
+ *         learningSource:
+ *           type: string
+ *           description: How the employee learned this skill
+ *         skillDate:
+ *           type: string
+ *           format: date
+ *         description:
+ *           type: string
+ *     EmployeeTrainingUpsertRequest:
+ *       type: object
+ *       required:
+ *         - trainingTitle
+ *       properties:
+ *         trainingTitle:
+ *           type: string
+ *           example: EV Battery Safety Workshop
+ *         trainingProvider:
+ *           type: string
+ *           example: FADA Academy
+ *         completionDate:
+ *           type: string
+ *           format: date
+ *         keyLearnings:
+ *           type: string
+ *         attachment:
+ *           type: string
+ *           description: URL or path to certificate or notes
+ *     EmployeeAppreciationUpsertRequest:
+ *       type: object
+ *       required:
+ *         - appreciationTitle
+ *       properties:
+ *         appreciationTitle:
+ *           type: string
+ *           example: Employee of the Month
+ *         issuedBy:
+ *           type: string
+ *           example: BYD India
+ *         appreciationDate:
+ *           type: string
+ *           format: date
+ *         description:
+ *           type: string
+ *         quote:
+ *           type: string
+ *           description: Optional quote or citation
+ *         attachment:
+ *           type: string
+ *           description: URL or path to photo or document
+ *     EmployeePromotionUpsertRequest:
+ *       type: object
+ *       required:
+ *         - roleTitle
+ *       properties:
+ *         roleTitle:
+ *           type: string
+ *           example: Senior Service Advisor
+ *         issuedBy:
+ *           type: string
+ *           example: BYD India
+ *         promotionDate:
+ *           type: string
+ *           format: date
+ *         description:
+ *           type: string
+ *         attachment:
+ *           type: string
+ *           description: URL or path to photo or document
+ *     EmployeeJourneyUpsertRequest:
+ *       type: object
+ *       required:
+ *         - title
+ *       properties:
+ *         title:
+ *           type: string
+ *         subtitle:
+ *           type: string
+ *         journeyDate:
+ *           type: string
+ *           format: date
+ *         attachments:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: URLs or paths for photos/documents
  *     EmployeeLoginResponse:
  *       type: object
  *       properties:
@@ -249,6 +560,8 @@
  *               type: object
  *               properties:
  *                 accessToken:
+ *                   type: string
+ *                 fadaId:
  *                   type: string
  *                 id:
  *                   type: integer
