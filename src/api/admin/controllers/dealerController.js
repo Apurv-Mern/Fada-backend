@@ -58,9 +58,15 @@ const findKeyContactByDealerId = async (dealerId) =>
 */
 exports.getDealerStats = async (req, res) => {
   try {
-
-    const [totalDealers, totalTemporaryDealers, totalApprovedDealers, totalRejectedDealers, 
-      totalPendingDealers, totalActiveDealers, totalInactiveDealers] = await Promise.all([
+    const [
+      totalDealers,
+      totalTemporaryDealers,
+      totalApprovedDealers,
+      totalRejectedDealers,
+      totalPendingDealers,
+      totalActiveDealers,
+      totalInactiveDealers,
+    ] = await Promise.all([
       Dealer.count(),
       Dealer.count({ where: { status: "temporary" } }),
       Dealer.count({ where: { status: "approved" } }),
@@ -69,7 +75,7 @@ exports.getDealerStats = async (req, res) => {
       Dealer.count({ where: { isActive: true } }),
       Dealer.count({ where: { isActive: false } }),
     ]);
- 
+
     return res.apiSuccess("Dealer stats fetched successfully", {
       totalDealers: totalDealers,
       totalTemporaryDealers: totalTemporaryDealers,
@@ -78,13 +84,11 @@ exports.getDealerStats = async (req, res) => {
       totalPendingDealers: totalPendingDealers,
       totalActiveDealers: totalActiveDealers,
       totalInactiveDealers: totalInactiveDealers,
-    }); 
+    });
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }
 };
-
-
 
 /*
 @API: GET /admin/dealers?search=searchTerm&limit=limit&offset=offset&status=status&isActive=
@@ -93,19 +97,19 @@ exports.getDealerStats = async (req, res) => {
 */
 exports.getDealers = async (req, res) => {
   try {
-    const { search, status, isActive,parentDealerId } = req.query;
+    const { search, status, isActive, parentDealerId } = req.query;
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
     const where = search
       ? {
-        [Op.or]: [
-          { name: { [Op.like]: `%${search}%` } },
-          { dealerCode: { [Op.like]: `%${search}%` } },
-          { email: { [Op.like]: `%${search}%` } },
-          { phone: { [Op.like]: `%${search}%` } },
-        ],
-      }
+          [Op.or]: [
+            { name: { [Op.like]: `%${search}%` } },
+            { dealerCode: { [Op.like]: `%${search}%` } },
+            { email: { [Op.like]: `%${search}%` } },
+            { phone: { [Op.like]: `%${search}%` } },
+          ],
+        }
       : {};
 
     if (status) {
@@ -121,8 +125,18 @@ exports.getDealers = async (req, res) => {
     }
 
     const { rows: dealers, count: total } = await Dealer.findAndCountAll({
-      attributes: ["id", "name","email","phone", "dealerCode","brands","isGroupHoldingEntity","parentDealerId",
-        "status","isActive","isEmailVerified",
+      attributes: [
+        "id",
+        "name",
+        "email",
+        "phone",
+        "dealerCode",
+        "brands",
+        "isGroupHoldingEntity",
+        "parentDealerId",
+        "status",
+        "isActive",
+        "isEmailVerified",
         [
           sequelize.literal(`(
             SELECT COUNT(*)
@@ -131,6 +145,14 @@ exports.getDealers = async (req, res) => {
           )`),
           "outletCount",
         ],
+        [
+          sequelize.literal(`(
+            SELECT GROUP_CONCAT(DISTINCT name)
+            FROM Brands
+            WHERE JSON_CONTAINS(Dealer.brands, CAST(Brands.id AS JSON))
+          )`),
+          "brandsName",
+        ]
       ],
       include: [
         {
@@ -159,7 +181,6 @@ exports.getDealers = async (req, res) => {
   }
 };
 
-
 /*
 @API: GET /admin/dealers/group-holding
 @Desc: Get all dealers group by holding
@@ -168,16 +189,18 @@ exports.getDealers = async (req, res) => {
 exports.getDealersGroupByHolding = async (req, res) => {
   try {
     const dealers = await Dealer.findAll({
-      attributes: ["id", "name", "dealerCode","brands"],
-       where: { isGroupHoldingEntity:  true},
+      attributes: ["id", "name", "dealerCode", "brands"],
+      where: { isGroupHoldingEntity: true },
     });
 
-    return res.apiSuccess("Group holding dealers fetched successfully", dealers);
+    return res.apiSuccess(
+      "Group holding dealers fetched successfully",
+      dealers,
+    );
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }
 };
- 
 
 /*
 @API: GET /admin/dealers/:id
@@ -248,14 +271,32 @@ exports.getDealerById = async (req, res) => {
 
     dealer.dataValues.documents = await Document.findAll({
       where: { isActive: true, appliesTo: { [Op.in]: ["dealer", "both"] } },
-      attributes: ["id", "name", "category", "notes", "isMandatory", "isVerificationRequired", "createdAt", "updatedAt"],
+      attributes: [
+        "id",
+        "name",
+        "category",
+        "notes",
+        "isMandatory",
+        "isVerificationRequired",
+        "createdAt",
+        "updatedAt",
+      ],
       include: [
         {
           model: DealerDocument,
           as: "dealerDocuments",
           required: false,
           where: { dealerId: req.params.id },
-          attributes: ["id", "documentUrl", "isVerified", "status", "dealerId", "documentId", "createdAt", "updatedAt"],
+          attributes: [
+            "id",
+            "documentUrl",
+            "isVerified",
+            "status",
+            "dealerId",
+            "documentId",
+            "createdAt",
+            "updatedAt",
+          ],
         },
       ],
     });
@@ -272,6 +313,7 @@ exports.getDealerById = async (req, res) => {
 @Access: Private     
 */
 exports.createDealer = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const validator = new Validator(req.body, {
       name: "required|string",
@@ -281,25 +323,87 @@ exports.createDealer = async (req, res) => {
       brands: "required|array",
       isGroupHoldingEntity: "boolean",
       parentCompanyId: "integer",
+      "location.address": "required|string",
+      "location.city": "required|string",
+      "location.state": "required|string",
+      "location.country": "required|string",
+      "location.pinCode": "required|string",
+      "location.gstNumber": "required|string|size:15",
     });
     if (validator.fails()) {
-      return res.apiError(validator.errors.all(), 400);
+      await transaction.rollback();
+      const error = Object.values(validator.errors.all()).flat()[0];
+      return res.apiError(error.replace("location.", ""), 422);
     }
 
     const brandsResult = await validateDealerBrands(req.body.brands, res);
-    if (!brandsResult.valid) return;
+    if (!brandsResult.valid) {
+      await transaction.rollback();
+      return res.apiError(brandsResult.errors, 400);
+    }
 
-    const dealer = await Dealer.create({
-      name: req.body.name,
-      email: req.body.email,
-      phone: req.body.phone,
-      dealerCode: req.body.dealerCode,
-      isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
-      parentDealerId : req.body.parentCompanyId ?? null,
-      brands: brandsResult.normalized,
-    });
+    const existingDealerByEmail = await Dealer.findOne(
+      {
+        where: { email: req.body.email },
+      },
+      { transaction },
+    );
+    if (existingDealerByEmail) {
+      await transaction.rollback();
+      return res.apiError("Dealer with this email already exists", 400);
+    }
+
+    const existingDealerByPhone = await Dealer.findOne(
+      {
+        where: { phone: req.body.phone },
+      },
+      { transaction },
+    );
+    if (existingDealerByPhone) {
+      await transaction.rollback();
+      return res.apiError("Dealer with this phone number already exists", 400);
+    }
+
+    const existingDealerByDealerCode = await Dealer.findOne(
+      {
+        where: { dealerCode: req.body.dealerCode },
+      },
+      { transaction },
+    );
+    if (existingDealerByDealerCode) {
+      await transaction.rollback();
+      return res.apiError("Dealer with this dealer code already exists", 400);
+    }
+
+    const dealer = await Dealer.create(
+      {
+        name: req.body.name,
+        email: req.body.email,
+        phone: req.body.phone,
+        dealerCode: req.body.dealerCode,
+        isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
+        parentDealerId: req.body.parentCompanyId ?? null,
+        brands: brandsResult.normalized,
+      },
+      { transaction },
+    );
+
+    await DealerLocation.create(
+      {
+        dealerId: dealer.id,
+        address: req.body.location.address,
+        city: req.body.location.city,
+        state: req.body.location.state,
+        country: req.body.location.country,
+        pinCode: req.body.location.pinCode,
+        gstNumber: req.body.location.gstNumber,
+      },
+      { transaction },
+    );
+    await transaction.commit();
     return res.apiSuccess("Dealer created successfully", dealer);
   } catch (error) {
+    await transaction.rollback();
     return res.apiError(error.message, 500, error);
   }
 };
@@ -310,6 +414,7 @@ exports.createDealer = async (req, res) => {
 @Access: Private     
 */
 exports.updateDealer = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const validator = new Validator(req.body, {
       name: "required|string",
@@ -319,13 +424,60 @@ exports.updateDealer = async (req, res) => {
       brands: "required|array",
       isGroupHoldingEntity: "boolean",
       parentCompanyId: "integer",
+      "location.address": "required|string",
+      "location.city": "required|string",
+      "location.state": "required|string",
+      "location.country": "required|string",
+      "location.pinCode": "required|string",
+      "location.gstNumber": "required|string|size:15",
     });
     if (validator.fails()) {
-      return res.apiError(validator.errors.all(), 400);
+      await transaction.rollback();
+      const error = Object.values(validator.errors.all()).flat()[0];
+      return res.apiError(error.replace("location.", ""), 422);
     }
 
     const brandsResult = await validateDealerBrands(req.body.brands, res);
-    if (!brandsResult.valid) return;
+    if (!brandsResult.valid) {
+      await transaction.rollback();
+      return res.apiError(brandsResult.errors, 400);
+    }
+
+    const existingDealerByEmail = await Dealer.findOne(
+      {
+        where: { email: req.body.email, id: { [Op.ne]: req.params.id } },
+      },
+      { transaction },
+    );
+    if (existingDealerByEmail) {
+      await transaction.rollback();
+      return res.apiError("Dealer with this email already exists", 400);
+    }
+
+    const existingDealerByPhone = await Dealer.findOne(
+      {
+        where: { phone: req.body.phone, id: { [Op.ne]: req.params.id } },
+      },
+      { transaction },
+    );
+    if (existingDealerByPhone) {
+      await transaction.rollback();
+      return res.apiError("Dealer with this phone number already exists", 400);
+    }
+
+    const existingDealerByDealerCode = await Dealer.findOne(
+      {
+        where: {
+          dealerCode: req.body.dealerCode,
+          id: { [Op.ne]: req.params.id },
+        },
+      },
+      { transaction },
+    );
+    if (existingDealerByDealerCode) {
+      await transaction.rollback();
+      return res.apiError("Dealer with this dealer code already exists", 400);
+    }
 
     const dealer = await Dealer.update(
       {
@@ -334,15 +486,44 @@ exports.updateDealer = async (req, res) => {
         phone: req.body.phone,
         dealerCode: req.body.dealerCode,
         isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
-        parentDealerId : req.body.parentCompanyId ?? null,
+        parentDealerId: req.body.parentCompanyId ?? null,
         brands: brandsResult.normalized,
       },
       {
         where: { id: req.params.id },
+        transaction,
       },
     );
+
+    const dealerLocation = await DealerLocation.findOne({
+      where: { dealerId: req.params.id },
+      transaction,
+    });
+
+    const location = {
+      address: req.body.location.address,
+      city: req.body.location.city,
+      state: req.body.location.state,
+      country: req.body.location.country,
+      pinCode: req.body.location.pinCode,
+      gstNumber: req.body.location.gstNumber,
+    };
+    if (dealerLocation) {
+      await dealerLocation.update(location, {
+        where: { dealerId: req.params.id },
+        transaction,
+      });
+    } else {
+      await DealerLocation.create(
+        { ...location, dealerId: req.params.id },
+        { transaction },
+      );
+    }
+
+    await transaction.commit();
     return res.apiSuccess("Dealer updated successfully", dealer);
   } catch (error) {
+    await transaction.rollback();
     return res.apiError(error.message, 500, error);
   }
 };

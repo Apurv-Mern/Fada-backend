@@ -366,6 +366,22 @@
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/EmployeeAddressInput'
+ *     EmployeeProfilePrivacyUpdateRequest:
+ *       type: object
+ *       required:
+ *         - isProfilePrivate
+ *       properties:
+ *         isProfilePrivate:
+ *           type: boolean
+ *           description: "true = private (limit visibility); false = public"
+ *     EmployeeProfileShareRequest:
+ *       type: object
+ *       required:
+ *         - dealerId
+ *       properties:
+ *         dealerId:
+ *           type: integer
+ *           description: Organisation (dealer) id from dropdown e.g. Sundaram Motors
  *     EmployeeDocumentUploadRequest:
  *       type: object
  *       required: [documentId, frontImage, backImage]

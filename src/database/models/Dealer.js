@@ -38,6 +38,11 @@ module.exports = (sequelize, DataTypes) => {
         as: "documents",
       });
 
+      Dealer.hasMany(models.EmployeeProfileShare, {
+        foreignKey: "dealerId",
+        as: "employeeProfileShares",
+      });
+
       Dealer.belongsTo(models.Dealer, {
         foreignKey: "parentDealerId",
         as: "parentDealer",

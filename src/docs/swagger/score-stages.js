@@ -27,6 +27,9 @@
  *         colorHex:
  *           type: string
  *           example: "#B87333"
+ *         icon:
+ *           type: string
+ *           description: Icon URL or icon identifier
  *         isActive:
  *           type: boolean
  *           default: true

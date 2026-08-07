@@ -207,9 +207,11 @@ const syncDesignation = async (
     transaction,
   });
 
-  await existing.update({ endDate: dayjs().format("YYYY-MM-DD"), isActive: false }, { transaction });
-
-  await EmployeeDesignation.create(payload, { transaction });
+  if (existing) {
+    await existing.update({ endDate: dayjs().format("YYYY-MM-DD"), isActive: false }, { transaction });
+  }else{
+    await EmployeeDesignation.create(payload, { transaction });
+  } 
 };
 
 const syncAssignment = async (

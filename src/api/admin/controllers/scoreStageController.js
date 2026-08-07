@@ -9,6 +9,7 @@ const scoreStageValidationRules = {
   minScore: "required|integer|min:0",
   maxScore: "required|integer|min:0",
   colorHex: "required|string",
+  icon: "string",
   isActive: "boolean",
 };
 
@@ -70,6 +71,7 @@ const buildScoreStagePayload = (body) => ({
   minScore: Number(body.minScore),
   maxScore: Number(body.maxScore),
   colorHex: body.colorHex.trim().toUpperCase(),
+  icon: body.icon != null && body.icon !== "" ? String(body.icon).trim() : null,
   isActive: body.isActive ?? true,
 });
 
@@ -230,6 +232,34 @@ exports.deleteScoreStage = async (req, res) => {
     await scoreStage.destroy();
 
     return res.apiSuccess("Score stage deleted successfully");
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: PUT /admin/score-stages/icon/:id
+@Desc: Update score stage icon
+@Access: Private
+@Body: {
+  icon: "required|image",
+}
+*/
+exports.updateScoreStageIcon = async (req, res) => {
+  try {
+   
+   if(!req.file){
+    return res.apiError("File is required", 400);
+   }
+ 
+   const scoreStage = await ScoreStage.findByPk(req.params.id);
+
+   const payload = {
+    icon: process.env.API_URL + "/uploads/" + req.file.filename,
+   };
+   await scoreStage.update(payload);
+     
+    return res.apiSuccess("Score stage icon updated successfully", scoreStage);
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

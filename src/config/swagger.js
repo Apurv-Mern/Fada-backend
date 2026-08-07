@@ -42,6 +42,7 @@ const options = {
     "./src/docs/swagger/employees.js",
     "./src/docs/swagger/score-rules.js",
     "./src/docs/swagger/score-stages.js",
+    "./src/docs/swagger/announcements.js",
     "./src/docs/swagger/dashboard.js",
     "./src/docs/swagger/employee*.js",
   ],
@@ -53,7 +54,7 @@ const employeeMobilePathCount = Object.keys(swaggerSpec.paths || {}).filter(
   (path) => path.startsWith("/api/v1/employee"),
 ).length;
 
-if (employeeMobilePathCount < 15) {
+if (employeeMobilePathCount < 19) {
   console.warn(
     `[swagger] Employee mobile app documentation incomplete (${employeeMobilePathCount} paths). ` +
       "Ensure src/docs/swagger/employee-app.js exists and matches src/api/app/v1/routes.",

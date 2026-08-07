@@ -30,6 +30,101 @@
 
 /**
  * @swagger
+ * /api/v1/employee/profile/privacy:
+ *   get:
+ *     tags: [Employee App Profile]
+ *     summary: Get profile privacy setting
+ *     description: Returns whether the employee profile is private (shared only with selected organisations) or public.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile privacy fetched successfully
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     tags: [Employee App Profile]
+ *     summary: Update profile public or private
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeProfilePrivacyUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Profile privacy updated successfully
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/profile/shares:
+ *   get:
+ *     tags: [Employee App Profile]
+ *     summary: List profile shares
+ *     description: Organisations (dealers) that can view this profile when it is private.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile shares fetched successfully
+ *       401:
+ *         description: Unauthorized
+ *   post:
+ *     tags: [Employee App Profile]
+ *     summary: Share profile access with organisation
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeProfileShareRequest'
+ *     responses:
+ *       200:
+ *         description: Profile access shared successfully
+ *       404:
+ *         description: Organisation not found
+ *       409:
+ *         description: Already shared with this organisation
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/profile/shares/{shareId}:
+ *   delete:
+ *     tags: [Employee App Profile]
+ *     summary: Revoke profile share
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shareId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Profile access revoked successfully
+ *       404:
+ *         description: Share not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
  * /api/v1/employee/personal-details:
  *   get:
  *     tags: [Employee App Profile]

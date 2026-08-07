@@ -55,6 +55,11 @@ const TAG_GROUPS = {
       name: "Dashboard",
       description: "Admin dashboard statistics and summaries",
     },
+    {
+      source: "Admin Announcements",
+      name: "Announcements",
+      description: "Announcements and circulars with audience and delivery channels",
+    },
   ],
   Dealer: [
     {

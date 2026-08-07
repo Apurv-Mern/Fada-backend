@@ -33,8 +33,7 @@ module.exports = {
       },
       gstNumber: {
         type: Sequelize.STRING(15),
-        allowNull: false,
-        unique: true,
+        allowNull: false, 
       },
       address: {
         type: Sequelize.TEXT,

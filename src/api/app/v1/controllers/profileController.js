@@ -1,3 +1,5 @@
+const Validator = require("validatorjs");
+const { Op } = require("sequelize");
 const {
   sequelize,
   Employee,
@@ -5,6 +7,7 @@ const {
   Document,
   EmployeeDocument,
   EmployeeAssignment,
+  EmployeeProfileShare,
   Dealer,
   Outlet,
   OrganizationStructure,
@@ -35,7 +38,11 @@ exports.getProfile = async (req, res) => {
         "score",
         "isActive",
         "isVerified",
-      ],  
+        "isProfilePrivate",
+        [sequelize.literal(`
+          (SELECT COUNT(*) FROM EmployeeProfileShares WHERE EmployeeProfileShares.employeeId = Employees.id)
+        `), "profileSharesCount"],
+      ],
       include: [
         {
           model: EmployeeAssignment,
@@ -70,7 +77,7 @@ exports.getProfile = async (req, res) => {
               attributes: ["id", "name"],
             },
           ],
-        },
+        }, 
       ],
     });
 
@@ -437,6 +444,166 @@ exports.getEmployeements = async (req, res) => {
       "Employee employeements fetched successfully",
       employeements,
     );
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: GET /employee/profile/privacy
+@Desc: Get profile privacy setting
+@Access: Private
+*/
+exports.getProfilePrivacy = async (req, res) => {
+  try {
+    const employee = await Employee.findByPk(req.auth.id, {
+      attributes: ["id", "isProfilePrivate"],
+    });
+
+    if (!employee) {
+      return res.apiError("Employee not found", 404);
+    }
+
+    return res.apiSuccess("Profile privacy fetched successfully", {
+      isProfilePrivate: employee.isProfilePrivate,
+    });
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: PUT /employee/profile/privacy
+@Desc: Set profile public or private
+@Body: { isProfilePrivate: boolean }
+@Access: Private
+*/
+exports.updateProfilePrivacy = async (req, res) => {
+  try {
+    const validator = new Validator(req.body, {
+      isProfilePrivate: "required|boolean",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const { isProfilePrivate } = req.body;
+
+    await Employee.update(
+      { isProfilePrivate },
+      { where: { id: req.auth.id } },
+    );
+
+    return res.apiSuccess("Profile privacy updated successfully", {
+      isProfilePrivate,
+    });
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: GET /employee/profile/shares
+@Desc: List organisations with profile access
+@Access: Private
+*/
+exports.getProfileShares = async (req, res) => {
+  try {
+    const shares = await EmployeeProfileShare.findAll({
+      where: { employeeId: req.auth.id },
+      attributes: ["id", "dealerId", "isActive", "createdAt"],
+      include: [
+        {
+          model: Dealer,
+          as: "organisation",
+          attributes: ["id", "name", "dealerCode"],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.apiSuccess("Profile shares fetched successfully", shares);
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /employee/profile/shares
+@Desc: Share profile access with an organisation (dealer)
+@Body: { dealerId: number }
+@Access: Private
+*/
+exports.shareProfile = async (req, res) => {
+  try {
+    const validator = new Validator(req.body, {
+      dealerId: "required|numeric",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const { dealerId } = req.body;
+    const employeeId = req.auth.id;
+
+    const dealer = await Dealer.findOne({
+      where: { id: dealerId, isActive: true, status: "approved" },
+      attributes: ["id", "name"],
+    });
+
+    if (!dealer) {
+      return res.apiError("Organisation not found", 404);
+    }
+
+    let share = await EmployeeProfileShare.findOne({
+      where: { employeeId, dealerId },
+      paranoid: false,
+    });
+
+    if (share) {
+      if (share.deletedAt) {
+        await share.restore();
+      }
+      await share.update({ isActive: true });
+    } else {
+        await EmployeeProfileShare.create({
+        employeeId,
+        dealerId,
+        isActive: true,
+      });
+    }
+
+    
+
+    return res.apiSuccess("Profile access shared successfully");
+  } catch (error) {
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.apiError("Profile already shared with this organisation", 409);
+    }
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: DELETE /employee/profile/shares/{shareId}
+@Desc: Revoke profile access for an organisation
+@Access: Private
+*/
+exports.revokeProfileShare = async (req, res) => {
+  try {
+    const share = await EmployeeProfileShare.findOne({
+      where: { id: req.params.shareId, employeeId: req.auth.id },
+    });
+
+    if (!share) {
+      return res.apiError("Profile share not found", 404);
+    }
+
+    await share.destroy();
+
+    return res.apiSuccess("Profile access revoked successfully");
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
   }

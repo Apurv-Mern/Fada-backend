@@ -50,6 +50,11 @@ module.exports = (sequelize, DataTypes) => {
         as: "journeys",
       });
 
+      Employee.hasMany(models.EmployeeProfileShare, {
+        foreignKey: "employeeId",
+        as: "profileShares",
+      });
+
       Employee.hasOne(models.EmployeeDesignation, {
         foreignKey: "employeeId",
         as: "designation",
@@ -80,6 +85,11 @@ module.exports = (sequelize, DataTypes) => {
       gender: DataTypes.STRING,
       bloodGroup: DataTypes.STRING,
       profilePicture: DataTypes.STRING,
+      isProfilePrivate: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       isActive: DataTypes.BOOLEAN,
       isVerified: DataTypes.BOOLEAN,
       isPhoneVerified: DataTypes.BOOLEAN,
