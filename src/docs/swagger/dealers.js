@@ -53,6 +53,40 @@
 
 /**
  * @swagger
+ * /dealers/user/group-dealers:
+ *   get:
+ *     tags: [Dealer Profile]
+ *     summary: List child dealers in group holding
+ *     description: Returns active dealers where parentDealerId is the authenticated dealer (id, name, dealerCode).
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Group dealers fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                           dealerCode:
+ *                             type: string
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
  * /dealers/contact-persons:
  *   get:
  *     tags: [Dealer Contact Persons]
@@ -407,6 +441,62 @@
  *     responses:
  *       200:
  *         description: Employee deleted successfully
+ */
+
+/**
+ * @swagger
+ * /dealers/employees/{id}/documents:
+ *   get:
+ *     tags: [Dealer Employees]
+ *     summary: Get employee document checklist with uploads
+ *     description: Lists active document types for employees with this employee's upload rows (if any). Employee must be assigned to the authenticated dealer.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Employee id
+ *     responses:
+ *       200:
+ *         description: Employee documents fetched successfully
+ *       404:
+ *         description: Employee not found for this dealer
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/employees/{id}/approve-documents/{documentId}:
+ *   put:
+ *     tags: [Dealer Employees]
+ *     summary: Approve an employee document upload
+ *     description: Approves the employee's upload for the given master document type (documentId). Recomputes employee isKycCompleted when all required document types are approved.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Employee id
+ *       - in: path
+ *         name: documentId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Master Document id (document type), not EmployeeDocument row id
+ *     responses:
+ *       200:
+ *         description: Employee document approved successfully
+ *       404:
+ *         description: Employee or document upload not found
+ *       401:
+ *         description: Unauthorized
  */
 
 /**

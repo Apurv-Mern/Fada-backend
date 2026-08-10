@@ -6,7 +6,7 @@ const options = {
     openapi: "3.0.0",
     info: {
       title: "FADA Backend API",
-      version: "1.2.1",
+      version: "1.2.3",
       description:
         "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints.",
     },
@@ -54,7 +54,7 @@ const employeeMobilePathCount = Object.keys(swaggerSpec.paths || {}).filter(
   (path) => path.startsWith("/api/v1/employee"),
 ).length;
 
-if (employeeMobilePathCount < 24) {
+if (employeeMobilePathCount < 25) {
   console.warn(
     `[swagger] Employee mobile app documentation incomplete (${employeeMobilePathCount} paths). ` +
       "Ensure src/docs/swagger/employee-app.js exists and matches src/api/app/v1/routes.",

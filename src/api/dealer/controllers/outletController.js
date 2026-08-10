@@ -42,18 +42,22 @@ const findDealerOutletOrError = async (outletId, dealerId, res, transaction) => 
 };
 
 /*
-@API: GET /dealers/outlets
+@API: GET /dealers/outlets?groupDealerId=1&isActive=true&search=test&limit=10&offset=0
 @Desc: Get authenticated dealer outlets
 @Access: Private
 */
 exports.getOutlets = async (req, res) => {
   try {
     const dealerId = getDealerId(req);
-    const { search, isActive } = req.query;
+    const { search, isActive, groupDealerId } = req.query;
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
     const where = { dealerId };
+
+    if (groupDealerId) {
+      where.dealerId = groupDealerId;
+    }
 
     if (isActive !== undefined) {
       where.isActive = isActive === "true" || isActive === "1";

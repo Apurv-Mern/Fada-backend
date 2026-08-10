@@ -142,3 +142,25 @@ exports.updateProfile = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
+
+
+/*
+@API: GET /dealer/group-dealers
+@Desc: Get group dealers
+@Access: Private     
+*/
+exports.getGroupDealers = async (req, res) => {
+  try {
+    const id = req.auth.id;
+
+    const groupDealers = await Dealer.findAll({ 
+      where: { parentDealerId: id, isActive: true}, 
+      attributes: ["id", "name","dealerCode"] 
+    });
+ 
+    return res.apiSuccess("Group dealers fetched successfully", groupDealers);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
