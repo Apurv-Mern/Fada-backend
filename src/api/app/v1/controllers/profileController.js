@@ -30,7 +30,7 @@ exports.getProfile = async (req, res) => {
         "bloodGroup",
         "email",
         "phone",
-        "dob", 
+        "dob",
         "gender",
         "isPhoneVerified",
         "isEmailVerified",
@@ -57,7 +57,7 @@ exports.getProfile = async (req, res) => {
             "highlights",
           ],
           required: false,
-          where: { 
+          where: {
             isCurrentlyWorking: true,
           },
           include: [
@@ -77,7 +77,7 @@ exports.getProfile = async (req, res) => {
               attributes: ["id", "name"],
             },
           ],
-        }, 
+        },
       ],
     });
 
@@ -166,7 +166,6 @@ exports.updatePersonalDetails = async (req, res) => {
       bloodGroup: "required|in:A+,A-,B+,B-,AB+,AB-,O+,O-",
       dob: "required|date",
       gender: "required|in:male,female,other",
-      address: "required|array",
       "address.addressLine1": "required|string",
       "address.addressLine2": "string",
       "address.city": "required|string",
@@ -426,7 +425,7 @@ exports.getEmployeements = async (req, res) => {
           model: Dealer,
           as: "dealership",
           attributes: ["id", "name"],
-        }, 
+        },
         {
           model: Outlet,
           as: "branch",
@@ -568,14 +567,14 @@ exports.shareProfile = async (req, res) => {
       }
       await share.update({ isActive: true });
     } else {
-        await EmployeeProfileShare.create({
+      await EmployeeProfileShare.create({
         employeeId,
         dealerId,
         isActive: true,
       });
     }
 
-    
+
 
     return res.apiSuccess("Profile access shared successfully");
   } catch (error) {
