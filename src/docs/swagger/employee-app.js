@@ -12,6 +12,7 @@
  *   - name: Employee App Promotions
  *   - name: Employee App Journey
  *   - name: Employee App Settings
+ *   - name: Employee App Masters
  */
 
 /**
@@ -1063,6 +1064,74 @@
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Announcement'
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/master/dealers:
+ *   get:
+ *     tags: [Employee App Masters]
+ *     summary: Search dealer outlets for employment forms
+ *     description: Returns active outlets with nested dealer (id, name, dealerCode) and brand. Optional search matches dealer name or dealer code.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Filter by dealer name or dealer code
+ *     responses:
+ *       200:
+ *         description: Dealer outlets fetched successfully
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/master/departments:
+ *   get:
+ *     tags: [Employee App Masters]
+ *     summary: List organization departments
+ *     description: Returns organization structures with flag department (for employment history and profile forms).
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Departments fetched successfully
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/master/designations:
+ *   get:
+ *     tags: [Employee App Masters]
+ *     summary: List designations (roles)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: parentId
+ *         schema:
+ *           type: integer
+ *         description: Filter roles by parent department id
+ *     responses:
+ *       200:
+ *         description: Designations fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MasterIdNameItem'
  *       401:
  *         description: Unauthorized
  */

@@ -8,9 +8,15 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
+      
       Outlet.belongsTo(models.Dealer, {
         foreignKey: "dealerId",
-        as: "company",
+        as: "dealer",
+      });
+
+      Outlet.belongsTo(models.Brand, {
+        foreignKey: "brandId", 
+        as: "brand",
       });
 
       Outlet.hasMany(models.OutletBrandCategory, {
@@ -18,22 +24,14 @@ module.exports = (sequelize, DataTypes) => {
         as: "brandCategories",
       });
 
-      Outlet.belongsToMany(models.Brand, {
-        through: models.OutletBrandCategory,
-        foreignKey: "outletId",
-        otherKey: "brandId",
-        as: "linkedBrands",
-      });
+      
 
       Outlet.hasMany(models.EmployeeAssignment, {
         foreignKey: "outletId",
         as: "employeeAssignments",
       });
 
-      Outlet.belongsTo(models.Brand, {
-        foreignKey: "brandId",
-        as: "brand",
-      });
+      
     }
   }
   Outlet.init(
