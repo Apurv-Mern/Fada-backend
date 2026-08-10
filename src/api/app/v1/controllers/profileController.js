@@ -44,7 +44,7 @@ exports.getProfile = async (req, res) => {
         "isJourneyCompleted",
         [
           sequelize.literal(`
-          (SELECT COUNT(*) FROM EmployeeProfileShares WHERE EmployeeProfileShares.employeeId = Employees.id)
+          (SELECT COUNT(*) FROM EmployeeProfileShares WHERE EmployeeProfileShares.employeeId = Employee.id)
         `),
           "profileSharesCount",
         ],
@@ -52,9 +52,12 @@ exports.getProfile = async (req, res) => {
       include: [
         {
           model: EmployeeAssignment,
-          as: "employeements",
+          as: "assignment",
           attributes: [
             "id",
+            "dealerId",
+            "outletId",
+            "designationId",
             "employeementType",
             "city",
             "startDate",
@@ -63,24 +66,25 @@ exports.getProfile = async (req, res) => {
             "highlights",
           ],
           required: false,
-          where: {
-            isCurrentlyWorking: true,
-          },
+          where: { isCurrentlyWorking: true },
           include: [
             {
               model: Dealer,
               as: "dealership",
               attributes: ["id", "name"],
+              required: false,
             },
             {
               model: Outlet,
               as: "branch",
               attributes: ["id", "name"],
+              required: false,
             },
             {
               model: OrganizationStructure,
               as: "designation",
               attributes: ["id", "name"],
+              required: false,
             },
           ],
         },
@@ -274,7 +278,7 @@ exports.uploadDocuments = async (req, res) => {
     }
 
     const validator = new Validator(req.body, {
-      documentId: "required|number",
+      documentId: "required|numeric",
       frontImage: "required|string",
       backImage: "required|string",
     });
@@ -358,9 +362,9 @@ exports.createEmployeement = async (req, res) => {
     const id = req.auth.id;
 
     const validator = new Validator(req.body, {
-      dealerId: "required|number",
-      outletId: "required|number",
-      designationId: "required|number",
+      dealerId: "required|numeric",
+      outletId: "required|numeric",
+      designationId: "required|numeric",
       city: "required|string",
       employeementType: "required|string",
       isCurrentlyWorking: "required|boolean",
