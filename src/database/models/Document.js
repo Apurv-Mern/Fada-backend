@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "documentId",
         as: "dealerDocuments",
       });
-      Document.hasOne(models.EmployeeDocument, {
+      Document.hasMany(models.EmployeeDocument, {
         foreignKey: "documentId",
         as: "employeeDocuments",
       });

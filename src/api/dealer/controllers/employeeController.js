@@ -363,8 +363,19 @@ exports.deleteEmployee = async (req, res) => {
 */
 exports.approveEmployeeDocuments = async (req, res) => {
   try {
+    const dealerId = getDealerId(req);
+    const employee = await findDealerEmployeeOrError(
+      req.params.id,
+      dealerId,
+      res,
+    );
+    if (!employee) return;
+
     const document = await EmployeeDocument.findOne({
-      where: { documentId: req.params.documentId, employeeId: req.params.id },
+      where: {
+        documentId: req.params.documentId,
+        employeeId: employee.id,
+      },
     });
 
     if (!document) {
@@ -374,13 +385,13 @@ exports.approveEmployeeDocuments = async (req, res) => {
     await document.update({
       isApproved: true,
       approvedAt: new Date(),
-      approvedBy: req.auth.id,
+      approvedBy: dealerId,
       status: "approved",
     });
 
-    await checkAllDocumentsApproved(req.params.id);
+    await checkAllDocumentsApproved(employee.id);
 
-    return res.apiSuccess("Employee documents approved successfully");
+    return res.apiSuccess("Employee document approved successfully");
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }
@@ -393,15 +404,36 @@ exports.approveEmployeeDocuments = async (req, res) => {
 */
 exports.getEmployeeDocuments = async (req, res) => {
   try {
+    const dealerId = getDealerId(req);
+    const employee = await findDealerEmployeeOrError(
+      req.params.id,
+      dealerId,
+      res,
+    );
+    if (!employee) return;
+
     const documents = await Document.findAll({
       where: { appliesTo: { [Op.in]: ["employee", "both"] }, isActive: true },
+      attributes: [
+        "id",
+        "name",
+        "code",
+        "category",
+        "isMandatory",
+        "isVerificationRequired",
+        "sortOrder",
+      ],
       include: [
         {
           model: EmployeeDocument,
           as: "employeeDocuments",
-          where: { employeeId: req.params.id },
+          where: { employeeId: employee.id },
           required: false,
         },
+      ],
+      order: [
+        ["sortOrder", "ASC"],
+        ["name", "ASC"],
       ],
     });
 

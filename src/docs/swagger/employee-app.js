@@ -32,6 +32,35 @@
 
 /**
  * @swagger
+ * /api/v1/employee/profile-picture:
+ *   put:
+ *     tags: [Employee App Profile]
+ *     summary: Upload or update profile picture
+ *     description: Multipart upload; field name must be profilePicture. Stores public URL on the employee record.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [profilePicture]
+ *             properties:
+ *               profilePicture:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile picture updated successfully
+ *       400:
+ *         description: Profile picture is required
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
  * /api/v1/employee/profile/privacy:
  *   get:
  *     tags: [Employee App Profile]
