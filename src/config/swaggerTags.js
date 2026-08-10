@@ -41,6 +41,11 @@ const TAG_GROUPS = {
       description: "Outlet function master data",
     },
     {
+      source: "Master Dealers",
+      name: "Master Dealers",
+      description: "Approved dealer lookup for admin master screens",
+    },
+    {
       source: "Admin Score Rules",
       name: "Score Rules",
       description: "Score engine rule management",
@@ -107,7 +112,12 @@ const TAG_GROUPS = {
     {
       source: "Employee App Profile",
       name: "Profile",
-      description: "Profile summary and personal details with addresses",
+      description: "Profile summary, personal details, and standalone address",
+    },
+    {
+      source: "Employee App Emergency Contacts",
+      name: "Emergency Contacts",
+      description: "Emergency contact persons (name, phone, relation)",
     },
     {
       source: "Employee App Documents",
@@ -148,6 +158,11 @@ const TAG_GROUPS = {
       source: "Employee App Journey",
       name: "Journey",
       description: "Journey timeline entries with attachments",
+    },
+    {
+      source: "Employee App Settings",
+      name: "Settings",
+      description: "Employee app settings and announcement feed",
     },
   ],
   Common: [

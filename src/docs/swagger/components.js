@@ -347,6 +347,17 @@
  *           type: string
  *         pincode:
  *           type: string
+ *     EmployeeAddress:
+ *       allOf:
+ *         - $ref: '#/components/schemas/EmployeeAddressInput'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *             employeeId:
+ *               type: integer
+ *             isActive:
+ *               type: boolean
  *     EmployeePersonalDetailsUpdateRequest:
  *       type: object
  *       required: [name, bloodGroup, dob, gender, address]
@@ -382,6 +393,32 @@
  *         dealerId:
  *           type: integer
  *           description: Organisation (dealer) id from dropdown e.g. Sundaram Motors
+ *     EmployeeEmergencyContactUpsertRequest:
+ *       type: object
+ *       required:
+ *         - name
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: Priya Kumar
+ *         phone:
+ *           type: string
+ *           example: "+91 9000000000"
+ *         relation:
+ *           type: string
+ *           example: Spouse
+ *         isActive:
+ *           type: boolean
+ *           default: true
+ *     EmployeeEmergencyContact:
+ *       allOf:
+ *         - $ref: '#/components/schemas/EmployeeEmergencyContactUpsertRequest'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *             employeeId:
+ *               type: integer
  *     EmployeeDocumentUploadRequest:
  *       type: object
  *       required: [documentId, frontImage, backImage]

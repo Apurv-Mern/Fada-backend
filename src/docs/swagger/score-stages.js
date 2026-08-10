@@ -162,3 +162,38 @@
  *       404:
  *         description: Score stage not found
  */
+
+/**
+ * @swagger
+ * /admin/score-stages/icon/{id}:
+ *   put:
+ *     tags: [Admin Score Stages]
+ *     summary: Upload score stage icon
+ *     description: Multipart upload; field name must be icon. Updates the stage icon URL after upload.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [icon]
+ *             properties:
+ *               icon:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Score stage icon updated successfully
+ *       400:
+ *         description: File is required
+ *       401:
+ *         description: Unauthorized
+ */

@@ -11,28 +11,30 @@ module.exports = {
       },
       employeeId: {
         type: Sequelize.INTEGER,
+        allowNull: false,
         references: {
           model: "Employees",
-          key: "id"
+          key: "id",
         },
         onUpdate: "CASCADE",
-        onDelete: "SET NULL"
+        onDelete: "CASCADE",
       },
-      contactPerson: {
+      name: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
-      contactNumber: {
+      phone: {
         type: Sequelize.STRING,
+        allowNull: true,
       },
-      relationship: {
+      relation: {
         type: Sequelize.STRING,
-      },
-      type: {
-        type: Sequelize.ENUM("Family", "Friend", "Colleague", "Office", "Other"),
-        defaultValue: "Family",
+        allowNull: true,
       },
       isActive: {
         type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
       },
       createdAt: {
         allowNull: false,
@@ -47,8 +49,13 @@ module.exports = {
         type: Sequelize.DATE,
       },
     });
+
+    await queryInterface.addIndex("EmployeeEmergencyContacts", ["employeeId"], {
+      name: "employee_emergency_contacts_employee_id_index",
+    });
   },
-  async down(queryInterface, Sequelize) {
+
+  async down(queryInterface) {
     await queryInterface.dropTable("EmployeeEmergencyContacts");
   },
 };

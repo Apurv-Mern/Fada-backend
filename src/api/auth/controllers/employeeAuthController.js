@@ -37,6 +37,7 @@ exports.employeeRegister = async (req, res) => {
     const existingEmployee = await Employee.findOne({
       where: { [Op.or]: [{ email }, { phone }] },
     });
+    
     if (existingEmployee && existingEmployee.email === email) {
       return res.apiError("An employee with this email already exists", 409);
     }
@@ -134,7 +135,8 @@ exports.verifyRegistrationOtp = async (req, res) => {
       isEmailVerified: true,
       isPhoneVerified: true,
       isActive: true,
-      password: hashedPassword,
+      password: hashedPassword, 
+      isRegistrationCompleted: true,
     });
 
     await addEmailJob({

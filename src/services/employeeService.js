@@ -1,8 +1,12 @@
 const Validator = require("validatorjs");
+const { Op } = require("sequelize");
 const {
+  Employee,
   EmployeeDesignation,
   EmployeeAssignment,
+  EmployeeDocument,
   OrganizationStructure,
+  Document,
   Dealer,
   Outlet,
 } = require("../database/models");
@@ -168,20 +172,6 @@ const validateAssignment = async (assignment, res, dealerId = null) => {
     return { valid: false };
   }
 
-  /* if (assignment.outletId) {
-    const outlet = await Outlet.findOne({
-      where: {
-        id: assignment.outletId,
-        dealerId: resolvedDealerId,
-      },
-    });
-
-    if (!outlet) {
-      res.apiError("Branch not found for the selected dealership", 404);
-      return { valid: false };
-    }
-  } */
-
   return {
     valid: true,
     data: {
@@ -257,6 +247,48 @@ const syncAssignment = async (employeeId, assignment, joinedDate, transaction) =
   await EmployeeAssignment.create(payload, { transaction });
 };
 
+const employeeDocumentAppliesToFilter = {
+  appliesTo: {
+    [Op.in]: ["employee", "both"],
+  },
+  isActive: true,
+};
+
+const checkAllDocumentsApproved = async (employeeId) => {
+  const [employee, totalDocuments, approvedDocuments] = await Promise.all([
+    Employee.findByPk(employeeId),
+    Document.count({
+      where: employeeDocumentAppliesToFilter,
+    }),
+    EmployeeDocument.count({
+      where: {
+        employeeId,
+        isApproved: true,
+      },
+      include: [
+        {
+          model: Document,
+          as: "document",
+          required: true,
+          where: employeeDocumentAppliesToFilter,
+        },
+      ],
+    }),
+  ]);
+
+  if (!employee) {
+    throw new Error("Employee not found.");
+  }
+
+  const isKycCompleted = totalDocuments === approvedDocuments;
+
+  await employee.update({
+    isKycCompleted,
+  });
+
+  return isKycCompleted;
+};
+
 module.exports = {
   employeeAttributes,
   employeeValidationRules,
@@ -266,4 +298,5 @@ module.exports = {
   buildEmployeePayload,
   syncDesignation,
   syncAssignment,
+  checkAllDocumentsApproved,
 };
