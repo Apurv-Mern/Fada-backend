@@ -1,6 +1,6 @@
-const {sequelize, Announcement } = require("../../../../database/models");
+const { sequelize, Announcement, Outlet, Dealer, Brand, OrganizationStructure } = require("../../../../database/models");
 const { Op } = require("sequelize");
- 
+
 /*
 @API: GET /employee/announcements
 @Desc: Get employee announcements
@@ -19,9 +19,9 @@ exports.getAnnouncements = async (req, res) => {
           sequelize.fn(
             "JSON_CONTAINS",
             sequelize.col("deliveryChannels"),
-            '"in_app"'
+            '"in_app"',
           ),
-          1
+          1,
         ),
       },
     });
@@ -30,3 +30,5 @@ exports.getAnnouncements = async (req, res) => {
     return res.apiError("Internal server error", 500, error);
   }
 };
+
+

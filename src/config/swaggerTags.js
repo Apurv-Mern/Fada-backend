@@ -164,6 +164,11 @@ const TAG_GROUPS = {
       name: "Settings",
       description: "Employee app settings and announcement feed",
     },
+    {
+      source: "Employee App Masters",
+      name: "Masters",
+      description: "Dealer outlets, departments, and designations for employee forms",
+    },
   ],
   Common: [
     {
