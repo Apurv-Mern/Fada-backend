@@ -1,5 +1,6 @@
-const { Announcement } = require("../../../../database/models");
-
+const {sequelize, Announcement } = require("../../../../database/models");
+const { Op } = require("sequelize");
+ 
 /*
 @API: GET /employee/announcements
 @Desc: Get employee announcements
@@ -11,17 +12,17 @@ exports.getAnnouncements = async (req, res) => {
 
     const announcements = await Announcement.findAll({
       where: {
-        status: 1,
-        [Op.and]: [
-          Sequelize.where(
-            Sequelize.fn(
-              "JSON_CONTAINS",
-              Sequelize.col("channels"),
-              JSON.stringify("in_app"),
-            ),
-            1,
+        targetAudience: {
+          [Op.in]: ["employees", "both"],
+        },
+        [Op.and]: sequelize.where(
+          sequelize.fn(
+            "JSON_CONTAINS",
+            sequelize.col("deliveryChannels"),
+            '"in_app"'
           ),
-        ],
+          1
+        ),
       },
     });
     return res.apiSuccess("Announcements fetched successfully", announcements);

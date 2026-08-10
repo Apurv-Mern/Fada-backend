@@ -6,6 +6,8 @@ const {
   EmployeeAssignment,
   EmployeeDesignation,
   OrganizationStructure,
+  Document,
+  EmployeeDocument,
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const {
@@ -17,7 +19,8 @@ const {
   buildEmployeePayload,
   syncDesignation,
   syncAssignment,
-} = require("../../../utils/employeeUtil");
+  checkAllDocumentsApproved,
+} = require("../../../services/employeeService");
 
 const employeeIncludes = buildEmployeeIncludes({ includeDealership: false });
 
@@ -221,7 +224,10 @@ exports.createEmployee = async (req, res) => {
     return res.apiSuccess("Employee created successfully");
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
-      return res.apiError("Employee with duplicate unique field already exists", 409);
+      return res.apiError(
+        "Employee with duplicate unique field already exists",
+        409,
+      );
     }
 
     return res.apiError(error.message, 500, error);
@@ -307,7 +313,10 @@ exports.updateEmployee = async (req, res) => {
     return res.apiSuccess("Employee updated successfully", employee);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
-      return res.apiError("Employee with duplicate unique field already exists", 409);
+      return res.apiError(
+        "Employee with duplicate unique field already exists",
+        409,
+      );
     }
 
     return res.apiError(error.message, 500, error);
@@ -342,6 +351,61 @@ exports.deleteEmployee = async (req, res) => {
     });
 
     return res.apiSuccess("Employee deleted successfully");
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: PUT /dealers/employees/:id/approve-documents/:documentId
+@Desc: Approve employee documents
+@Access: Private
+*/
+exports.approveEmployeeDocuments = async (req, res) => {
+  try {
+    const document = await EmployeeDocument.findOne({
+      where: { documentId: req.params.documentId, employeeId: req.params.id },
+    });
+
+    if (!document) {
+      return res.apiError("Document not found", 404);
+    }
+
+    await document.update({
+      isApproved: true,
+      approvedAt: new Date(),
+      approvedBy: req.auth.id,
+      status: "approved",
+    });
+
+    await checkAllDocumentsApproved(req.params.id);
+
+    return res.apiSuccess("Employee documents approved successfully");
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: GET /dealers/employees/:id/documents
+@Desc: Get employee documents
+@Access: Private
+*/
+exports.getEmployeeDocuments = async (req, res) => {
+  try {
+    const documents = await Document.findAll({
+      where: { appliesTo: { [Op.in]: ["employee", "both"] }, isActive: true },
+      include: [
+        {
+          model: EmployeeDocument,
+          as: "employeeDocuments",
+          where: { employeeId: req.params.id },
+          required: false,
+        },
+      ],
+    });
+
+    return res.apiSuccess("Employee documents fetched successfully", documents);
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

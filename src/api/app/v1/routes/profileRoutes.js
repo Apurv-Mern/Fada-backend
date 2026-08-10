@@ -1,6 +1,10 @@
 const router = require("express").Router();
+const upload = require("../../../../utils/fileUtil");
 const profileController = require("../controllers/profileController");
+
+
 router.get("/profile", profileController.getProfile);
+router.put("/profile-picture", upload.single("profilePicture"), profileController.updateProfilePicture);
 router.get("/profile/privacy", profileController.getProfilePrivacy);
 router.put("/profile/privacy", profileController.updateProfilePrivacy);
 router.get("/profile/shares", profileController.getProfileShares);
@@ -13,5 +17,7 @@ router.post("/documents", profileController.uploadDocuments);
 router.delete("/documents/:documentId", profileController.deleteDocument);
 router.post("/employeements", profileController.createEmployeement);
 router.get("/employeements", profileController.getEmployeements);
+router.get("/address", profileController.getAddress);
+router.put("/address", profileController.updateAddress);
 
 module.exports = router;

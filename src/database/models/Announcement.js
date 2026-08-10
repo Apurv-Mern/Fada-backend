@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
           "employees",
           "dealers",
           "members_and_dealers",
-          "all",
+          "both",
         ),
         allowNull: false,
       },

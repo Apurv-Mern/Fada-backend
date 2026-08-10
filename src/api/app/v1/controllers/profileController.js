@@ -13,7 +13,6 @@ const {
   OrganizationStructure,
 } = require("../../../../database/models");
 
-
 /*
 @API: GET /employee/profile
 @Desc: Get employee profile
@@ -30,7 +29,7 @@ exports.getProfile = async (req, res) => {
         "bloodGroup",
         "email",
         "phone",
-        "dob", 
+        "dob",
         "gender",
         "isPhoneVerified",
         "isEmailVerified",
@@ -39,9 +38,16 @@ exports.getProfile = async (req, res) => {
         "isActive",
         "isVerified",
         "isProfilePrivate",
-        [sequelize.literal(`
+        "isRegistrationCompleted",
+        "isProfileCompleted",
+        "isKycCompleted",
+        "isJourneyCompleted",
+        [
+          sequelize.literal(`
           (SELECT COUNT(*) FROM EmployeeProfileShares WHERE EmployeeProfileShares.employeeId = Employees.id)
-        `), "profileSharesCount"],
+        `),
+          "profileSharesCount",
+        ],
       ],
       include: [
         {
@@ -57,7 +63,7 @@ exports.getProfile = async (req, res) => {
             "highlights",
           ],
           required: false,
-          where: { 
+          where: {
             isCurrentlyWorking: true,
           },
           include: [
@@ -77,7 +83,7 @@ exports.getProfile = async (req, res) => {
               attributes: ["id", "name"],
             },
           ],
-        }, 
+        },
       ],
     });
 
@@ -86,7 +92,6 @@ exports.getProfile = async (req, res) => {
     return res.apiError("Internal server error", 500, error);
   }
 };
-
 
 /*
 @API: GET /employee/personal-details
@@ -143,8 +148,7 @@ exports.getPersonalDetails = async (req, res) => {
   name: string,
   bloodGroup: string,
   dob: date,
-  gender: string,
-  address?: array,
+  gender: string, 
   "address.addressLine1": string,
   "address.addressLine2": string,
   "address.city": string,
@@ -165,8 +169,7 @@ exports.updatePersonalDetails = async (req, res) => {
       name: "required|string",
       bloodGroup: "required|in:A+,A-,B+,B-,AB+,AB-,O+,O-",
       dob: "required|date",
-      gender: "required|in:male,female,other",
-      address: "required|array",
+      gender: "required|in:male,female,other", 
       "address.addressLine1": "required|string",
       "address.addressLine2": "string",
       "address.city": "required|string",
@@ -181,7 +184,7 @@ exports.updatePersonalDetails = async (req, res) => {
     }
 
     const employee = await Employee.update(
-      { name, bloodGroup, dob, gender },
+      { name, bloodGroup, dob, gender, isProfileCompleted: true },
       { where: { id }, transaction },
     );
 
@@ -426,7 +429,7 @@ exports.getEmployeements = async (req, res) => {
           model: Dealer,
           as: "dealership",
           attributes: ["id", "name"],
-        }, 
+        },
         {
           model: Outlet,
           as: "branch",
@@ -490,10 +493,7 @@ exports.updateProfilePrivacy = async (req, res) => {
 
     const { isProfilePrivate } = req.body;
 
-    await Employee.update(
-      { isProfilePrivate },
-      { where: { id: req.auth.id } },
-    );
+    await Employee.update({ isProfilePrivate }, { where: { id: req.auth.id } });
 
     return res.apiSuccess("Profile privacy updated successfully", {
       isProfilePrivate,
@@ -510,17 +510,23 @@ exports.updateProfilePrivacy = async (req, res) => {
 */
 exports.getProfileShares = async (req, res) => {
   try {
-    const shares = await EmployeeProfileShare.findAll({
-      where: { employeeId: req.auth.id },
-      attributes: ["id", "dealerId", "isActive", "createdAt"],
+    const shares = await Employee.findByPk(req.auth.id, {
+      attributes: ["id", "isProfilePrivate"],
       include: [
         {
-          model: Dealer,
-          as: "organisation",
-          attributes: ["id", "name", "dealerCode"],
+          model: EmployeeProfileShare,
+          as: "shares",
+          attributes: ["id", "dealerId", "isActive", "createdAt"],
+          paranoid: false,
+          include: [
+            {
+              model: Dealer,
+              as: "organisation",
+              attributes: ["id", "name", "dealerCode"],
+            },
+          ],
         },
       ],
-      order: [["createdAt", "DESC"]],
     });
 
     return res.apiSuccess("Profile shares fetched successfully", shares);
@@ -559,23 +565,17 @@ exports.shareProfile = async (req, res) => {
 
     let share = await EmployeeProfileShare.findOne({
       where: { employeeId, dealerId },
-      paranoid: false,
     });
 
     if (share) {
-      if (share.deletedAt) {
-        await share.restore();
-      }
       await share.update({ isActive: true });
     } else {
-        await EmployeeProfileShare.create({
+      await EmployeeProfileShare.create({
         employeeId,
         dealerId,
         isActive: true,
       });
     }
-
-    
 
     return res.apiSuccess("Profile access shared successfully");
   } catch (error) {
@@ -601,9 +601,95 @@ exports.revokeProfileShare = async (req, res) => {
       return res.apiError("Profile share not found", 404);
     }
 
-    await share.destroy();
+    await share.update({ isActive: false });
 
     return res.apiSuccess("Profile access revoked successfully");
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+
+/*
+@API: GET /employee/address
+@Desc: Get employee address
+@Access: Private
+*/
+exports.getAddress = async (req, res) => {
+  try {
+    const id = req.auth.id;
+    const address = await EmployeeAddress.findOne({
+      where: { employeeId: id },
+    });
+
+    if (!address) {
+      return res.apiError("Address not found", 404);
+    }
+
+    return res.apiSuccess("Address fetched successfully", address);
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+}; 
+
+/*
+@API: PUT /employee/address
+@Desc: Update employee address
+@Body: {
+  address: string,
+}
+@Access: Private
+*/
+exports.updateAddress = async (req, res) => {
+  try {
+
+    const validator = new Validator(req.body, {
+      addressLine1: "required|string",
+      addressLine2: "string",
+      city: "required|string",
+      state: "required|string",
+      country: "string",
+      pincode: "required|string", 
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const id = req.auth.id;
+    const address = req.body;
+
+     await EmployeeAddress.update({ isActive: true, ...address }, { where: { employeeId: id } });
+
+    return res.apiSuccess("Address updated successfully");
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+
+
+/*
+@API: PUT /employee/profile-picture
+@Desc: Update employee profile picture
+@Body: {
+  profilePicture: file (image),
+}
+@Access: Private
+*/
+exports.updateProfilePicture = async (req, res) => {
+  try {
+    const id = req.auth.id; 
+    if(!req.file) {
+      return res.apiError("Profile picture is required", 400);
+    }
+    const profilePicture = req.file.filename;
+ 
+    await Employee.update({ profilePicture: process.env.API_URL + "/uploads/" + profilePicture }, { where: { id } });
+
+    return res.apiSuccess("Profile picture updated successfully", {
+      profilePicture: process.env.API_URL + "/uploads/" + profilePicture,
+    });
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
   }

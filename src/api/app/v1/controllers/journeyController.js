@@ -102,6 +102,11 @@ exports.createJourney = async (req, res) => {
       ...payload.value,
       employeeId: req.auth.id,
     });
+
+    if(!req.auth.isJourneyCompleted){
+      await Employee.update({ isJourneyCompleted: true }, { where: { id: req.auth.id } });
+    }
+ 
     return res.apiSuccess("Employee journey created successfully");
   } catch (error) {
     return res.apiError("Internal server error", 500, error);

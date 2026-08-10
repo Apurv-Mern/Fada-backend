@@ -2,6 +2,7 @@
  * @swagger
  * tags:
  *   - name: Employee App Profile
+ *   - name: Employee App Emergency Contacts
  *   - name: Employee App Documents
  *   - name: Employee App Employment
  *   - name: Employee App Certificates
@@ -10,6 +11,7 @@
  *   - name: Employee App Appreciations
  *   - name: Employee App Promotions
  *   - name: Employee App Journey
+ *   - name: Employee App Settings
  */
 
 /**
@@ -18,7 +20,7 @@
  *   get:
  *     tags: [Employee App Profile]
  *     summary: Get employee profile summary
- *     description: Returns core profile fields, verification flags, score, and current employment (where isCurrentlyWorking is true) including dealership, branch, and designation.
+ *     description: Returns core profile fields, verification flags, score, step flags (isRegistrationCompleted, isProfileCompleted, isKycCompleted, isJourneyCompleted), and current employment.
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -119,6 +121,166 @@
  *         description: Profile access revoked successfully
  *       404:
  *         description: Share not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/address:
+ *   get:
+ *     tags: [Employee App Profile]
+ *     summary: Get employee address
+ *     description: Returns the authenticated employee's address (EmployeeAddress record for employeeId).
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Address fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/EmployeeAddress'
+ *       404:
+ *         description: Address not found
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     tags: [Employee App Profile]
+ *     summary: Update employee address
+ *     description: Updates address fields for the authenticated employee. Creates no new row if missing; ensure address exists from registration or personal-details flow.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeAddressInput'
+ *     responses:
+ *       200:
+ *         description: Address updated successfully
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/emergency-contacts:
+ *   get:
+ *     tags: [Employee App Emergency Contacts]
+ *     summary: List emergency contacts
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Emergency contacts fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/EmployeeEmergencyContact'
+ *       401:
+ *         description: Unauthorized
+ *   post:
+ *     tags: [Employee App Emergency Contacts]
+ *     summary: Add emergency contact
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeEmergencyContactUpsertRequest'
+ *     responses:
+ *       200:
+ *         description: Emergency contact created successfully
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/emergency-contacts/{emergencyContactId}:
+ *   get:
+ *     tags: [Employee App Emergency Contacts]
+ *     summary: Get emergency contact by id
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: emergencyContactId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Emergency contact fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/EmployeeEmergencyContact'
+ *       404:
+ *         description: Contact not found
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     tags: [Employee App Emergency Contacts]
+ *     summary: Update emergency contact
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: emergencyContactId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeEmergencyContactUpsertRequest'
+ *     responses:
+ *       200:
+ *         description: Emergency contact updated successfully
+ *       404:
+ *         description: Contact not found
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *   delete:
+ *     tags: [Employee App Emergency Contacts]
+ *     summary: Delete emergency contact
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: emergencyContactId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Emergency contact deleted successfully
+ *       404:
+ *         description: Contact not found
  *       401:
  *         description: Unauthorized
  */
@@ -847,6 +1009,31 @@
  *         description: Employee journey deleted successfully
  *       404:
  *         description: Journey not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/settings/announcements:
+ *   get:
+ *     tags: [Employee App Settings]
+ *     summary: List announcements for the employee app
+ *     description: Returns announcements where targetAudience is employees or both, and deliveryChannels includes in_app. Does not filter by publication status.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Announcements fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Announcement'
  *       401:
  *         description: Unauthorized
  */

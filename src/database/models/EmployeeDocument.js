@@ -15,6 +15,10 @@ module.exports = (sequelize, DataTypes) => {
         as: "employee",
       });
 
+      EmployeeDocument.belongsTo(models.Document, {
+        foreignKey: "documentId",
+        as: "document",
+      });
     }
   }
   EmployeeDocument.init(

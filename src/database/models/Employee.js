@@ -15,6 +15,11 @@ module.exports = (sequelize, DataTypes) => {
         as: "addresses",
       });
 
+      Employee.hasMany(models.EmployeeEmergencyContact, {
+        foreignKey: "employeeId",
+        as: "emergencyContacts",
+      });
+
       Employee.hasMany(models.EmployeeDocument, {
         foreignKey: "employeeId",
         as: "documents",
@@ -86,6 +91,26 @@ module.exports = (sequelize, DataTypes) => {
       bloodGroup: DataTypes.STRING,
       profilePicture: DataTypes.STRING,
       isProfilePrivate: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      isRegistrationCompleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      isProfileCompleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      isKycCompleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      isJourneyCompleted: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,

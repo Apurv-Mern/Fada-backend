@@ -42,6 +42,47 @@
  *           type: string
  *           format: date-time
  *           description: Required when status is scheduled
+ *     Announcement:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         createdByAdminId:
+ *           type: integer
+ *           nullable: true
+ *         postType:
+ *           type: string
+ *           enum: [announcement_circular]
+ *         title:
+ *           type: string
+ *         messageBody:
+ *           type: string
+ *         targetAudience:
+ *           type: string
+ *           description: Admin API accepts employees, dealers, members_and_dealers, all; stored values may include both for legacy rows
+ *           enum: [employees, dealers, members_and_dealers, all, both]
+ *         deliveryChannels:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [in_app, email, push]
+ *         status:
+ *           type: string
+ *           enum: [draft, published, scheduled]
+ *         publishedAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *         scheduledAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
  */
 
 /**

@@ -9,6 +9,8 @@
  *     description: Organization structure master endpoints
  *   - name: Master Outlet Functions
  *     description: Outlet function master endpoints
+ *   - name: Master Dealers
+ *     description: Lightweight dealer list for admin master dropdowns
  */
 
 /**
@@ -498,4 +500,38 @@
  *         description: Outlet function deleted
  *       404:
  *         description: Not found
+ */
+
+/**
+ * @swagger
+ * /admin/masters/dealers:
+ *   get:
+ *     tags: [Master Dealers]
+ *     summary: List approved active dealers (master dropdown)
+ *     description: Returns id, name, and dealerCode for dealers with status approved and isActive true. Used for admin forms and filters.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dealers fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                           dealerCode:
+ *                             type: string
+ *       401:
+ *         description: Unauthorized
  */
