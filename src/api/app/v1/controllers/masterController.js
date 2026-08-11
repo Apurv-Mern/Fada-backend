@@ -38,7 +38,7 @@ exports.getDealers = async (req, res) => {
         {
           model: Brand,
           as: "brand",
-          attributes: ["id", "name", "city"],
+          attributes: ["id", "name"],
         },
       ],
     });
@@ -72,16 +72,16 @@ exports.getDepartments = async (req, res) => {
 exports.getDesignations = async (req, res) => {
   try {
     const { parentId } = req.query;
-    
+
     const where = { flag: "role" };
-   
+
     if (parentId) {
       where.parentId = parentId;
     }
-    
-    const designations = await OrganizationStructure.findAll({ 
-        where,
-        attributes: ["id", "name"],
+
+    const designations = await OrganizationStructure.findAll({
+      where,
+      attributes: ["id", "name"],
     });
     return res.apiSuccess("Designations fetched successfully", designations);
   } catch (error) {
