@@ -393,6 +393,38 @@
  *         dealerId:
  *           type: integer
  *           description: Organisation (dealer) id from dropdown e.g. Sundaram Motors
+ *     EmployeeEmployerInvitationCreateRequest:
+ *       type: object
+ *       required:
+ *         - dealerId
+ *         - outletId
+ *       properties:
+ *         dealerId:
+ *           type: integer
+ *         outletId:
+ *           type: integer
+ *     EmployeeEmployerStatusItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         status:
+ *           type: string
+ *         slug:
+ *           type: string
+ *         actionUserBy:
+ *           type: string
+ *           enum: [admin, dealer, employee]
+ *         actionUserId:
+ *           type: integer
+ *     DealerEmployerInvitationSendRequest:
+ *       type: object
+ *       required:
+ *         - employeeId
+ *       properties:
+ *         employeeId:
+ *           type: integer
+ *           description: Employee id to invite to the authenticated dealer
  *     EmployeeEmergencyContactUpsertRequest:
  *       type: object
  *       required:
