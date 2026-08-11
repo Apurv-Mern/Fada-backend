@@ -1142,7 +1142,7 @@
  * /api/v1/employee/employer-invitations:
  *   get:
  *     tags: [Employee App Employer Invitations]
- *     summary: List pending employer invitations sent by employee
+ *     summary: List pending employer invitations for employee
  *     description: Returns pending EmployeeAssignment rows for the authenticated employee with dealership and branch details.
  *     security:
  *       - bearerAuth: []
@@ -1205,7 +1205,7 @@
  *   patch:
  *     tags: [Employee App Employer Invitations]
  *     summary: Accept or reject employer invitation
- *     description: Updates assignment status to verified (accept) or rejected (reject) and appends EmployeeEmployerStatus history.
+ *     description: Updates assignment status to verified (accept) or rejected (reject) and appends EmployeeEmployerStatus history with status accepted or rejected.
  *     security:
  *       - bearerAuth: []
  *     parameters:

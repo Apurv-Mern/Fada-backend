@@ -11,4 +11,6 @@ router.patch(
   employerController.acceptOrRejectEmployerInvitationById,
 );
 router.post("/send", employerController.sendNewEmployerInvitation);
+router.put("/:id/status/:status", employerController.updateEmployerInvitationStatusById);
+router.get("/steps", employerController.getEmployerInvitationSteps);
 module.exports = router;

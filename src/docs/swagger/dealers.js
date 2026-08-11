@@ -512,7 +512,7 @@
  *   get:
  *     tags: [Dealer Employer Invitations]
  *     summary: List pending employer invitations for dealer
- *     description: Returns pending EmployeeAssignment rows where invitation was sent to this dealer, including employee summary.
+ *     description: Returns pending EmployeeAssignment rows for the authenticated dealer, including employee summary. Includes invitations sent by the dealer or initiated by employees.
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -575,11 +575,36 @@
 
 /**
  * @swagger
+ * /dealers/employer-invitations/steps:
+ *   get:
+ *     tags: [Dealer Employer Invitations]
+ *     summary: Get employer invitation joining workflow steps
+ *     description: Returns the ordered list of joining workflow steps shown during the employer invitation process.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employer invitation steps fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/EmployerInvitationStepItem'
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
  * /dealers/employer-invitations/{id}/status/{status}:
  *   patch:
  *     tags: [Dealer Employer Invitations]
  *     summary: Accept or reject employer invitation
- *     description: Updates assignment status to verified (accept) or rejected (reject) and appends EmployeeEmployerStatus history with slug accept or reject.
+ *     description: Updates assignment status to verified (accept) or rejected (reject) and appends EmployeeEmployerStatus history with status accepted or rejected.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -600,6 +625,35 @@
  *         description: Invitation accepted or rejected successfully
  *       400:
  *         description: Invalid status
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     tags: [Dealer Employer Invitations]
+ *     summary: Advance employer invitation joining workflow status
+ *     description: Appends a new EmployeeEmployerStatus record for the given joining workflow step. Fails if that status was already recorded for the assignment.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: EmployeeAssignment id
+ *       - in: path
+ *         name: status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [send_invitation, accept_invitation, share_details, employer_verification, joining_confirmed]
+ *         description: Joining workflow step slug
+ *     responses:
+ *       200:
+ *         description: Employer invitation status updated successfully
+ *       400:
+ *         description: Invalid status or status already updated
+ *       404:
+ *         description: Invitation not found
  *       401:
  *         description: Unauthorized
  */

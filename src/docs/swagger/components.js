@@ -425,6 +425,21 @@
  *         employeeId:
  *           type: integer
  *           description: Employee id to invite to the authenticated dealer
+ *     EmployerInvitationStepItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           example: 1
+ *         status:
+ *           type: string
+ *           enum: [send_invitation, accept_invitation, share_details, employer_verification, joining_confirmed]
+ *         title:
+ *           type: string
+ *           example: Invitation Received
+ *         description:
+ *           type: string
+ *           example: You have an invitation from
  *     EmployeeEmergencyContactUpsertRequest:
  *       type: object
  *       required:

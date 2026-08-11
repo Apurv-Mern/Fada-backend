@@ -1,40 +1,28 @@
-const { sequelize, EmployeeAssignment, EmployeeEmployerStatus, Employee } = require("../../../database/models");
+const {
+  sequelize,
+  EmployeeAssignment,
+  EmployeeEmployerStatus,
+  Employee,
+} = require("../../../database/models");
 const Validator = require("validatorjs");
 
-const EMPLOYER_STATUS = [
-  {
-    id: 1,
-    status: "send_invitation",
-    title: "Invitation Received",
-    description: "You have an invitation from ",
-  },
-  {
-    id: 2,
-    status: "accept_invitation",
-    title: "Accept Invitation",
-    description: "Review and accept the invitation",
-  },
-  {
-    id: 3,
-    status: "share_details",
-    title: "Share Details",
-    description: "Share required documents and Information with hr over email and confirm same here",
-  },
-  {
-    id: 4,
-    status: "employer_verification",
-    title: "Employer Verification",
-    description: "Employer verifies your details",
-  },
-  {
-    id: 5,
-    status: "joining_confirmed",
-    title: "Joining Confirmed",
-    description: "Your new association is activated",
-  }
-]
+const { newEmployerSteps } = require("../../../services/employeeService");
 
+const EMPLOYER_JOINING_STATUS = {
+  SEND_INVITATION: "send_invitation",
+  ACCEPT_INVITATION: "accept_invitation",
+  SHARE_DETAILS: "share_details",
+  EMPLOYER_VERIFICATION: "employer_verification",
+  JOINING_CONFIRMED: "joining_confirmed",
+};
 
+const EMPLOYER_EXIT_STATUS = {
+  SEND_INVITATION: "send_invitation",
+  ACCEPT_INVITATION: "accept_invitation",
+  SHARE_DETAILS: "share_details",
+  EMPLOYER_VERIFICATION: "employer_verification",
+  JOINING_CONFIRMED: "joining_confirmed",
+};
 
 /*
 @API: GET /dealer/employer-invitations
@@ -204,6 +192,72 @@ exports.sendNewEmployerInvitation = async (req, res) => {
     );
   } catch (error) {
     await transaction.rollback();
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: PUT /dealer/employer-invitations/:id/status/:status
+@Desc: Update employer invitation status by id
+@Access: Private
+*/
+exports.updateEmployerInvitationStatusById = async (req, res) => {
+  try {
+    const dealerId = req.auth.id;
+
+    const { status, id } = req.params;
+
+    if (!Object.values(EMPLOYER_JOINING_STATUS).includes(status)) {
+      return res.apiError("Invalid status", 400);
+    }
+
+    const employerInvitation = await EmployeeAssignment.findOne({
+      where: { dealerId, id },
+      order: [["createdAt", "DESC"]],
+    });
+    if (!employerInvitation) {
+      return res.apiError("Employer invitation not found", 404);
+    }
+
+    const employeeEmployerStatus = await EmployeeEmployerStatus.findOne({
+      where: { employeeAssignmentId: employerInvitation.id, status: status },
+      order: [["createdAt", "DESC"]],
+    });
+
+    if (employeeEmployerStatus) {
+      return res.apiError("Employer invitation status already updated", 400);
+    }
+
+    await EmployeeEmployerStatus.create({
+      employeeAssignmentId: req.params.id,
+      status: status,
+      slug: status,
+      actionUserBy: "dealer",
+      actionUserId: id,
+    });
+    return res.apiSuccess(
+      "Employer invitation status updated successfully",
+      employerInvitation,
+    );
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: GET /dealer/employer-invitations/steps
+@Desc: Get employer invitation steps
+@Access: Private
+*/
+exports.getEmployerInvitationSteps = async (req, res) => {
+  try {
+    const { id } = req.auth;
+    const steps = newEmployerSteps();
+    return res.apiSuccess(
+      "Employer invitation steps fetched successfully",
+      steps,
+    );
+  } catch (error) {
     return res.apiError("Internal server error", 500, error);
   }
 };

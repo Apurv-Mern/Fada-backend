@@ -6,7 +6,7 @@ const options = {
     openapi: "3.0.0",
     info: {
       title: "FADA Backend API",
-      version: "1.2.6",
+      version: "1.2.7",
       description:
         "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints.",
     },

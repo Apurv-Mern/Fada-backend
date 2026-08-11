@@ -95,7 +95,7 @@ const TAG_GROUPS = {
     {
       source: "Dealer Employer Invitations",
       name: "Employer Invitations",
-      description: "Review and accept or reject employee employment invitations",
+      description: "Send invitations, manage joining workflow steps, and accept or reject employment invitations",
     },
     {
       source: "Dealer Business Documents",
