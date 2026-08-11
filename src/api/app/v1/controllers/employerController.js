@@ -2,6 +2,8 @@ const {
   sequelize,
   EmployeeAssignment,
   EmployeeEmployerStatus,
+  Dealer,
+  Outlet,
 } = require("../../../../database/models");
 const { Op } = require("sequelize");
 const Validator = require("validatorjs");
@@ -149,7 +151,7 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
     const { id } = req.auth;
 
     const { status } = req.params;
-    
+
     if (status !== "accept" && status !== "reject") {
       await transaction.rollback();
       return res.apiError("Invalid status", 400);

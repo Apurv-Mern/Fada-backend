@@ -1,5 +1,40 @@
-const { sequelize, EmployeeAssignment } = require("../../../database/models");
+const { sequelize, EmployeeAssignment, EmployeeEmployerStatus, Employee } = require("../../../database/models");
 const Validator = require("validatorjs");
+
+const EMPLOYER_STATUS = [
+  {
+    id: 1,
+    status: "send_invitation",
+    title: "Invitation Received",
+    description: "You have an invitation from ",
+  },
+  {
+    id: 2,
+    status: "accept_invitation",
+    title: "Accept Invitation",
+    description: "Review and accept the invitation",
+  },
+  {
+    id: 3,
+    status: "share_details",
+    title: "Share Details",
+    description: "Share required documents and Information with hr over email and confirm same here",
+  },
+  {
+    id: 4,
+    status: "employer_verification",
+    title: "Employer Verification",
+    description: "Employer verifies your details",
+  },
+  {
+    id: 5,
+    status: "joining_confirmed",
+    title: "Joining Confirmed",
+    description: "Your new association is activated",
+  }
+]
+
+
 
 /*
 @API: GET /dealer/employer-invitations
@@ -93,7 +128,7 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
     });
 
     return res.apiSuccess(
-      "Employer invitation accepted or rejected successfully",
+      `Employer invitation ${status}ed successfully`,
       employerInvitation,
     );
   } catch (error) {
@@ -109,7 +144,7 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
 exports.sendNewEmployerInvitation = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
-    const { id } = req.auth;
+    const id = req.auth.id;
     const { employeeId } = req.body;
 
     const validator = new Validator(req.body, {
