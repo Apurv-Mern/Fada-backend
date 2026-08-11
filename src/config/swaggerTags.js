@@ -93,6 +93,11 @@ const TAG_GROUPS = {
       description: "Dealer employee management",
     },
     {
+      source: "Dealer Employer Invitations",
+      name: "Employer Invitations",
+      description: "Review and accept or reject employee employment invitations",
+    },
+    {
       source: "Dealer Business Documents",
       name: "Business Documents",
       description: "Dealer business document uploads",
@@ -168,6 +173,11 @@ const TAG_GROUPS = {
       source: "Employee App Masters",
       name: "Masters",
       description: "Dealer outlets, departments, and designations for employee forms",
+    },
+    {
+      source: "Employee App Employer Invitations",
+      name: "Employer Invitations",
+      description: "Send and manage employment invitations to dealerships",
     },
   ],
   Common: [

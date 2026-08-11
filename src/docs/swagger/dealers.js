@@ -502,6 +502,111 @@
 /**
  * @swagger
  * tags:
+ *   - name: Dealer Employer Invitations
+ *     description: Pending employment invitations between employees and dealers
+ */
+
+/**
+ * @swagger
+ * /dealers/employer-invitations:
+ *   get:
+ *     tags: [Dealer Employer Invitations]
+ *     summary: List pending employer invitations for dealer
+ *     description: Returns pending EmployeeAssignment rows where invitation was sent to this dealer, including employee summary.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employer invitations fetched successfully
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/employer-invitations/send:
+ *   post:
+ *     tags: [Dealer Employer Invitations]
+ *     summary: Send employment invitation to an employee
+ *     description: Creates a pending EmployeeAssignment with invitationSendBy dealer and logs send_invitation in EmployeeEmployerStatus. Fails if employee is already working at the dealer or already has a pending invite.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerEmployerInvitationSendRequest'
+ *     responses:
+ *       200:
+ *         description: Employer invitation sent successfully
+ *       400:
+ *         description: Employee already working or already invited
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/employer-invitations/{id}:
+ *   get:
+ *     tags: [Dealer Employer Invitations]
+ *     summary: Get employer invitation by assignment id
+ *     description: Returns invitation with employee details and EmployeeEmployerStatus history.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: EmployeeAssignment id
+ *     responses:
+ *       200:
+ *         description: Employer invitation fetched successfully
+ *       404:
+ *         description: Invitation not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/employer-invitations/{id}/status/{status}:
+ *   patch:
+ *     tags: [Dealer Employer Invitations]
+ *     summary: Accept or reject employer invitation
+ *     description: Updates assignment status to verified (accept) or rejected (reject) and appends EmployeeEmployerStatus history with slug accept or reject.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: EmployeeAssignment id
+ *       - in: path
+ *         name: status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [accept, reject]
+ *     responses:
+ *       200:
+ *         description: Invitation accepted or rejected successfully
+ *       400:
+ *         description: Invalid status
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * tags:
  *   - name: Dealer Business Documents
  *     description: Dealer business document uploads
  */

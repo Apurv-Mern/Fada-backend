@@ -22,6 +22,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "designationId",
         as: "designation",
       });
+
+      EmployeeAssignment.hasMany(models.EmployeeEmployerStatus, {
+        foreignKey: "employeeAssignmentId",
+        as: "statuses",
+      });
     }
   }
   EmployeeAssignment.init(
@@ -74,6 +79,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: true,
       },
+      invitationSendBy: {
+        type: DataTypes.ENUM("employee", "dealer"),
+        allowNull: false,
+        defaultValue: "dealer",
+      },
+      status: {
+        type: DataTypes.ENUM("pending", "rejected", "verified"),
+        allowNull: false,
+        defaultValue: "pending",
+      },
     },
     {
       sequelize,
@@ -89,6 +104,9 @@ module.exports = (sequelize, DataTypes) => {
         },
         {
           fields: ["outletId"],
+        },
+        {
+          fields: ["status"],
         },
       ],
     }
