@@ -37,7 +37,7 @@ exports.employeeRegister = async (req, res) => {
     const existingEmployee = await Employee.findOne({
       where: { [Op.or]: [{ email }, { phone }] },
     });
-    
+
     if (existingEmployee && existingEmployee.email === email) {
       return res.apiError("An employee with this email already exists", 409);
     }
@@ -45,9 +45,9 @@ exports.employeeRegister = async (req, res) => {
       return res.apiError("An employee with this phone already exists", 409);
     }
 
-    const otp = generateOTP(6);
+    const otp = generateOTP(4);
     const fadaId = await generateFadaId(Employee);
-    const emailOTP = generateOTP(6);
+    const emailOTP = generateOTP(4);
     const employee = await Employee.create({
       fadaId,
       name,
@@ -98,9 +98,9 @@ exports.verifyRegistrationOtp = async (req, res) => {
   try {
     const validator = new Validator(req.body, {
       email: "required|email",
-      emailOTP: "required|string|min:6|max:6",
+      emailOTP: "required|string|min:4|max:4",
       phone: "required|min:10|max:10|regex:/^[0-9]+$/",
-      otp: "required|string|min:6|max:6",
+      otp: "required|string|min:4|max:4",
     });
 
     if (validator.fails()) {
@@ -135,7 +135,7 @@ exports.verifyRegistrationOtp = async (req, res) => {
       isEmailVerified: true,
       isPhoneVerified: true,
       isActive: true,
-      password: hashedPassword, 
+      password: hashedPassword,
       isRegistrationCompleted: true,
     });
 
@@ -176,9 +176,9 @@ exports.employeeLogin = async (req, res) => {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    
+
     const employee = await Employee.findOne({ where: { email } });
- 
+
     if (!employee) {
       return res.apiError("Employee not found", 404);
     }
@@ -189,7 +189,7 @@ exports.employeeLogin = async (req, res) => {
         403,
       );
     }
- 
+
 
     if (!employee.isActive && employee.status !== "temporary") {
       return res.apiError(
@@ -363,7 +363,7 @@ exports.sendLoginOtp = async (req, res) => {
       return res.apiError("user not found", 404);
     }
 
-     
+
 
     if (employee.status === "rejected") {
       return res.apiError("Your account has been rejected", 403);
@@ -373,14 +373,14 @@ exports.sendLoginOtp = async (req, res) => {
       return res.apiError("Your account is not active. Please contact to administrator.", 403);
     }
 
-    const otp = generateOTP(6);
+    const otp = generateOTP(4);
 
-    const data = usernameFilter.email ? { emailOTP: otp } : { otp:otp };
-     
+    const data = usernameFilter.email ? { emailOTP: otp } : { otp: otp };
+
     await employee.update(data);
 
     if (usernameFilter.email) {
-       await addEmailJob({
+      await addEmailJob({
         to: employee.email,
         subject: "FADA-ID Login OTP",
         templateName: "otp.ejs",
@@ -390,7 +390,7 @@ exports.sendLoginOtp = async (req, res) => {
           purpose: "login",
         },
       });
-    }else if (usernameFilter.phone) {
+    } else if (usernameFilter.phone) {
       await addSmsJob({
         to: employee.phone,
         message: `Your Employee Login OTP is ${otp}`,
@@ -416,7 +416,7 @@ exports.verifyLoginOtp = async (req, res) => {
 
     const validator = new Validator(req.body, {
       username: "required",
-      otp: "required|string|min:6|max:6",
+      otp: "required|string|min:4|max:4",
     });
 
     if (validator.fails()) {
@@ -437,12 +437,12 @@ exports.verifyLoginOtp = async (req, res) => {
     if (!employee) {
       return res.apiError("Employee not found", 404);
     }
- 
+
     if (employee.status === "rejected") {
       return res.apiError("Your account has been rejected. Please contact to administrator.", 403);
     }
 
-    if (isEmail ?!employee.emailOTP : !employee.otp) {
+    if (isEmail ? !employee.emailOTP : !employee.otp) {
       return res.apiError("No OTP found. Please request a new OTP", 400);
     }
 
@@ -500,7 +500,7 @@ exports.verifyLoginOtp = async (req, res) => {
 */
 exports.forgotPassword = async (req, res) => {
   try {
-      const { username } = req.body;
+    const { username } = req.body;
 
     const validator = new Validator(req.body, {
       username: "required",
@@ -528,12 +528,12 @@ exports.forgotPassword = async (req, res) => {
       return res.apiError("Your account is not active. Please contact to administrator.", 403);
     }
 
-    const otp = generateOTP(6);
+    const otp = generateOTP(4);
 
-    const data = usernameFilter.email ? { emailOTP: otp } : { otp:otp };
-     
+    const data = usernameFilter.email ? { emailOTP: otp } : { otp: otp };
+
     await employee.update(data);
-    
+
     if (usernameFilter.email) {
       await addEmailJob({
         to: employee.email,
@@ -545,7 +545,7 @@ exports.forgotPassword = async (req, res) => {
           purpose: "OTP",
         },
       });
-    }else if (usernameFilter.phone) {
+    } else if (usernameFilter.phone) {
       await addSmsJob({
         to: employee.phone,
         message: `Your FADA-ID OTP is ${otp}`,
@@ -571,7 +571,7 @@ exports.verifyForgotPasswordOtp = async (req, res) => {
 
     const validator = new Validator(req.body, {
       username: "required",
-      otp: "required|string|min:6|max:6",
+      otp: "required|string|min:4|max:4",
     });
 
     if (validator.fails()) {
@@ -602,14 +602,14 @@ exports.verifyForgotPasswordOtp = async (req, res) => {
       return res.apiError("Invalid OTP", 401);
     }
 
-    const resetPasswordToken = generateAccessToken({id: employee.id}, "15m");
+    const resetPasswordToken = generateAccessToken({ id: employee.id }, "15m");
 
     await employee.update({
       otp: null,
       emailOTP: null,
     });
 
-    return res.apiSuccess("OTP verified successfully",{resetPasswordToken});
+    return res.apiSuccess("OTP verified successfully", { resetPasswordToken });
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
   }
@@ -623,7 +623,7 @@ exports.verifyForgotPasswordOtp = async (req, res) => {
 */
 exports.resetPassword = async (req, res) => {
   try {
-     
+
     const validator = new Validator(req.body, {
       password: "required|string",
       confirmPassword: "required|string|same:password",
@@ -658,4 +658,3 @@ exports.resetPassword = async (req, res) => {
 
 
 
-  

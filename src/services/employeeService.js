@@ -34,7 +34,7 @@ const designationValidationRules = {
 
 const assignmentValidationRules = {
   dealerId: "required|integer",
-  outletId: "integer",
+  outletId: "required|integer",
   startDate: "date",
   endDate: "date",
   isActive: "boolean",
@@ -65,12 +65,12 @@ const buildEmployeeIncludes = ({ includeDealership = true } = {}) => [
       },
       ...(includeDealership
         ? [
-            {
-              model: Dealer,
-              as: "dealership",
-              attributes: ["id", "name", "dealerCode"],
-            },
-          ]
+          {
+            model: Dealer,
+            as: "dealership",
+            attributes: ["id", "name", "dealerCode"],
+          },
+        ]
         : []),
     ],
   },
@@ -81,12 +81,12 @@ const buildEmployeeIncludes = ({ includeDealership = true } = {}) => [
     include: [
       ...(includeDealership
         ? [
-            {
-              model: Dealer,
-              as: "dealership",
-              attributes: ["id", "name", "dealerCode"],
-            },
-          ]
+          {
+            model: Dealer,
+            as: "dealership",
+            attributes: ["id", "name", "dealerCode"],
+          },
+        ]
         : []),
       {
         model: Outlet,

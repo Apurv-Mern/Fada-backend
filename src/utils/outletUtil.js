@@ -20,7 +20,7 @@ const buildOutletIncludes = ({ includeCompany = false } = {}) => {
   if (includeCompany) {
     includes.unshift({
       model: Dealer,
-      as: "company",
+      as: "dealer",
       attributes: ["id", "name", "dealerCode"],
     });
   }
