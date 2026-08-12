@@ -24,7 +24,7 @@ const {
 
 const employeeIncludes = buildEmployeeIncludes({ includeDealership: false });
 
-const getDealerId = (req) => req.auth.id;
+const getDealerId = (req) => req.currentDealerId;
 
 const loadEmployee = async (employeeId, dealerId) => {
   const assignment = await EmployeeAssignment.findOne({

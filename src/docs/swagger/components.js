@@ -1,6 +1,18 @@
 /**
  * @swagger
  * components:
+ *   parameters:
+ *     XDealerId:
+ *       in: header
+ *       name: X-Dealer-Id
+ *       required: false
+ *       schema:
+ *         type: integer
+ *       description: >
+ *         Optional active dealer context for group-holding accounts.
+ *         Omit or send the logged-in dealer id to act as self.
+ *         Send a child dealer id (parentDealerId must equal the authenticated dealer)
+ *         to scope business data to that sub-dealer. Invalid or unauthorized ids return 400/403.
  *   schemas:
  *     ApiSuccessResponse:
  *       type: object
@@ -700,6 +712,13 @@
  *           type: boolean
  *         isActive:
  *           type: boolean
+ *         isGroupHoldingEntity:
+ *           type: boolean
+ *           description: True when this dealer is a group-holding parent that can switch into child dealers via X-Dealer-Id
+ *         parentDealerId:
+ *           type: integer
+ *           nullable: true
+ *           description: Parent group-holding dealer id when this dealer is a sub-dealer
  *         mustChangePassword:
  *           type: boolean
  *           description: True when dealer must change password (legacy temp-password flow)

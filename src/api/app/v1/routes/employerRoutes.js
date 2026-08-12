@@ -11,4 +11,16 @@ router.patch(
   employerController.acceptOrRejectEmployerInvitationById,
 );
 
+router.post("/employer-leaving", employerController.submitEmployerLeavingRequest);
+router.get("/employer-leaving", employerController.getEmployerLeavingRequests);
+router.get("/employer-leaving/:id", employerController.getEmployerLeavingRequestById);
+router.patch(
+  "/employer-leaving/:id/status/:status",
+  employerController.updateEmployerLeavingRequestStepStatus,
+);
+router.patch(
+  "/employer-leaving/:id/status/:status",
+  employerController.rejectEmployerLeavingRequestById,
+);
+
 module.exports = router;

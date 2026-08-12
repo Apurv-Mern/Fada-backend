@@ -3,26 +3,63 @@ const {
   EmployeeAssignment,
   EmployeeEmployerStatus,
   Employee,
+  EmployeeLeaveEmployeement,
+  Dealer,
+  Outlet,
 } = require("../../../database/models");
 const Validator = require("validatorjs");
 
-const { newEmployerSteps } = require("../../../services/employeeService");
+const { newEmployerSteps, employerLeavingSteps } = require("../../../services/employeeService");
 
 const EMPLOYER_JOINING_STATUS = {
   SEND_INVITATION: "send_invitation",
   ACCEPT_INVITATION: "accept_invitation",
+  REJECT_INVITATION: "reject_invitation",
   SHARE_DETAILS: "share_details",
   EMPLOYER_VERIFICATION: "employer_verification",
   JOINING_CONFIRMED: "joining_confirmed",
 };
 
 const EMPLOYER_EXIT_STATUS = {
-  SEND_INVITATION: "send_invitation",
-  ACCEPT_INVITATION: "accept_invitation",
-  SHARE_DETAILS: "share_details",
-  EMPLOYER_VERIFICATION: "employer_verification",
-  JOINING_CONFIRMED: "joining_confirmed",
+  INFORM_EMPLOYER: "inform_employer",
+  SUBMIT_RESIGNATION: "submit_resignation",
+  ACCEPT_RESIGNATION: "accept_resignation",
+  REJECT_RESIGNATION: "reject_resignation",
+  HANDOVER_COMPLETED: "handover_completed",
+  CLEARANCE_COMPLETED: "clearance_completed",
+  EXIT_COMPLETED: "exit_completed",
 };
+
+const DEALER_EXIT_WORKFLOW_STATUSES = [
+  EMPLOYER_EXIT_STATUS.HANDOVER_COMPLETED,
+  EMPLOYER_EXIT_STATUS.CLEARANCE_COMPLETED,
+  EMPLOYER_EXIT_STATUS.EXIT_COMPLETED,
+];
+
+const leaveStatusIncludes = [
+  {
+    model: Employee,
+    as: "employee",
+    attributes: ["id", "name", "email", "phone"],
+  },
+  {
+    model: Dealer,
+    as: "dealership",
+    attributes: ["id", "name", "dealerCode"],
+  },
+  {
+    model: Outlet,
+    as: "branch",
+    attributes: ["id", "name"],
+  },
+  {
+    model: EmployeeEmployerStatus,
+    as: "statuses",
+    attributes: ["id", "status", "slug", "actionUserBy", "actionUserId", "createdAt"],
+    required: false,
+  },
+];
+
 
 /*
 @API: GET /dealer/employer-invitations
@@ -31,7 +68,7 @@ const EMPLOYER_EXIT_STATUS = {
 */
 exports.getEmployerInvitations = async (req, res) => {
   try {
-    const { id } = req.auth;
+    const id = req.currentDealerId;
 
     const employerInvitations = await EmployeeAssignment.findAll({
       where: { dealerId: id, status: "pending" },
@@ -61,7 +98,7 @@ exports.getEmployerInvitations = async (req, res) => {
 */
 exports.getEmployerInvitationById = async (req, res) => {
   try {
-    const { id } = req.auth;
+    const id = req.currentDealerId;
     const employerInvitation = await EmployeeAssignment.findOne({
       where: { dealerId: id, id: req.params.id },
       order: [["createdAt", "DESC"]],
@@ -97,7 +134,7 @@ exports.getEmployerInvitationById = async (req, res) => {
 */
 exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
   try {
-    const { id } = req.auth;
+    const id = req.currentDealerId;
     const { status } = req.params;
     if (status !== "accept" && status !== "reject") {
       return res.apiError("Invalid status", 400);
@@ -109,8 +146,8 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
 
     await EmployeeEmployerStatus.create({
       employeeAssignmentId: req.params.id,
-      status: status === "accept" ? "accepted" : "rejected",
-      slug: status,
+      status: status === "accept" ? EMPLOYER_JOINING_STATUS.ACCEPT_INVITATION : EMPLOYER_JOINING_STATUS.REJECT_INVITATION,
+      slug: "joining",
       actionUserBy: "dealer",
       actionUserId: id,
     });
@@ -132,7 +169,7 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
 exports.sendNewEmployerInvitation = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
-    const id = req.auth.id;
+    const id = req.currentDealerId;
     const { employeeId } = req.body;
 
     const validator = new Validator(req.body, {
@@ -178,8 +215,8 @@ exports.sendNewEmployerInvitation = async (req, res) => {
     await EmployeeEmployerStatus.create(
       {
         employeeAssignmentId: employerInvitation.id,
-        status: "send_invitation",
-        slug: "send_invitation",
+        status: EMPLOYER_JOINING_STATUS.SEND_INVITATION,
+        slug: "joining",
         actionUserBy: "dealer",
         actionUserId: id,
       },
@@ -203,7 +240,7 @@ exports.sendNewEmployerInvitation = async (req, res) => {
 */
 exports.updateEmployerInvitationStatusById = async (req, res) => {
   try {
-    const dealerId = req.auth.id;
+    const dealerId = req.currentDealerId;
 
     const { status, id } = req.params;
 
@@ -231,9 +268,9 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
     await EmployeeEmployerStatus.create({
       employeeAssignmentId: req.params.id,
       status: status,
-      slug: status,
+      slug: "joining",
       actionUserBy: "dealer",
-      actionUserId: id,
+      actionUserId: dealerId,
     });
     return res.apiSuccess(
       "Employer invitation status updated successfully",
@@ -251,13 +288,249 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
 */
 exports.getEmployerInvitationSteps = async (req, res) => {
   try {
-    const { id } = req.auth;
     const steps = newEmployerSteps();
     return res.apiSuccess(
       "Employer invitation steps fetched successfully",
       steps,
     );
   } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+
+/*
+@API: GET /dealers/employer-leaving
+@Desc: Get dealer employer leaving requests
+@Access: Private
+*/
+exports.getEmployerLeavingRequests = async (req, res) => {
+  try {
+    const dealerId = req.currentDealerId;
+    const employerLeavingRequests = await EmployeeLeaveEmployeement.findAll({
+      where: { dealerId },
+      order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: Employee,
+          as: "employee",
+          attributes: ["id", "name", "email", "phone"],
+        },
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+    return res.apiSuccess(
+      "Employer leaving requests fetched successfully",
+      employerLeavingRequests,
+    );
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: GET /dealers/employer-leaving/steps
+@Desc: Get employer leaving workflow steps
+@Access: Private
+*/
+exports.getEmployerLeavingSteps = async (req, res) => {
+  try {
+    const steps = employerLeavingSteps();
+    return res.apiSuccess(
+      "Employer leaving steps fetched successfully",
+      steps,
+    );
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: GET /dealers/employer-leaving/:id
+@Desc: Get dealer employer leaving request by id
+@Access: Private
+*/
+exports.getEmployerLeavingRequestById = async (req, res) => {
+  try {
+    const dealerId = req.currentDealerId;
+    const employerLeavingRequest = await EmployeeLeaveEmployeement.findOne({
+      where: { dealerId, id: req.params.id },
+      include: leaveStatusIncludes,
+    });
+    if (!employerLeavingRequest) {
+      return res.apiError("Employer leaving request not found", 404);
+    }
+    return res.apiSuccess(
+      "Employer leaving request fetched successfully",
+      employerLeavingRequest,
+    );
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: PATCH /dealers/employer-leaving/:id/status/:status | accept | reject
+@Desc: Accept or reject employer leaving / resignation request
+@Access: Private
+*/
+exports.acceptOrRejectEmployerLeavingRequestById = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const dealerId = req.currentDealerId;
+    const { status } = req.params;
+
+    if (status !== "accept" && status !== "reject") {
+      await transaction.rollback();
+      return res.apiError("Invalid status", 400);
+    }
+
+    const leaveRequest = await EmployeeLeaveEmployeement.findOne({
+      where: { dealerId, id: req.params.id },
+      transaction,
+    });
+    if (!leaveRequest) {
+      await transaction.rollback();
+      return res.apiError("Employer leaving request not found", 404);
+    }
+
+    if (leaveRequest.status !== "pending") {
+      await transaction.rollback();
+      return res.apiError("Leaving request is already processed", 400);
+    }
+
+    const workflowStatus =
+      status === "accept"
+        ? EMPLOYER_EXIT_STATUS.ACCEPT_RESIGNATION
+        : EMPLOYER_EXIT_STATUS.REJECT_RESIGNATION;
+
+    const existingStatus = await EmployeeEmployerStatus.findOne({
+      where: {
+        employeeAssignmentId: leaveRequest.id,
+        status: workflowStatus,
+        slug: "leaving",
+      },
+      transaction,
+    });
+    if (existingStatus) {
+      await transaction.rollback();
+      return res.apiError("Leave request status already updated", 400);
+    }
+
+    await leaveRequest.update(
+      { status: status === "accept" ? "accepted" : "rejected" },
+      { transaction },
+    );
+
+    await EmployeeEmployerStatus.create(
+      {
+        employeeAssignmentId: leaveRequest.id,
+        status: workflowStatus,
+        slug: "leaving",
+        actionUserBy: "dealer",
+        actionUserId: dealerId,
+      },
+      { transaction },
+    );
+
+    await transaction.commit();
+    return res.apiSuccess(
+      `Employer leaving request ${status}ed successfully`,
+      leaveRequest,
+    );
+  } catch (error) {
+    await transaction.rollback();
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: PUT /dealers/employer-leaving/:id/status/:status
+@Desc: Advance employer leaving workflow status
+@Access: Private
+*/
+exports.updateEmployerLeavingRequestStatusById = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const dealerId = req.currentDealerId;
+    const { status, id } = req.params;
+
+    if (!DEALER_EXIT_WORKFLOW_STATUSES.includes(status)) {
+      await transaction.rollback();
+      return res.apiError("Invalid status", 400);
+    }
+
+    const leaveRequest = await EmployeeLeaveEmployeement.findOne({
+      where: { dealerId, id },
+      transaction,
+    });
+    if (!leaveRequest) {
+      await transaction.rollback();
+      return res.apiError("Employer leaving request not found", 404);
+    }
+
+    if (leaveRequest.status === "rejected") {
+      await transaction.rollback();
+      return res.apiError("Cannot update a rejected leaving request", 400);
+    }
+
+    if (leaveRequest.status !== "accepted") {
+      await transaction.rollback();
+      return res.apiError(
+        "Resignation must be accepted before advancing exit workflow",
+        400,
+      );
+    }
+
+    const existingStatus = await EmployeeEmployerStatus.findOne({
+      where: {
+        employeeAssignmentId: leaveRequest.id,
+        status,
+        slug: "leaving",
+      },
+      transaction,
+    });
+    if (existingStatus) {
+      await transaction.rollback();
+      return res.apiError("Leave request status already updated", 400);
+    }
+
+    await EmployeeEmployerStatus.create(
+      {
+        employeeAssignmentId: leaveRequest.id,
+        status,
+        slug: "leaving",
+        actionUserBy: "dealer",
+        actionUserId: dealerId,
+      },
+      { transaction },
+    );
+
+    if (status === EMPLOYER_EXIT_STATUS.EXIT_COMPLETED) {
+      await EmployeeAssignment.update(
+        {
+          isCurrentlyWorking: false,
+          isActive: false,
+          endDate: leaveRequest.lastWorkingDate || new Date(),
+        },
+        {
+          where: { id: leaveRequest.employeeAssignmentId, dealerId },
+          transaction,
+        },
+      );
+    }
+
+    await transaction.commit();
+    return res.apiSuccess(
+      "Employer leaving request status updated successfully",
+      leaveRequest,
+    );
+  } catch (error) {
+    await transaction.rollback();
     return res.apiError("Internal server error", 500, error);
   }
 };

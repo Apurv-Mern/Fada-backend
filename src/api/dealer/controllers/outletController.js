@@ -24,7 +24,7 @@ const outletValidationRules = {
 
 const outletIncludes = buildOutletIncludes();
 
-const getDealerId = (req) => req.auth.id;
+const getDealerId = (req) => req.currentDealerId;
 
 const findDealerOutletOrError = async (outletId, dealerId, res, transaction) => {
   const outlet = await Outlet.findOne({
@@ -55,9 +55,9 @@ exports.getOutlets = async (req, res) => {
 
     const where = { dealerId };
 
-    if (groupDealerId) {
+    /* if (groupDealerId) {
       where.dealerId = groupDealerId;
-    }
+    } */
 
     if (isActive !== undefined) {
       where.isActive = isActive === "true" || isActive === "1";

@@ -5,7 +5,7 @@ const {
 } = require("../../../database/models");
 const Validator = require("validatorjs");
 
-const getDealerId = (req) => req.auth.id;
+const getDealerId = (req) => req.currentDealerId;
 
 const formatBusinessDocuments = (documents = []) =>
   documents.map((document) => {

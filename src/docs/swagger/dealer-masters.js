@@ -2,12 +2,16 @@
  * @swagger
  * tags:
  *   - name: Dealer Masters
- *     description: Read-only master data for authenticated dealers (dropdowns and forms)
+ *     description: >
+ *       Read-only master data for authenticated dealers (dropdowns and forms).
+ *       Requires dealer Bearer token; accepts optional X-Dealer-Id (validated, does not change master data).
  */
 
 /**
  * @swagger
  * /dealers/masters/brands:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Masters]
  *     summary: Get active brands
@@ -34,6 +38,8 @@
 /**
  * @swagger
  * /dealers/masters/segments:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Masters]
  *     summary: Get active segments
@@ -60,6 +66,8 @@
 /**
  * @swagger
  * /dealers/masters/vehicle-class:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Masters]
  *     summary: Get active vehicle classes
@@ -86,6 +94,8 @@
 /**
  * @swagger
  * /dealers/masters/business-functions:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Masters]
  *     summary: Get business functions
@@ -112,6 +122,8 @@
 /**
  * @swagger
  * /dealers/masters/departments:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Masters]
  *     summary: Get departments
@@ -144,6 +156,8 @@
 /**
  * @swagger
  * /dealers/masters/designations:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Masters]
  *     summary: Get designations (roles)
@@ -176,6 +190,8 @@
 /**
  * @swagger
  * /dealers/masters/outlet-functions:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Masters]
  *     summary: Get active outlet functions
@@ -202,6 +218,8 @@
 /**
  * @swagger
  * /dealers/masters/document-types:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Masters]
  *     summary: Get document types

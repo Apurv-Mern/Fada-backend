@@ -289,7 +289,7 @@ const checkAllDocumentsApproved = async (employeeId) => {
   return isKycCompleted;
 };
 
-const newEmployerSteps = ()=> {
+const newEmployerSteps = () => {
   return [
     {
       id: 1,
@@ -307,7 +307,8 @@ const newEmployerSteps = ()=> {
       id: 3,
       status: "share_details",
       title: "Share Details",
-      description: "Share required documents and Information with hr over email and confirm same here",
+      description:
+        "Share required documents and Information with hr over email and confirm same here",
     },
     {
       id: 4,
@@ -320,11 +321,50 @@ const newEmployerSteps = ()=> {
       status: "joining_confirmed",
       title: "Joining Confirmed",
       description: "Your new association is activated",
-    }
-  ]
+    },
+  ];
 };
 
- 
+const employerLeavingSteps = () => {
+  return [
+    {
+      id: 1,
+      status: "inform_employer",
+      title: "Inform Employer",
+      description: "Employee has informed the employer about leaving",
+    },
+    {
+      id: 2,
+      status: "submit_resignation",
+      title: "Submit Resignation",
+      description: "Resignation details have been submitted",
+    },
+    {
+      id: 3,
+      status: "accept_resignation",
+      title: "Accept Resignation",
+      description: "Dealer accepts or rejects the resignation",
+    },
+    {
+      id: 4,
+      status: "handover_completed",
+      title: "Handover Completed",
+      description: "Handover of responsibilities is completed",
+    },
+    {
+      id: 5,
+      status: "clearance_completed",
+      title: "Clearance Completed",
+      description: "Exit clearance is completed",
+    },
+    {
+      id: 6,
+      status: "exit_completed",
+      title: "Exit Completed",
+      description: "Employment exit is finalized",
+    },
+  ];
+};
 
 module.exports = {
   employeeAttributes,
@@ -337,4 +377,5 @@ module.exports = {
   syncAssignment,
   checkAllDocumentsApproved,
   newEmployerSteps,
+  employerLeavingSteps,
 };

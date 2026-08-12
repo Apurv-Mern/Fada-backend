@@ -75,37 +75,50 @@ const TAG_GROUPS = {
     {
       source: "Dealer Profile",
       name: "Profile",
-      description: "Dealer profile and business details",
+      description:
+        "Dealer profile, group dealers, and business details. Scoped by Bearer token and optional X-Dealer-Id header for group-holding context.",
     },
     {
       source: "Dealer Contact Persons",
       name: "Contact Persons",
-      description: "Dealer key contact person management",
+      description:
+        "Dealer key contact person management (scoped by X-Dealer-Id when acting as a sub-dealer)",
     },
     {
       source: "Dealer Outlets",
       name: "Outlets",
-      description: "Dealer outlet management",
+      description:
+        "Dealer outlet management (scoped by X-Dealer-Id when acting as a sub-dealer)",
     },
     {
       source: "Dealer Employees",
       name: "Employees",
-      description: "Dealer employee management",
+      description:
+        "Dealer employee management (scoped by X-Dealer-Id when acting as a sub-dealer)",
     },
     {
       source: "Dealer Employer Invitations",
       name: "Employer Invitations",
-      description: "Send invitations, manage joining workflow steps, and accept or reject employment invitations",
+      description:
+        "Send invitations, manage joining workflow steps, and accept or reject employment invitations (scoped by X-Dealer-Id)",
+    },
+    {
+      source: "Dealer Employer Leaving",
+      name: "Employer Leaving",
+      description:
+        "Manage employee resignation/exit requests and leaving workflow steps (scoped by X-Dealer-Id)",
     },
     {
       source: "Dealer Business Documents",
       name: "Business Documents",
-      description: "Dealer business document uploads",
+      description:
+        "Dealer business document uploads (scoped by X-Dealer-Id when acting as a sub-dealer)",
     },
     {
       source: "Dealer Masters",
       name: "Masters",
-      description: "Read-only master data for dealer forms and dropdowns",
+      description:
+        "Read-only master data for dealer forms and dropdowns (requires dealer Bearer; accepts optional X-Dealer-Id)",
     },
   ],
   Employee: [

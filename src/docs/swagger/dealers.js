@@ -2,18 +2,24 @@
  * @swagger
  * tags:
  *   - name: Dealer Profile
- *     description: Dealer profile management (authenticated dealer)
+ *     description: >
+ *       Dealer profile management. Business data is scoped to req.currentDealerId —
+ *       the authenticated dealer, or a child dealer when X-Dealer-Id is provided.
  *   - name: Dealer Contact Persons
- *     description: Dealer key contact person management
+ *     description: Dealer key contact person management (scoped by optional X-Dealer-Id)
  */
 
 /**
  * @swagger
  * /dealers/user/profile:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Profile]
  *     summary: Get dealer profile
- *     description: Returns dealer account info, profile details, registered location, and outlet/employee counts
+ *     description: >
+ *       Returns dealer account info, profile details, registered location, and outlet/employee counts
+ *       for the active dealer context (Bearer dealer, or child specified by X-Dealer-Id).
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -30,10 +36,13 @@
  *                       $ref: '#/components/schemas/DealerProfileResponse'
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
  *   put:
  *     tags: [Dealer Profile]
  *     summary: Update dealer profile
- *     description: Updates dealer account fields and upserts dealer profile record
+ *     description: >
+ *       Updates dealer account fields and upserts dealer profile record for the active dealer context.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -46,18 +55,25 @@
  *       200:
  *         description: Profile updated successfully
  *       400:
- *         description: Validation error
+ *         description: Validation error or invalid X-Dealer-Id
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
  */
 
 /**
  * @swagger
  * /dealers/user/group-dealers:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Profile]
  *     summary: List child dealers in group holding
- *     description: Returns active dealers where parentDealerId is the authenticated dealer (id, name, dealerCode).
+ *     description: >
+ *       Returns active dealers where parentDealerId matches the active dealer context
+ *       (authenticated dealer, or child from X-Dealer-Id). Use without X-Dealer-Id (or with
+ *       the main dealer id) to list direct children for the group switcher.
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -83,11 +99,15 @@
  *                             type: string
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
  */
 
 /**
  * @swagger
  * /dealers/contact-persons:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Contact Persons]
  *     summary: Get contact persons
@@ -132,6 +152,8 @@
 /**
  * @swagger
  * /dealers/contact-persons/{id}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   put:
  *     tags: [Dealer Contact Persons]
  *     summary: Update contact person
@@ -178,12 +200,14 @@
  * @swagger
  * tags:
  *   - name: Dealer Outlets
- *     description: Dealer outlet management (scoped to authenticated dealer)
+ *     description: Dealer outlet management (scoped to active dealer via Bearer + optional X-Dealer-Id)
  */
 
 /**
  * @swagger
  * /dealers/outlets:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Outlets]
  *     summary: Get dealer outlets
@@ -266,6 +290,8 @@
 /**
  * @swagger
  * /dealers/outlets/options:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Outlets]
  *     summary: Get active outlet options
@@ -279,6 +305,8 @@
 /**
  * @swagger
  * /dealers/outlets/{id}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Outlets]
  *     summary: Get outlet by id
@@ -333,12 +361,14 @@
  * @swagger
  * tags:
  *   - name: Dealer Employees
- *     description: Dealer employee management (scoped to authenticated dealer)
+ *     description: Dealer employee management (scoped to active dealer via Bearer + optional X-Dealer-Id)
  */
 
 /**
  * @swagger
  * /dealers/employees:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Employees]
  *     summary: Get dealer employees
@@ -393,6 +423,8 @@
 /**
  * @swagger
  * /dealers/employees/{id}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Employees]
  *     summary: Get employee by id
@@ -446,6 +478,8 @@
 /**
  * @swagger
  * /dealers/employees/{id}/documents:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Employees]
  *     summary: Get employee document checklist with uploads
@@ -471,6 +505,8 @@
 /**
  * @swagger
  * /dealers/employees/{id}/approve-documents/{documentId}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   put:
  *     tags: [Dealer Employees]
  *     summary: Approve an employee document upload
@@ -503,12 +539,16 @@
  * @swagger
  * tags:
  *   - name: Dealer Employer Invitations
- *     description: Pending employment invitations between employees and dealers
+ *     description: >
+ *       Pending employment invitations between employees and dealers
+ *       (scoped to active dealer via Bearer + optional X-Dealer-Id)
  */
 
 /**
  * @swagger
  * /dealers/employer-invitations:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Employer Invitations]
  *     summary: List pending employer invitations for dealer
@@ -525,6 +565,8 @@
 /**
  * @swagger
  * /dealers/employer-invitations/send:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   post:
  *     tags: [Dealer Employer Invitations]
  *     summary: Send employment invitation to an employee
@@ -551,6 +593,8 @@
 /**
  * @swagger
  * /dealers/employer-invitations/{id}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Employer Invitations]
  *     summary: Get employer invitation by assignment id
@@ -576,6 +620,8 @@
 /**
  * @swagger
  * /dealers/employer-invitations/steps:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Employer Invitations]
  *     summary: Get employer invitation joining workflow steps
@@ -601,6 +647,8 @@
 /**
  * @swagger
  * /dealers/employer-invitations/{id}/status/{status}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   patch:
  *     tags: [Dealer Employer Invitations]
  *     summary: Accept or reject employer invitation
@@ -662,12 +710,14 @@
  * @swagger
  * tags:
  *   - name: Dealer Business Documents
- *     description: Dealer business document uploads
+ *     description: Dealer business document uploads (scoped to active dealer via Bearer + optional X-Dealer-Id)
  */
 
 /**
  * @swagger
  * /dealers/business-documents:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   get:
  *     tags: [Dealer Business Documents]
  *     summary: Get business documents with upload status
@@ -708,6 +758,8 @@
 /**
  * @swagger
  * /dealers/business-documents/{id}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
  *   delete:
  *     tags: [Dealer Business Documents]
  *     summary: Delete uploaded business document
@@ -725,4 +777,164 @@
  *         description: Business document deleted successfully
  *       404:
  *         description: Business document not found
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Dealer Employer Leaving
+ *     description: >
+ *       Employee exit / resignation requests for the active dealer context
+ *       (Bearer + optional X-Dealer-Id)
+ */
+
+/**
+ * @swagger
+ * /dealers/employer-leaving:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Employer Leaving]
+ *     summary: List employer leaving requests
+ *     description: Returns EmployeeLeaveEmployeement rows for the active dealer, including employee and branch summary.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employer leaving requests fetched successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
+ */
+
+/**
+ * @swagger
+ * /dealers/employer-leaving/steps:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Employer Leaving]
+ *     summary: Get employer leaving workflow steps
+ *     description: Returns the ordered exit workflow steps shown during the leaving process.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employer leaving steps fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       status:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/employer-leaving/{id}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Employer Leaving]
+ *     summary: Get employer leaving request by id
+ *     description: Returns leaving request with employee, dealership, branch, and leaving status history.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: EmployeeLeaveEmployeement id
+ *     responses:
+ *       200:
+ *         description: Employer leaving request fetched successfully
+ *       404:
+ *         description: Leaving request not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/employer-leaving/{id}/status/{status}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   patch:
+ *     tags: [Dealer Employer Leaving]
+ *     summary: Accept or reject resignation / leaving request
+ *     description: >
+ *       Sets leave request status to accepted or rejected and appends accept_resignation or
+ *       reject_resignation in EmployeeEmployerStatus (slug=leaving).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: EmployeeLeaveEmployeement id
+ *       - in: path
+ *         name: status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [accept, reject]
+ *     responses:
+ *       200:
+ *         description: Leaving request accepted or rejected successfully
+ *       400:
+ *         description: Invalid status or request already processed
+ *       404:
+ *         description: Leaving request not found
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     tags: [Dealer Employer Leaving]
+ *     summary: Advance employer leaving workflow status
+ *     description: >
+ *       Appends a workflow status after resignation is accepted.
+ *       On exit_completed, marks the related EmployeeAssignment as no longer working.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: EmployeeLeaveEmployeement id
+ *       - in: path
+ *         name: status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [handover_completed, clearance_completed, exit_completed]
+ *         description: Exit workflow step
+ *     responses:
+ *       200:
+ *         description: Employer leaving request status updated successfully
+ *       400:
+ *         description: Invalid status, not accepted yet, or status already updated
+ *       404:
+ *         description: Leaving request not found
+ *       401:
+ *         description: Unauthorized
  */

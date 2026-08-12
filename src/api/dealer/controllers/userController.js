@@ -14,7 +14,7 @@ const Validator = require("validatorjs");
 */
 exports.getProfile = async (req, res) => {
   try {
-    const id = req.auth.id;
+    const id = req.currentDealerId;
 
     const profile = await Dealer.findOne({
       attributes: [
@@ -81,7 +81,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
-    const id = req.auth.id;
+    const id = req.currentDealerId;
 
     const validator = new Validator(req.body, {
       typeOfDealership: "required|string",
@@ -151,7 +151,7 @@ exports.updateProfile = async (req, res) => {
 */
 exports.getGroupDealers = async (req, res) => {
   try {
-    const id = req.auth.id;
+    const id = req.currentDealerId;
 
     const groupDealers = await Dealer.findAll({
       where: { parentDealerId: id, isActive: true },

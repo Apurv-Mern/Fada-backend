@@ -4,13 +4,18 @@ const employerController = require("../controllers/employerController");
 
 const authenticateDealer = require("../../../middlewares/dealerAuth");
 router.use(authenticateDealer);
+
 router.get("/", employerController.getEmployerInvitations);
+router.post("/send", employerController.sendNewEmployerInvitation);
+router.get("/steps", employerController.getEmployerInvitationSteps);
 router.get("/:id", employerController.getEmployerInvitationById);
 router.patch(
   "/:id/status/:status",
   employerController.acceptOrRejectEmployerInvitationById,
 );
-router.post("/send", employerController.sendNewEmployerInvitation);
-router.put("/:id/status/:status", employerController.updateEmployerInvitationStatusById);
-router.get("/steps", employerController.getEmployerInvitationSteps);
+router.put(
+  "/:id/status/:status",
+  employerController.updateEmployerInvitationStatusById,
+);
+
 module.exports = router;
