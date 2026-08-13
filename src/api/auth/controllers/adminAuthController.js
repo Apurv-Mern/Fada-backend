@@ -268,3 +268,91 @@ exports.forgotPassword = async (req, res) => {
         return res.apiError("Internal server error", 500, error);
     }
 };
+
+const toAdminProfile = (admin) => ({
+    id: admin.id,
+    name: admin.name,
+    email: admin.email,
+    phone: admin.phone,
+    profilePicture: admin.profilePicture,
+    role: "admin",
+    isActive: admin.isActive,
+    mustChangePassword: admin.mustChangePassword,
+    createdAt: admin.createdAt,
+    updatedAt: admin.updatedAt,
+});
+
+/*
+@API: GET /admin/auth/profile
+@Desc: Get authenticated admin profile
+@Access: Private
+*/
+exports.getProfile = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.auth.id, {
+                attributes: ["id", "name", "email", "phone", "profilePicture", "isActive", "createdAt", "updatedAt"],
+        });
+
+        if (!admin) {
+            return res.apiError("Admin not found", 404);
+        }
+
+        return res.apiSuccess("Profile fetched successfully", toAdminProfile(admin));
+    } catch (error) {
+        return res.apiError("Internal server error", 500, error);
+    }
+};
+
+/*
+@API: PUT /admin/auth/profile
+@Body: { name?, email?, phone?, profilePicture? }
+@Desc: Update authenticated admin profile
+@Access: Private
+*/
+exports.updateProfile = async (req, res) => {
+    try {
+        const validator = new Validator(req.body, {
+            name: "required|string",
+            email: "required|email",
+            phone: "required|string", 
+        });
+
+        if (validator.fails()) {
+            return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+        }
+
+        const admin = await Admin.findByPk(req.auth.id);
+        if (!admin) {
+            return res.apiError("Admin not found", 404);
+        }
+
+        const { name, email, phone } = req.body;
+        const profilePicture = req.file && req.file.filename ? `${process.env.API_URL}/uploads/${req.file.filename}` : admin.profilePicture;
+        const updates = {};
+
+        if (name !== undefined) updates.name = name;
+        if (phone !== undefined) updates.phone = phone;
+        if (profilePicture !== undefined) updates.profilePicture = profilePicture;
+
+        if (email !== undefined && email !== admin.email) {
+            const existing = await Admin.findOne({ where: { email } });
+            if (existing) {
+                return res.apiError("An admin with this email already exists", 409);
+            }
+            updates.email = email;
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.apiError("No valid fields provided to update", 422);
+        }
+
+        await admin.update(updates);
+
+        return res.apiSuccess(
+            "Profile updated successfully",
+            toAdminProfile(admin),
+        );
+    } catch (error) {
+        return res.apiError("Internal server error", 500, error);
+    }
+};

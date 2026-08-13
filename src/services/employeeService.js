@@ -2,7 +2,6 @@ const Validator = require("validatorjs");
 const { Op } = require("sequelize");
 const {
   Employee,
-  EmployeeDesignation,
   EmployeeAssignment,
   EmployeeDocument,
   OrganizationStructure,
@@ -34,7 +33,9 @@ const designationValidationRules = {
 
 const assignmentValidationRules = {
   dealerId: "required|integer",
-  outletId: "required|integer",
+  outletId: "integer",
+  departmentId: "integer",
+  designationId: "integer",
   startDate: "date",
   endDate: "date",
   isActive: "boolean",
@@ -42,38 +43,16 @@ const assignmentValidationRules = {
 
 const dealerAssignmentValidationRules = {
   outletId: "integer",
+  departmentId: "integer",
+  designationId: "integer",
   startDate: "date",
   endDate: "date",
   isActive: "boolean",
 };
 
+const orgStructureAttributes = ["id", "name", "slug", "flag", "level", "parentId"];
+
 const buildEmployeeIncludes = ({ includeDealership = true } = {}) => [
-  {
-    model: EmployeeDesignation,
-    as: "designation",
-    required: false,
-    include: [
-      {
-        model: OrganizationStructure,
-        as: "department",
-        attributes: ["id", "name", "slug", "flag", "level"],
-      },
-      {
-        model: OrganizationStructure,
-        as: "designation",
-        attributes: ["id", "name", "slug", "flag", "level", "parentId"],
-      },
-      ...(includeDealership
-        ? [
-          {
-            model: Dealer,
-            as: "dealership",
-            attributes: ["id", "name", "dealerCode"],
-          },
-        ]
-        : []),
-    ],
-  },
   {
     model: EmployeeAssignment,
     as: "assignment",
@@ -81,17 +60,27 @@ const buildEmployeeIncludes = ({ includeDealership = true } = {}) => [
     include: [
       ...(includeDealership
         ? [
-          {
-            model: Dealer,
-            as: "dealership",
-            attributes: ["id", "name", "dealerCode"],
-          },
-        ]
+            {
+              model: Dealer,
+              as: "dealership",
+              attributes: ["id", "name", "dealerCode"],
+            },
+          ]
         : []),
       {
         model: Outlet,
         as: "branch",
         attributes: ["id", "name", "code"],
+      },
+      {
+        model: OrganizationStructure,
+        as: "department",
+        attributes: orgStructureAttributes,
+      },
+      {
+        model: OrganizationStructure,
+        as: "designation",
+        attributes: orgStructureAttributes,
       },
     ],
   },
@@ -127,7 +116,9 @@ const validateDesignation = async (designation, dealerId, res) => {
 
   if (!parsed.data) return { valid: true };
 
-  const department = await OrganizationStructure.findByPk(parsed.data.departmentId);
+  const department = await OrganizationStructure.findByPk(
+    parsed.data.departmentId,
+  );
   if (!department || department.flag !== "department") {
     res.apiError("Department not found", 404);
     return { valid: false };
@@ -159,7 +150,9 @@ const validateDesignation = async (designation, dealerId, res) => {
 };
 
 const validateAssignment = async (assignment, res, dealerId = null) => {
-  const rules = dealerId ? dealerAssignmentValidationRules : assignmentValidationRules;
+  const rules = dealerId
+    ? dealerAssignmentValidationRules
+    : assignmentValidationRules;
   const parsed = validateNestedObject(assignment, rules, "assignment", res);
   if (!parsed.valid) return { valid: false };
 
@@ -170,6 +163,21 @@ const validateAssignment = async (assignment, res, dealerId = null) => {
   if (!dealer) {
     res.apiError("Dealership not found", 404);
     return { valid: false };
+  }
+
+  if (
+    parsed.data.departmentId !== undefined ||
+    parsed.data.designationId !== undefined
+  ) {
+    const designationResult = await validateDesignation(
+      {
+        departmentId: parsed.data.departmentId,
+        designationId: parsed.data.designationId,
+      },
+      resolvedDealerId,
+      res,
+    );
+    if (!designationResult.valid) return { valid: false };
   }
 
   return {
@@ -190,37 +198,22 @@ const buildEmployeePayload = (body) => ({
   joinedDate: body.joinedDate ?? null,
 });
 
-const syncDesignation = async (
-  employeeId,
-  designation,
-  dealerId,
-  joinedDate,
-  transaction,
-) => {
-  if (!designation) return;
-
-  const payload = {
-    employeeId,
-    dealerId,
-    departmentId: designation.departmentId,
-    designationId: designation.designationId,
-    startDate: designation.startDate ?? joinedDate ?? null,
-    endDate: designation.endDate ?? null,
-    isActive: designation.isActive ?? true,
-  };
-
-  const existing = await EmployeeDesignation.findOne({
-    where: { employeeId },
-    transaction,
-  });
-
-  if (existing) {
-    await existing.update(payload, { transaction });
-    return;
-  }
-
-  await EmployeeDesignation.create(payload, { transaction });
-};
+const mergeAssignmentPayload = (assignment = {}, designation = {}) => ({
+  ...assignment,
+  ...(designation.departmentId !== undefined
+    ? { departmentId: designation.departmentId }
+    : {}),
+  ...(designation.designationId !== undefined
+    ? { designationId: designation.designationId }
+    : {}),
+  ...(designation.startDate !== undefined
+    ? { startDate: designation.startDate }
+    : {}),
+  ...(designation.endDate !== undefined ? { endDate: designation.endDate } : {}),
+  ...(designation.isActive !== undefined
+    ? { isActive: designation.isActive }
+    : {}),
+});
 
 const syncAssignment = async (employeeId, assignment, joinedDate, transaction) => {
   if (!assignment) return;
@@ -229,6 +222,8 @@ const syncAssignment = async (employeeId, assignment, joinedDate, transaction) =
     employeeId,
     dealerId: assignment.dealerId,
     outletId: assignment.outletId ?? null,
+    departmentId: assignment.departmentId ?? null,
+    designationId: assignment.designationId ?? null,
     startDate: assignment.startDate ?? joinedDate ?? null,
     endDate: assignment.endDate ?? null,
     isActive: assignment.isActive ?? true,
@@ -245,6 +240,37 @@ const syncAssignment = async (employeeId, assignment, joinedDate, transaction) =
   }
 
   await EmployeeAssignment.create(payload, { transaction });
+};
+
+/** @deprecated Use syncAssignment with departmentId/designationId on assignment */
+const syncDesignation = async (
+  employeeId,
+  designation,
+  dealerId,
+  joinedDate,
+  transaction,
+) => {
+  if (!designation) return;
+
+  const existing = await EmployeeAssignment.findOne({
+    where: { employeeId },
+    transaction,
+  });
+
+  await syncAssignment(
+    employeeId,
+    {
+      dealerId: dealerId ?? existing?.dealerId,
+      outletId: existing?.outletId ?? null,
+      departmentId: designation.departmentId,
+      designationId: designation.designationId,
+      startDate: designation.startDate ?? existing?.startDate ?? joinedDate,
+      endDate: designation.endDate ?? existing?.endDate ?? null,
+      isActive: designation.isActive ?? existing?.isActive ?? true,
+    },
+    joinedDate,
+    transaction,
+  );
 };
 
 const employeeDocumentAppliesToFilter = {
@@ -373,6 +399,7 @@ module.exports = {
   validateDesignation,
   validateAssignment,
   buildEmployeePayload,
+  mergeAssignmentPayload,
   syncDesignation,
   syncAssignment,
   checkAllDocumentsApproved,

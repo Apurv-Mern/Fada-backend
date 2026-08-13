@@ -383,10 +383,12 @@
  *         name: departmentId
  *         schema:
  *           type: integer
+ *         description: Filter by EmployeeAssignment.departmentId
  *       - in: query
  *         name: outletId
  *         schema:
  *           type: integer
+ *         description: Filter by EmployeeAssignment.outletId
  *       - in: query
  *         name: isActive
  *         schema:
@@ -407,6 +409,9 @@
  *   post:
  *     tags: [Dealer Employees]
  *     summary: Create employee
+ *     description: >
+ *       Creates employee under the active dealer with EmployeeAssignment including
+ *       outlet, departmentId, and designationId. Top-level designation object is deprecated.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -415,6 +420,14 @@
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/DealerEmployeeCreateRequest'
+ *           example:
+ *             name: Shambhu Meena
+ *             email: shambhu@company.com
+ *             phone: "9876543210"
+ *             assignment:
+ *               outletId: 3
+ *               departmentId: 5
+ *               designationId: 12
  *     responses:
  *       200:
  *         description: Employee created successfully
@@ -937,4 +950,50 @@
  *         description: Leaving request not found
  *       401:
  *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Dealer Employeement Transfer
+ *     description: >
+ *       Transfer an employee to another outlet under the active dealer
+ *       (Bearer + optional X-Dealer-Id). Department and designation are stored on EmployeeAssignment.
+ */
+
+/**
+ * @swagger
+ * /dealers/employeement-transfer:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   post:
+ *     tags: [Dealer Employeement Transfer]
+ *     summary: Transfer employee to another outlet
+ *     description: >
+ *       Ends the current assignment (isCurrentlyWorking=false) and creates a new pending
+ *       EmployeeAssignment for the target outlet with departmentId and designationId.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerEmployeementTransferRequest'
+ *           example:
+ *             employeeId: 1
+ *             outletId: 3
+ *             departmentId: 5
+ *             designationId: 12
+ *     responses:
+ *       200:
+ *         description: Employeement transfer request sent successfully
+ *       404:
+ *         description: Employee or outlet not found
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
  */

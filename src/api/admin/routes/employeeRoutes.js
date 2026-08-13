@@ -9,4 +9,11 @@ router.put("/:id/status/:status", employeeController.updateEmployeeStatus);
 router.put("/:id", employeeController.updateEmployee);
 router.delete("/:id", employeeController.deleteEmployee);
 router.put("/:id/active-inactive", employeeController.activeInactiveEmployee);
+
+router.get("/:id/documents", employeeController.getEmployeeDocuments);
+router.put(
+  "/:id/documents/:documentId/status",
+  employeeController.updateEmployeeDocumentStatus,
+);
+router.delete("/:id/documents/:documentId", employeeController.deleteEmployeeDocument);
 module.exports = router;

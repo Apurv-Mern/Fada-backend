@@ -4,7 +4,6 @@ const {
   sequelize,
   Employee,
   EmployeeAssignment,
-  EmployeeDesignation,
   OrganizationStructure,
   Document,
   EmployeeDocument,
@@ -17,7 +16,6 @@ const {
   validateDesignation,
   validateAssignment,
   buildEmployeePayload,
-  syncDesignation,
   syncAssignment,
   checkAllDocumentsApproved,
 } = require("../../../services/employeeService");
@@ -75,28 +73,6 @@ exports.getEmployees = async (req, res) => {
       ];
     }
 
-    const designationInclude = {
-      model: EmployeeDesignation,
-      as: "designation",
-      required: !!departmentId,
-      where: {
-        dealerId,
-        ...(departmentId ? { departmentId } : {}),
-      },
-      include: [
-        {
-          model: OrganizationStructure,
-          as: "department",
-          attributes: ["id", "name", "slug", "flag", "level"],
-        },
-        {
-          model: OrganizationStructure,
-          as: "designation",
-          attributes: ["id", "name", "slug", "flag", "level", "parentId"],
-        },
-      ],
-    };
-
     const assignmentInclude = {
       model: EmployeeAssignment,
       as: "assignment",
@@ -104,14 +80,15 @@ exports.getEmployees = async (req, res) => {
       where: {
         dealerId,
         ...(outletId ? { outletId } : {}),
+        ...(departmentId ? { departmentId } : {}),
       },
-      include: employeeIncludes[1].include,
+      include: employeeIncludes[0].include,
     };
 
     const { rows: employees, count: total } = await Employee.findAndCountAll({
       attributes: employeeAttributes,
       where,
-      include: [designationInclude, assignmentInclude],
+      include: [assignmentInclude],
       order: [["id", "DESC"]],
       limit,
       offset,
@@ -206,15 +183,10 @@ exports.createEmployee = async (req, res) => {
 
       await syncAssignment(
         employee.id,
-        assignmentResult.data,
-        req.body.joinedDate,
-        transaction,
-      );
-
-      await syncDesignation(
-        employee.id,
-        designationResult.data,
-        dealerId,
+        {
+          ...(assignmentResult.data || {}),
+          ...(designationResult.data || {}),
+        },
         req.body.joinedDate,
         transaction,
       );
@@ -289,20 +261,39 @@ exports.updateEmployee = async (req, res) => {
         transaction,
       });
 
-      if (req.body.assignment !== undefined) {
+      if (
+        req.body.assignment !== undefined ||
+        req.body.designation !== undefined
+      ) {
+        const existingAssignment = await EmployeeAssignment.findOne({
+          where: { employeeId: existingEmployee.id, dealerId },
+          transaction,
+        });
+
         await syncAssignment(
           existingEmployee.id,
-          assignmentResult.data,
-          req.body.joinedDate ?? existingEmployee.joinedDate,
-          transaction,
-        );
-      }
-
-      if (req.body.designation !== undefined) {
-        await syncDesignation(
-          existingEmployee.id,
-          designationResult.data,
-          dealerId,
+          {
+            dealerId,
+            outletId:
+              assignmentResult.data?.outletId ?? existingAssignment?.outletId,
+            startDate:
+              assignmentResult.data?.startDate ?? existingAssignment?.startDate,
+            endDate:
+              assignmentResult.data?.endDate ?? existingAssignment?.endDate,
+            isActive:
+              assignmentResult.data?.isActive ?? existingAssignment?.isActive,
+            departmentId:
+              designationResult.data?.departmentId ??
+              assignmentResult.data?.departmentId ??
+              existingAssignment?.departmentId,
+            designationId:
+              designationResult.data?.designationId ??
+              assignmentResult.data?.designationId ??
+              existingAssignment?.designationId,
+            ...(assignmentResult.data || {}),
+            ...(designationResult.data || {}),
+            dealerId,
+          },
           req.body.joinedDate ?? existingEmployee.joinedDate,
           transaction,
         );
@@ -339,10 +330,6 @@ exports.deleteEmployee = async (req, res) => {
     if (!employee) return;
 
     await sequelize.transaction(async (transaction) => {
-      await EmployeeDesignation.destroy({
-        where: { employeeId: employee.id, dealerId },
-        transaction,
-      });
       await EmployeeAssignment.destroy({
         where: { employeeId: employee.id, dealerId },
         transaction,

@@ -19,6 +19,11 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       EmployeeAssignment.belongsTo(models.OrganizationStructure, {
+        foreignKey: "departmentId",
+        as: "department",
+      });
+
+      EmployeeAssignment.belongsTo(models.OrganizationStructure, {
         foreignKey: "designationId",
         as: "designation",
       });
@@ -47,6 +52,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       outletId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      departmentId: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
@@ -110,6 +119,9 @@ module.exports = (sequelize, DataTypes) => {
         },
         {
           fields: ["outletId"],
+        },
+        {
+          fields: ["departmentId"],
         },
         {
           fields: ["status"],

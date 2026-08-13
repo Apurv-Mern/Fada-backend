@@ -3,7 +3,7 @@ const TAG_GROUPS = {
     {
       source: "Admin Auth",
       name: "Auth",
-      description: "Admin login, logout, password reset, and token refresh",
+      description: "Admin login, logout, password reset, token refresh, and profile",
     },
     {
       source: "Admin Dealers",
@@ -13,7 +13,8 @@ const TAG_GROUPS = {
     {
       source: "Admin Employees",
       name: "Employees",
-      description: "Admin employee management and statistics",
+      description:
+        "Admin employee management, statistics, status updates, and document verification",
     },
     {
       source: "Admin Outlets",
@@ -107,6 +108,12 @@ const TAG_GROUPS = {
       name: "Employer Leaving",
       description:
         "Manage employee resignation/exit requests and leaving workflow steps (scoped by X-Dealer-Id)",
+    },
+    {
+      source: "Dealer Employeement Transfer",
+      name: "Employeement Transfer",
+      description:
+        "Transfer employees between outlets under the active dealer (assignment includes departmentId/designationId)",
     },
     {
       source: "Dealer Business Documents",

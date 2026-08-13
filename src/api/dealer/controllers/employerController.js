@@ -9,7 +9,10 @@ const {
 } = require("../../../database/models");
 const Validator = require("validatorjs");
 
-const { newEmployerSteps, employerLeavingSteps } = require("../../../services/employeeService");
+const {
+  newEmployerSteps,
+  employerLeavingSteps,
+} = require("../../../services/employeeService");
 
 const EMPLOYER_JOINING_STATUS = {
   SEND_INVITATION: "send_invitation",
@@ -18,6 +21,7 @@ const EMPLOYER_JOINING_STATUS = {
   SHARE_DETAILS: "share_details",
   EMPLOYER_VERIFICATION: "employer_verification",
   JOINING_CONFIRMED: "joining_confirmed",
+  TRANSFER: "transfered",
 };
 
 const EMPLOYER_EXIT_STATUS = {
@@ -55,11 +59,17 @@ const leaveStatusIncludes = [
   {
     model: EmployeeEmployerStatus,
     as: "statuses",
-    attributes: ["id", "status", "slug", "actionUserBy", "actionUserId", "createdAt"],
+    attributes: [
+      "id",
+      "status",
+      "slug",
+      "actionUserBy",
+      "actionUserId",
+      "createdAt",
+    ],
     required: false,
   },
 ];
-
 
 /*
 @API: GET /dealer/employer-invitations
@@ -146,7 +156,10 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
 
     await EmployeeEmployerStatus.create({
       employeeAssignmentId: req.params.id,
-      status: status === "accept" ? EMPLOYER_JOINING_STATUS.ACCEPT_INVITATION : EMPLOYER_JOINING_STATUS.REJECT_INVITATION,
+      status:
+        status === "accept"
+          ? EMPLOYER_JOINING_STATUS.ACCEPT_INVITATION
+          : EMPLOYER_JOINING_STATUS.REJECT_INVITATION,
       slug: "joining",
       actionUserBy: "dealer",
       actionUserId: id,
@@ -298,7 +311,6 @@ exports.getEmployerInvitationSteps = async (req, res) => {
   }
 };
 
-
 /*
 @API: GET /dealers/employer-leaving
 @Desc: Get dealer employer leaving requests
@@ -340,10 +352,7 @@ exports.getEmployerLeavingRequests = async (req, res) => {
 exports.getEmployerLeavingSteps = async (req, res) => {
   try {
     const steps = employerLeavingSteps();
-    return res.apiSuccess(
-      "Employer leaving steps fetched successfully",
-      steps,
-    );
+    return res.apiSuccess("Employer leaving steps fetched successfully", steps);
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
   }
@@ -528,6 +537,108 @@ exports.updateEmployerLeavingRequestStatusById = async (req, res) => {
     return res.apiSuccess(
       "Employer leaving request status updated successfully",
       leaveRequest,
+    );
+  } catch (error) {
+    await transaction.rollback();
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+/*
+@API: POST /dealers/employeement-transfer
+@Desc: employee transfer in other outlet
+@Body: { employeeId: number, outletId: number, designationId: number }
+@Example: {
+  "employeeId": 1,
+  "outletId": 1,
+  "departmentId": 1,
+  "designationId": 1
+}
+@Access: Private
+*/
+exports.sendEmployeementTransferRequest = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const dealerId = req.currentDealerId;
+    const { employeeId, outletId, departmentId, designationId } = req.body;
+   
+    const validator = new Validator(req.body, {
+      employeeId: "required|integer",
+      outletId: "required|integer",
+      departmentId: "required|integer",
+      designationId: "required|integer",
+    });
+   
+    if (validator.fails()) {
+      await transaction.rollback();
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+   
+    const existingEmployeeAssignment = await EmployeeAssignment.findOne({
+      where: { dealerId, employeeId },
+      order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+  
+    if (!existingEmployeeAssignment) {
+      await transaction.rollback();
+      return res.apiError("Employee not found", 404);
+    }
+    
+    const newOutlet = await Outlet.findOne({
+      where: { dealerId, id: outletId },
+      transaction,
+    });
+    if (!newOutlet) {
+      await transaction.rollback();
+      return res.apiError("Outlet not found", 404);
+    }
+
+    await EmployeeAssignment.update(
+      { isCurrentlyWorking: false, isActive: false,  endDate: new Date(),  },
+      { where: { dealerId, employeeId }, transaction },
+    );
+ 
+
+    const employeementTransferRequest = await EmployeeAssignment.create(
+      {
+        dealerId: dealerId,
+        employeeId: employeeId,
+        outletId: outletId,
+        departmentId: departmentId,
+        designationId: designationId,
+        status: "pending",
+        employeementType: "full-time",
+        isCurrentlyWorking: true,
+        startDate: new Date(),
+        invitationSendBy: "dealer",
+        invitationSendById: dealerId, 
+        highlights: `Transferred from ${existingEmployeeAssignment.branch.name} to ${newOutlet.name}`,
+      },
+      { transaction },
+    );
+
+    await EmployeeEmployerStatus.create(
+      {
+        employeeAssignmentId: employeementTransferRequest.id,
+        status: EMPLOYER_JOINING_STATUS.TRANSFER,
+        slug: "joining",
+        actionUserBy: "dealer",
+        actionUserId: dealerId,
+      },
+      { transaction },
+    );
+
+    await transaction.commit();
+    return res.apiSuccess(
+      "Employeement transfer request sent successfully",
+      employeementTransferRequest,
     );
   } catch (error) {
     await transaction.rollback();

@@ -3,14 +3,16 @@ const { Op } = require("sequelize");
 const {
   sequelize,
   Employee,
-  EmployeeDesignation,
   EmployeeAssignment,
   OrganizationStructure,
   Dealer,
   Outlet,
+  EmployeeDocument,
+  Document,
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const dayjs = require("dayjs");
+const { assign } = require("nodemailer/lib/shared");
 const employeeAttributes = {
   exclude: ["password", "otp", "refreshToken", "mpin"],
 };
@@ -37,29 +39,14 @@ const designationValidationRules = {
 const assignmentValidationRules = {
   dealerId: "required|integer",
   outletId: "integer",
+  departmentId: "integer",
+  designationId: "integer",
   startDate: "date",
   endDate: "date",
   isActive: "boolean",
 };
 
 const employeeIncludes = [
-  {
-    model: EmployeeDesignation,
-    as: "designation",
-    required: false,
-    include: [
-      {
-        model: OrganizationStructure,
-        as: "department",
-        attributes: ["id", "name", "slug", "flag", "level"],
-      },
-      {
-        model: OrganizationStructure,
-        as: "designation",
-        attributes: ["id", "name", "slug", "flag", "level", "parentId"],
-      }, 
-    ],
-  },
   {
     model: EmployeeAssignment,
     as: "assignment",
@@ -74,6 +61,16 @@ const employeeIncludes = [
         model: Outlet,
         as: "branch",
         attributes: ["id", "name", "code"],
+      },
+      {
+        model: OrganizationStructure,
+        as: "department",
+        attributes: ["id", "name", "slug", "flag", "level"],
+      },
+      {
+        model: OrganizationStructure,
+        as: "designation",
+        attributes: ["id", "name", "slug", "flag", "level", "parentId"],
       },
     ],
   },
@@ -103,13 +100,15 @@ const validateDesignation = async (designation, dealerId, res) => {
     designation,
     designationValidationRules,
     "designation",
-    res
+    res,
   );
   if (!parsed.valid) return { valid: false };
 
   if (!parsed.data) return { valid: true };
 
-  const department = await OrganizationStructure.findByPk(parsed.data.departmentId);
+  const department = await OrganizationStructure.findByPk(
+    parsed.data.departmentId,
+  );
   if (!department || department.flag !== "department") {
     res.apiError("Department not found", 404);
     return { valid: false };
@@ -145,7 +144,7 @@ const validateAssignment = async (assignment, res) => {
     assignment,
     assignmentValidationRules,
     "assignment",
-    res
+    res,
   );
   if (!parsed.valid) return { valid: false };
 
@@ -183,42 +182,11 @@ const buildEmployeePayload = (body) => ({
   joinedDate: body.joinedDate ?? null,
 });
 
-const syncDesignation = async (
-  employeeId,
-  designation,
-  dealerId,
-  joinedDate,
-  transaction
-) => {
-  if (!designation) return;
-
-  const payload = {
-    employeeId,
-    dealerId,
-    departmentId: designation.departmentId,
-    designationId: designation.designationId,
-    startDate: dayjs().format("YYYY-MM-DD"),
-    endDate:  null,
-    isActive: designation.isActive ?? true,
-  };
-
-  const existing = await EmployeeDesignation.findOne({
-    where: { employeeId,departmentId: designation.departmentId,designationId: designation.designationId },
-    transaction,
-  });
-
-  if (existing) {
-    await existing.update({ endDate: dayjs().format("YYYY-MM-DD"), isActive: false }, { transaction });
-  }else{
-    await EmployeeDesignation.create(payload, { transaction });
-  } 
-};
-
 const syncAssignment = async (
   employeeId,
   assignment,
   joinedDate,
-  transaction
+  transaction,
 ) => {
   if (!assignment) return;
 
@@ -226,6 +194,8 @@ const syncAssignment = async (
     employeeId,
     dealerId: assignment.dealerId,
     outletId: assignment.outletId ?? null,
+    departmentId: assignment.departmentId ?? null,
+    designationId: assignment.designationId ?? null,
     startDate: assignment.startDate ?? joinedDate ?? null,
     endDate: assignment.endDate ?? null,
     isActive: assignment.isActive ?? true,
@@ -258,7 +228,8 @@ const loadEmployee = async (employeeId, transaction) =>
 */
 exports.getEmployees = async (req, res) => {
   try {
-    const { search, dealerId, departmentId, outletId, isActive, status } = req.query;
+    const { search, dealerId, departmentId, outletId, isActive, status } =
+      req.query;
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
@@ -277,16 +248,30 @@ exports.getEmployees = async (req, res) => {
         { name: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
         { phone: { [Op.like]: `%${search}%` } },
-        { fadaId: { [Op.like]: `%${search}%` } }, 
+        { fadaId: { [Op.like]: `%${search}%` } },
       ];
     }
 
-    const designationInclude = {
-      model: EmployeeDesignation,
-      as: "designation",
-      required: !!departmentId,
-      where: departmentId ? { departmentId } : undefined,
+    const assignmentInclude = {
+      model: EmployeeAssignment,
+      as: "assignment",
+      required: !!(dealerId || outletId || departmentId),
+      where: {
+        ...(dealerId ? { dealerId } : {}),
+        ...(outletId ? { outletId } : {}),
+        ...(departmentId ? { departmentId } : {}),
+      },
       include: [
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name", "dealerCode"],
+        },
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name", "code"],
+        },
         {
           model: OrganizationStructure,
           as: "department",
@@ -300,32 +285,10 @@ exports.getEmployees = async (req, res) => {
       ],
     };
 
-    const assignmentInclude = {
-      model: EmployeeAssignment,
-      as: "assignment",
-      required: !!(dealerId || outletId),
-      where: {
-        ...(dealerId ? { dealerId } : {}),
-        ...(outletId ? { outletId } : {}),
-      },
-      include: [
-        {
-          model: Dealer,
-          as: "dealership",
-          attributes: ["id", "name", "dealerCode"],
-        },
-        {
-          model: Outlet,
-          as: "branch",
-          attributes: ["id", "name", "code"],
-        },
-      ],
-    };
-
     const { rows: employees, count: total } = await Employee.findAndCountAll({
       attributes: employeeAttributes,
       where,
-      include: [designationInclude, assignmentInclude],
+      include: [assignmentInclude],
       order: [["id", "DESC"]],
       limit,
       offset,
@@ -381,7 +344,7 @@ exports.createEmployee = async (req, res) => {
     const designationResult = await validateDesignation(
       req.body.designation,
       assignmentResult.data?.dealerId,
-      res
+      res,
     );
     if (!designationResult.valid) return;
 
@@ -404,24 +367,19 @@ exports.createEmployee = async (req, res) => {
           ...buildEmployeePayload(req.body),
           fadaId,
         },
-        { transaction }
+        { transaction },
       );
 
       employeeId = employee.id;
 
       await syncAssignment(
         employee.id,
-        assignmentResult.data,
+        {
+          ...(assignmentResult.data || {}),
+          ...(designationResult.data || {}),
+        },
         req.body.joinedDate,
-        transaction
-      );
-
-      await syncDesignation(
-        employee.id,
-        designationResult.data,
-        assignmentResult.data?.dealerId,
-        req.body.joinedDate,
-        transaction
+        transaction,
       );
     });
 
@@ -429,7 +387,10 @@ exports.createEmployee = async (req, res) => {
     return res.apiSuccess("Employee created successfully", employee);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
-      return res.apiError("Employee with duplicate unique field already exists", 409);
+      return res.apiError(
+        "Employee with duplicate unique field already exists",
+        409,
+      );
     }
 
     return res.apiError(error.message, 500, error);
@@ -470,7 +431,7 @@ exports.updateEmployee = async (req, res) => {
       designationResult = await validateDesignation(
         req.body.designation,
         dealerId,
-        res
+        res,
       );
       if (!designationResult.valid) return;
     }
@@ -489,27 +450,41 @@ exports.updateEmployee = async (req, res) => {
         transaction,
       });
 
-      if (req.body.assignment !== undefined) {
-        await syncAssignment(
-          existingEmployee.id,
-          assignmentResult.data,
-          req.body.joinedDate ?? existingEmployee.joinedDate,
-          transaction
-        );
-      }
-
-      if (req.body.designation !== undefined) {
-        const assignment = await EmployeeAssignment.findOne({
+      if (
+        req.body.assignment !== undefined ||
+        req.body.designation !== undefined
+      ) {
+        const existingAssignment = await EmployeeAssignment.findOne({
           where: { employeeId: existingEmployee.id },
           transaction,
         });
 
-        await syncDesignation(
+        await syncAssignment(
           existingEmployee.id,
-          designationResult.data,
-          assignmentResult.data?.dealerId ?? assignment?.dealerId,
+          {
+            dealerId:
+              assignmentResult.data?.dealerId ?? existingAssignment?.dealerId,
+            outletId:
+              assignmentResult.data?.outletId ?? existingAssignment?.outletId,
+            startDate:
+              assignmentResult.data?.startDate ?? existingAssignment?.startDate,
+            endDate:
+              assignmentResult.data?.endDate ?? existingAssignment?.endDate,
+            isActive:
+              assignmentResult.data?.isActive ?? existingAssignment?.isActive,
+            departmentId:
+              designationResult.data?.departmentId ??
+              assignmentResult.data?.departmentId ??
+              existingAssignment?.departmentId,
+            designationId:
+              designationResult.data?.designationId ??
+              assignmentResult.data?.designationId ??
+              existingAssignment?.designationId,
+            ...(assignmentResult.data || {}),
+            ...(designationResult.data || {}),
+          },
           req.body.joinedDate ?? existingEmployee.joinedDate,
-          transaction
+          transaction,
         );
       }
     });
@@ -518,7 +493,10 @@ exports.updateEmployee = async (req, res) => {
     return res.apiSuccess("Employee updated successfully", employee);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
-      return res.apiError("Employee with duplicate unique field already exists", 409);
+      return res.apiError(
+        "Employee with duplicate unique field already exists",
+        409,
+      );
     }
 
     return res.apiError(error.message, 500, error);
@@ -538,10 +516,6 @@ exports.deleteEmployee = async (req, res) => {
     }
 
     await sequelize.transaction(async (transaction) => {
-      await EmployeeDesignation.destroy({
-        where: { employeeId: employee.id },
-        transaction,
-      });
       await EmployeeAssignment.destroy({
         where: { employeeId: employee.id },
         transaction,
@@ -554,7 +528,6 @@ exports.deleteEmployee = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
-
 
 /*
 @API: PUT /admin/employees/:id/status/:status
@@ -586,9 +559,15 @@ exports.updateEmployeeStatus = async (req, res) => {
 */
 exports.getEmployeeStats = async (req, res) => {
   try {
-  
-
-    const [allEmployees,approvedEmployees,pendingEmployees,rejectedEmployees,temporaryEmployees,activeEmployees,inactiveEmployees] = await Promise.all([
+    const [
+      allEmployees,
+      approvedEmployees,
+      pendingEmployees,
+      rejectedEmployees,
+      temporaryEmployees,
+      activeEmployees,
+      inactiveEmployees,
+    ] = await Promise.all([
       Employee.count(),
       Employee.count({ where: { status: "approved" } }),
       Employee.count({ where: { status: "pending" } }),
@@ -612,7 +591,6 @@ exports.getEmployeeStats = async (req, res) => {
   }
 };
 
-
 /*
 @API: PUT /admin/employees/:id/active-inactive
 @Desc: Activate/deactivate an employee
@@ -625,7 +603,113 @@ exports.activeInactiveEmployee = async (req, res) => {
       return res.apiError("Employee not found", 404);
     }
     await employee.update({ isActive: !employee.isActive });
-    return res.apiSuccess(employee.isActive ? "Employee activated successfully" : "Employee deactivated successfully");
+    return res.apiSuccess(
+      employee.isActive
+        ? "Employee activated successfully"
+        : "Employee deactivated successfully",
+    );
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: GET /admin/employees/:id/documents
+@Desc: Get the employee documents
+@Access: Private
+*/
+exports.getEmployeeDocuments = async (req, res) => {
+  try {
+    const documents = await Document.findAll({
+      attributes: ["id", "name", "code", "category","isMandatory", "isVerificationRequired", "notes"],
+      where: {
+        isActive: true,
+        appliesTo: { [Op.in]: ["employee", "both"] },
+      },
+      include: [
+        {
+          model: EmployeeDocument,
+          as: "employeeDocuments",
+          where: { employeeId: req.params.id },
+          required: false,
+        },
+      ],
+    });
+    return res.apiSuccess("Employee documents fetched successfully", documents);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: PUT /admin/employees/:id/documents/:documentId/status
+@Desc: Update the status of a document for an employee
+@Access: Private
+@Body: { status: "approved" | "rejected", reason: "string" }
+*/
+exports.updateEmployeeDocumentStatus = async (req, res) => {
+  try {
+
+    const validator = new Validator(req.body, {
+      status: "required|in:approved,rejected",
+      reason: "required_if:status,rejected|string",
+
+    });
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const { status, reason } = req.body;
+    const {id, documentId} = req.params;
+   
+    const employeeDocument = await EmployeeDocument.findOne({
+      where: {
+        employeeId: id,
+        documentId: documentId,
+      },
+    });
+
+    if (!employeeDocument) {
+      return res.apiError("Employee document not found", 404);
+    }
+
+    await employeeDocument.update({
+      isApproved: status === "approved" ? true : false,
+      isVerified: status === "approved" ? true : false,
+      approvedBy: req.auth.id,
+      approvedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+      status: status,
+      reason: reason,
+    });
+    return res.apiSuccess(
+      status === "approved"
+        ? "Employee document approved successfully"
+        : "Employee document rejected successfully",
+    );
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+/*
+@API: DELETE /admin/employees/:id/documents/:documentId
+@Desc: Delete a document for an employee
+@Access: Private
+*/
+exports.deleteEmployeeDocument = async (req, res) => {
+  try {
+
+    const employeeDocument = await EmployeeDocument.findOne({
+      where: { employeeId: req.params.id, documentId: req.params.documentId },
+    });
+    if (!employeeDocument) {
+      return res.apiError("Employee document not found", 404);
+    }
+
+
+    await employeeDocument.destroy();
+    return res.apiSuccess("Employee document deleted successfully");
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

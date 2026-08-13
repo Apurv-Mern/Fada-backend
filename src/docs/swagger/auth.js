@@ -132,6 +132,67 @@
 
 /**
  * @swagger
+ * /admin/auth/profile:
+ *   get:
+ *     tags: [Admin Auth]
+ *     summary: Get admin profile
+ *     description: Returns the authenticated admin profile (id, name, email, phone, profilePicture, role, isActive, timestamps)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AdminUser'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Admin not found
+ *   put:
+ *     tags: [Admin Auth]
+ *     summary: Update admin profile
+ *     description: >
+ *       Updates authenticated admin profile. Send multipart/form-data with required
+ *       name, email, and phone. Optionally include profilePicture file upload.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             $ref: '#/components/schemas/AdminProfileUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AdminUser'
+ *       401:
+ *         description: Unauthorized
+ *       409:
+ *         description: Email already exists
+ *       422:
+ *         description: Validation error
+ *       404:
+ *         description: Admin not found
+ */
+
+/**
+ * @swagger
  * /dealer/auth/register:
  *   post:
  *     tags: [Dealer Auth]

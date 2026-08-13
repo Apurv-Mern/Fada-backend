@@ -2,7 +2,7 @@
  * @swagger
  * tags:
  *   - name: Admin Employees
- *     description: Admin employee management endpoints
+ *     description: Admin employee management, status, and document verification endpoints
  */
 
 /**
@@ -11,6 +11,8 @@
  *   schemas:
  *     EmployeeDesignationInput:
  *       type: object
+ *       deprecated: true
+ *       description: Deprecated. Prefer departmentId/designationId on assignment. Still accepted and merged into EmployeeAssignment.
  *       required: [departmentId, designationId]
  *       properties:
  *         departmentId:
@@ -35,6 +37,14 @@
  *         outletId:
  *           type: integer
  *           nullable: true
+ *         departmentId:
+ *           type: integer
+ *           nullable: true
+ *           description: OrganizationStructure id where flag=department
+ *         designationId:
+ *           type: integer
+ *           nullable: true
+ *           description: OrganizationStructure id where flag=role (must belong to departmentId)
  *         startDate:
  *           type: string
  *           format: date
@@ -68,6 +78,10 @@
  *           $ref: '#/components/schemas/EmployeeDesignationInput'
  *         assignment:
  *           $ref: '#/components/schemas/EmployeeAssignmentInput'
+ *           description: >
+ *             Dealership assignment. Include departmentId and designationId here.
+ *             Response returns them under assignment.department / assignment.designation
+ *             (top-level employee.designation is removed).
  *     EmployeeUpdateRequest:
  *       allOf:
  *         - $ref: '#/components/schemas/EmployeeCreateRequest'
@@ -97,12 +111,12 @@
  *         name: departmentId
  *         schema:
  *           type: integer
- *         description: Filter by department designation
+ *         description: Filter by EmployeeAssignment.departmentId
  *       - in: query
  *         name: outletId
  *         schema:
  *           type: integer
- *         description: Filter by branch assignment
+ *         description: Filter by EmployeeAssignment.outletId
  *       - in: query
  *         name: isActive
  *         schema:
@@ -132,7 +146,10 @@
  *   post:
  *     tags: [Admin Employees]
  *     summary: Create employee
- *     description: Creates employee with auto-generated FADA ID, designation, and assignment
+ *     description: >
+ *       Creates employee with auto-generated FADA ID and a single EmployeeAssignment
+ *       (dealer, outlet, department, designation). Department/role are stored on assignment,
+ *       not a separate EmployeeDesignation table.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -148,12 +165,11 @@
  *             score: 0
  *             isActive: true
  *             joinedDate: "2026-07-22"
- *             designation:
- *               departmentId: 5
- *               designationId: 12
  *             assignment:
  *               dealerId: 1
  *               outletId: 3
+ *               departmentId: 5
+ *               designationId: 12
  *     responses:
  *       200:
  *         description: Employee created successfully
@@ -306,6 +322,140 @@
  *               $ref: '#/components/schemas/ApiSuccessResponse'
  *       404:
  *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /admin/employees/{id}/documents:
+ *   get:
+ *     tags: [Admin Employees]
+ *     summary: Get employee documents
+ *     description: >
+ *       Returns active document types that apply to employees (appliesTo employee or both)
+ *       and include this employee's uploaded EmployeeDocument rows.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Employee id
+ *     responses:
+ *       200:
+ *         description: Employee documents fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/DocumentTypeMasterItem'
+ *                           - type: object
+ *                             properties:
+ *                               employeeDocuments:
+ *                                 type: array
+ *                                 items:
+ *                                   $ref: '#/components/schemas/AdminEmployeeDocumentItem'
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /admin/employees/{id}/documents/{documentId}/status:
+ *   put:
+ *     tags: [Admin Employees]
+ *     summary: Approve or reject an employee document upload
+ *     description: >
+ *       Updates the employee upload for the given master document type (documentId).
+ *       Sets isApproved, isVerified, approvedBy, approvedAt, status, and reason.
+ *       Reason is required when status is rejected.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Employee id
+ *       - in: path
+ *         name: documentId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Master Document id (document type), not EmployeeDocument row id
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AdminEmployeeDocumentStatusRequest'
+ *           examples:
+ *             approved:
+ *               summary: Approve document
+ *               value:
+ *                 status: approved
+ *             rejected:
+ *               summary: Reject document with reason
+ *               value:
+ *                 status: rejected
+ *                 reason: Document image is unclear
+ *     responses:
+ *       200:
+ *         description: Employee document approved or rejected successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       422:
+ *         description: Validation error (invalid status or missing reason on reject)
+ *       404:
+ *         description: Employee document not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /admin/employees/{id}/documents/{documentId}:
+ *   delete:
+ *     tags: [Admin Employees]
+ *     summary: Delete an employee document upload
+ *     description: Soft-deletes the employee's upload for the given master document type (documentId).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Employee id
+ *       - in: path
+ *         name: documentId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Master Document id (document type), not EmployeeDocument row id
+ *     responses:
+ *       200:
+ *         description: Employee document deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       404:
+ *         description: Employee document not found
  *       401:
  *         description: Unauthorized
  */

@@ -57,6 +57,7 @@ exports.getProfile = async (req, res) => {
             "id",
             "dealerId",
             "outletId",
+            "departmentId",
             "designationId",
             "employeementType",
             "city",
@@ -77,6 +78,12 @@ exports.getProfile = async (req, res) => {
             {
               model: Outlet,
               as: "branch",
+              attributes: ["id", "name"],
+              required: false,
+            },
+            {
+              model: OrganizationStructure,
+              as: "department",
               attributes: ["id", "name"],
               required: false,
             },
@@ -347,6 +354,7 @@ exports.deleteDocument = async (req, res) => {
 @Body: {
   dealerId: number,
   outletId: number,
+  departmentId: Number,
   designationId: Number,
   city: string,
   employeementType: string,
@@ -364,6 +372,7 @@ exports.createEmployeement = async (req, res) => {
     const validator = new Validator(req.body, {
       dealerId: "required|numeric",
       outletId: "required|numeric",
+      departmentId: "required|numeric",
       designationId: "required|numeric",
       city: "required|string",
       employeementType: "required|string",
@@ -380,6 +389,7 @@ exports.createEmployeement = async (req, res) => {
     const {
       dealerId,
       outletId,
+      departmentId,
       designationId,
       city,
       employeementType,
@@ -393,6 +403,7 @@ exports.createEmployeement = async (req, res) => {
       employeeId: id,
       dealerId,
       outletId,
+      departmentId,
       designationId,
       city,
       employeementType,
@@ -437,6 +448,11 @@ exports.getEmployeements = async (req, res) => {
         {
           model: Outlet,
           as: "branch",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "department",
           attributes: ["id", "name"],
         },
         {

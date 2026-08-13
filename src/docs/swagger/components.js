@@ -56,12 +56,44 @@
  *         email:
  *           type: string
  *           format: email
+ *         phone:
+ *           type: string
+ *           nullable: true
+ *         profilePicture:
+ *           type: string
+ *           nullable: true
  *         role:
  *           type: string
  *           example: admin
+ *         isActive:
+ *           type: boolean
  *         mustChangePassword:
  *           type: boolean
  *           description: True when admin must change password after forgot-password flow
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     AdminProfileUpdateRequest:
+ *       type: object
+ *       required: [name, email, phone]
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: Super Admin
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: superadmin@gmail.com
+ *         phone:
+ *           type: string
+ *           example: "9876543210"
+ *         profilePicture:
+ *           type: string
+ *           format: binary
+ *           description: Optional profile picture file upload
  *     AdminLoginResponse:
  *       type: object
  *       properties:
@@ -1115,6 +1147,51 @@
  *         appliesTo:
  *           type: string
  *           enum: [dealer, employee, both]
+ *     AdminEmployeeDocumentItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         employeeId:
+ *           type: integer
+ *         documentId:
+ *           type: integer
+ *         frontImage:
+ *           type: string
+ *           nullable: true
+ *         backImage:
+ *           type: string
+ *           nullable: true
+ *         isApproved:
+ *           type: boolean
+ *         isVerified:
+ *           type: boolean
+ *         approvedBy:
+ *           type: integer
+ *           nullable: true
+ *         approvedAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *         status:
+ *           type: string
+ *           enum: [pending, approved, rejected]
+ *         reason:
+ *           type: string
+ *           nullable: true
+ *           description: Rejection or review reason
+ *     AdminEmployeeDocumentStatusRequest:
+ *       type: object
+ *       required: [status]
+ *       properties:
+ *         status:
+ *           type: string
+ *           enum: [approved, rejected]
+ *           description: Document review decision
+ *         reason:
+ *           type: string
+ *           description: Required when status is rejected
+ *           example: Document image is unclear
  *     OutletBrandSummary:
  *       type: object
  *       properties:
@@ -1177,6 +1254,14 @@
  *         outletId:
  *           type: integer
  *           nullable: true
+ *         departmentId:
+ *           type: integer
+ *           nullable: true
+ *           description: OrganizationStructure id where flag=department
+ *         designationId:
+ *           type: integer
+ *           nullable: true
+ *           description: OrganizationStructure id where flag=role
  *         startDate:
  *           type: string
  *           format: date
@@ -1206,8 +1291,26 @@
  *           type: boolean
  *         designation:
  *           $ref: '#/components/schemas/EmployeeDesignationInput'
+ *           deprecated: true
+ *           description: Deprecated. Prefer departmentId/designationId on assignment.
  *         assignment:
  *           $ref: '#/components/schemas/DealerEmployeeAssignmentInput'
+ *           description: >
+ *             Assignment for the authenticated dealer. Include departmentId and designationId.
+ *             Response uses assignment.department / assignment.designation.
+ *     DealerEmployeementTransferRequest:
+ *       type: object
+ *       required: [employeeId, outletId, departmentId, designationId]
+ *       properties:
+ *         employeeId:
+ *           type: integer
+ *         outletId:
+ *           type: integer
+ *           description: Target outlet under the active dealer
+ *         departmentId:
+ *           type: integer
+ *         designationId:
+ *           type: integer
  *     FileUploadResponse:
  *       type: object
  *       properties:

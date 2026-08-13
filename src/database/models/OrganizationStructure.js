@@ -18,14 +18,14 @@ module.exports = (sequelize, DataTypes) => {
         as: "children",
       });
 
-      OrganizationStructure.hasMany(models.EmployeeDesignation, {
+      OrganizationStructure.hasMany(models.EmployeeAssignment, {
         foreignKey: "departmentId",
-        as: "departmentDesignations",
+        as: "departmentAssignments",
       });
 
-      OrganizationStructure.hasMany(models.EmployeeDesignation, {
+      OrganizationStructure.hasMany(models.EmployeeAssignment, {
         foreignKey: "designationId",
-        as: "roleDesignations",
+        as: "roleAssignments",
       });
     }
   }

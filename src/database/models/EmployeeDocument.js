@@ -30,8 +30,12 @@ module.exports = (sequelize, DataTypes) => {
       isApproved: DataTypes.BOOLEAN,
       approvedBy: DataTypes.INTEGER,
       approvedAt: DataTypes.DATE, 
-      isVerified: DataTypes.BOOLEAN, 
+      isVerified: DataTypes.BOOLEAN,
       status: DataTypes.ENUM("pending", "approved", "rejected"),
+      reason: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
     },
     {
       sequelize,

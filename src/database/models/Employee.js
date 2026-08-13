@@ -60,11 +60,6 @@ module.exports = (sequelize, DataTypes) => {
         as: "profileShares",
       });
 
-      Employee.hasOne(models.EmployeeDesignation, {
-        foreignKey: "employeeId",
-        as: "designation",
-      });
-
       Employee.hasOne(models.EmployeeAssignment, {
         foreignKey: "employeeId",
         as: "assignment",
