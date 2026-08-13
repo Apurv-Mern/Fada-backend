@@ -5,12 +5,12 @@ const employeeAuth = require("../../../../middlewares/employeeAuth");
 
 router.use(employeeAuth);
 
-router.post("/", employerController.sendNewEmployerInvitation);
-router.get("/", employerController.getEmployerInvitations);
-router.get("/:id", employerController.getEmployerInvitationById);
+router.post("/", employerController.submitEmployerLeavingRequest);
+router.get("/", employerController.getEmployerLeavingRequests);
+router.get("/:id", employerController.getEmployerLeavingRequestById);
 router.patch(
   "/:id/status/:status",
-  employerController.acceptOrRejectEmployerInvitationById,
+  employerController.updateEmployerLeavingRequestStatus,
 );
 
 module.exports = router;

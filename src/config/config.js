@@ -59,4 +59,12 @@ module.exports = {
   logging: {
     level: process.env.LOG_LEVEL || "info",
   },
+
+  sms: {
+    apiUrl: process.env.SMS_API_URL || "https://api.aoc-portal.com/v1/sms",
+    apiKey: process.env.SMS_API_KEY || "",
+    sender: process.env.SMS_SENDER || "CLKMCR",
+    type: process.env.SMS_TYPE || "TRANS",
+    enabled: process.env.IS_SMS_ENABLED === "true",
+  },
 };

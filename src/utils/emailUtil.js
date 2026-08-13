@@ -4,14 +4,13 @@ const nodemailer = require("nodemailer");
 const config = require("../config/config");
 
 const transporter = nodemailer.createTransport({
-  host: config.smtp.host,
-  port: Number(config.smtp.port),
-  secure: false,
+  host: config.smtp.host, // smtp.gmail.com
+  port: Number(config.smtp.port), // 465
+  secure: true, // SSL for port 465
   auth: {
-    user: config.smtp.user,
-    pass: config.smtp.pass,
+    user: config.smtp.user, // support@fadaid.com
+    pass: config.smtp.pass, // Gmail App Password
   },
-  ...(Number(config.smtp.port) === 587 ? { requireTLS: true } : {}),
 });
 
 const OTP_TEMPLATE_PATH = path.join(__dirname, "../views/emails");
@@ -74,13 +73,15 @@ const sendEmail = async (data) => {
     subject: data.subject,
     html,
   });
+  console.log("Email sent successfully to", data.to, "messageId:", result.messageId);
+  return result;
  } catch (error) {
   console.error("Error sending email:", error);
   
  }
 
-  console.log("Email sent successfully to", data.to, "messageId:", result.messageId);
-  return result;
+  
+  
 };
 
 module.exports = {

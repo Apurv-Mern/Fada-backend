@@ -3,6 +3,7 @@ require("dotenv").config();
 const { Worker } = require("bullmq");
 const connection = require("../config/redis");
 const { sendEmail } = require("../utils/emailUtil");
+const { sendSMS } = require("../utils/smsUtil");
 
 const emailWorker = new Worker(
   "email",
@@ -17,7 +18,9 @@ const emailWorker = new Worker(
 const smsWorker = new Worker(
   "sms",
   async (job) => {
-    console.log(`[sms-worker] Processing job ${job.id}`, job.data);
+    console.log(`[sms-worker] Processing job ${job.id} for ${job.data.to || job.data.phone}`);
+    await sendSMS(job.data);
+    console.log(`[sms-worker] Completed job ${job.id}`);
   },
   { connection }
 );
@@ -32,6 +35,10 @@ emailWorker.on("error", (error) => {
 
 smsWorker.on("failed", (job, error) => {
   console.error(`[sms-worker] Job ${job?.id} failed:`, error.message);
+});
+
+smsWorker.on("error", (error) => {
+  console.error("[sms-worker] Error:", error.message);
 });
 
 console.log("Workers started: email, sms");

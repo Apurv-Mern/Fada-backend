@@ -49,7 +49,7 @@ exports.dealerRegister = async (req, res) => {
     const hashedPassword = await hashPassword(password);
 
     // Generate OTP
-    const otp = generateOTP(6);
+    const otp = generateOTP(4);
 
     await addEmailJob({
       to: email,
@@ -90,7 +90,7 @@ exports.verifyOtp = async (req, res) => {
   try {
     const validator = new Validator(req.body, {
       email: "required|email",
-      otp: "required|string|min:4|max:8",
+      otp: "required|string|min:4|max:4",
     });
 
     if (validator.fails()) {
@@ -232,7 +232,7 @@ exports.dealerLogin = async (req, res) => {
 
     // if email is not verified, send OTP
     if (!dealer.isEmailVerified) {
-      const otp = generateOTP(6);
+      const otp = generateOTP(4);
       await dealer.update({ otp });
       await addEmailJob({
         to: dealer.email,
@@ -485,7 +485,7 @@ exports.forgotPassword = async (req, res) => {
        dealer.status !== "temporary"
      ) { */
 
-    const otp = generateOTP(6);
+    const otp = generateOTP(4);
 
     await dealer.update({
       refreshToken: null,
@@ -522,7 +522,7 @@ exports.verifyForgotPasswordOtp = async (req, res) => {
   try {
     const validator = new Validator(req.body, {
       email: "required|email",
-      otp: "required|string|size:6",
+      otp: "required|string|size:4",
     });
 
     if (validator.fails()) {
@@ -684,7 +684,7 @@ exports.loginWithOtp = async (req, res) => {
             return res.apiError("Your account is inactive", 403);
         } */
 
-    const otp = generateOTP(6);
+    const otp = generateOTP(4);
 
     await dealer.update({ otp });
 
@@ -702,8 +702,9 @@ exports.loginWithOtp = async (req, res) => {
       });
     } else if (usernameFilter.phone) {
       await addSmsJob({
-        to: usernameFilter.phone,
-        message: `Your OTP for login is ${otp}`,
+        phone: usernameFilter.phone,
+        otp: otp,
+        purpose: "OTP",
       });
     }
 
@@ -727,7 +728,7 @@ exports.verifyLoginOtp = async (req, res) => {
       return res.apiError("Email or phone is required", 422);
     }
 
-    if (otp.length !== 6) {
+    if (otp.length !== 4) {
       return res.apiError("Invalid OTP", 422);
     }
 

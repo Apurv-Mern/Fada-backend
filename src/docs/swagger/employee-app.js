@@ -1229,3 +1229,109 @@
  *       401:
  *         description: Unauthorized
  */
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Employee App Employer Leaving
+ *     description: Submit and manage employment leaving / resignation requests
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/employer-leaving:
+ *   get:
+ *     tags: [Employee App Employer Leaving]
+ *     summary: List employer leaving requests
+ *     description: Returns EmployeeLeaveEmployeement rows for the authenticated employee with dealership and branch details.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employee leaving requests fetched successfully
+ *       401:
+ *         description: Unauthorized
+ *   post:
+ *     tags: [Employee App Employer Leaving]
+ *     summary: Submit employer leaving request
+ *     description: >
+ *       Creates a pending leave request against the employee's current verified assignment
+ *       and logs inform_employer in EmployeeEmployerStatus (slug=leaving).
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EmployeeEmployerLeavingCreateRequest'
+ *     responses:
+ *       200:
+ *         description: Employee leaving request submitted successfully
+ *       404:
+ *         description: Employee is not currently working in any dealership
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/employer-leaving/{id}:
+ *   get:
+ *     tags: [Employee App Employer Leaving]
+ *     summary: Get employer leaving request by id
+ *     description: Returns leaving request with dealership, branch, and leaving status history.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: EmployeeLeaveEmployeement id
+ *     responses:
+ *       200:
+ *         description: Employee leaving request fetched successfully
+ *       404:
+ *         description: Leaving request not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/employer-leaving/{id}/status/{status}:
+ *   patch:
+ *     tags: [Employee App Employer Leaving]
+ *     summary: Reject leaving request or submit resignation
+ *     description: >
+ *       reject — sets leave request status to rejected and appends reject_resignation.
+ *       submit_resignation — appends submit_resignation in EmployeeEmployerStatus (slug=leaving).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: EmployeeLeaveEmployeement id
+ *       - in: path
+ *         name: status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [reject, submit_resignation]
+ *     responses:
+ *       200:
+ *         description: Leaving request updated successfully
+ *       400:
+ *         description: Invalid status
+ *       404:
+ *         description: Leaving request not found
+ *       401:
+ *         description: Unauthorized
+ */

@@ -6,7 +6,7 @@ const options = {
     openapi: "3.0.0",
     info: {
       title: "FADA Backend API",
-      version: "1.3.3",
+      version: "1.3.4",
       description:
         "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints. Dealer business APIs accept optional header X-Dealer-Id so a group-holding dealer can act in a child dealer context without changing the login token. Employee department/designation live on EmployeeAssignment (EmployeeDesignation removed).",
     },

@@ -447,6 +447,14 @@
  *           type: integer
  *         outletId:
  *           type: integer
+ *     EmployeeEmployerLeavingCreateRequest:
+ *       type: object
+ *       required:
+ *         - reason
+ *       properties:
+ *         reason:
+ *           type: string
+ *           description: Reason for leaving the current employment
  *     EmployeeEmployerStatusItem:
  *       type: object
  *       properties:

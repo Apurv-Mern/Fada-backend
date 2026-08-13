@@ -4,9 +4,8 @@ const {
   EmployeeEmployerStatus,
   Dealer,
   Outlet,
-  EmployeeLeavingRequest,
+  EmployeeLeaveEmployeement,
 } = require("../../../../database/models");
-const { Op } = require("sequelize");
 const Validator = require("validatorjs");
 
 const EMPLOYER_JOINING_STATUS = {
@@ -77,7 +76,7 @@ exports.sendNewEmployerInvitation = async (req, res) => {
     await EmployeeEmployerStatus.create(
       {
         employeeAssignmentId: employeeAssignment.id,
-        status: NEW_EMPLOYER_STATUS.SEND_INVITATION,
+        status: EMPLOYER_JOINING_STATUS.SEND_INVITATION,
         slug: "joining",
         actionUserBy: "employee",
         actionUserId: req.auth.id,
@@ -234,7 +233,7 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
       return res.apiError("Employee is not currently working in any dealership", 404);
     }
 
-    const employeeLeavingRequest = await EmployeeLeavingRequest.create({
+    const employeeLeavingRequest = await EmployeeLeaveEmployeement.create({
       employeeAssignmentId: employeeAssignment.id,
       dealerId: employeeAssignment.dealerId,
       outletId: employeeAssignment.outletId,
@@ -270,7 +269,7 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
 exports.getEmployerLeavingRequests = async (req, res) => {
   try {
     const { id } = req.auth;
-    const employeeLeavingRequests = await EmployeeLeavingRequest.findAll({
+    const employeeLeavingRequests = await EmployeeLeaveEmployeement.findAll({
       where: { employeeId: id },
       order: [["createdAt", "DESC"]],
       include: [
@@ -301,7 +300,7 @@ exports.getEmployerLeavingRequests = async (req, res) => {
 exports.getEmployerLeavingRequestById = async (req, res) => {
   try {
     const id = req.auth.id;
-    const employeeLeavingRequest = await EmployeeLeavingRequest.findOne({
+    const employeeLeavingRequest = await EmployeeLeaveEmployeement.findOne({
       where: { employeeId: id, id: req.params.id },
       order: [["createdAt", "DESC"]],
       include: [
@@ -320,9 +319,13 @@ exports.getEmployerLeavingRequestById = async (req, res) => {
           as: "statuses",
           attributes: ["id", "status", "slug", "actionUserBy", "actionUserId"],
           where: { slug: "leaving" },
+          required: false,
         },
       ],
     });
+    if (!employeeLeavingRequest) {
+      return res.apiError("Employee leaving request not found", 404);
+    }
     return res.apiSuccess("Employee leaving request fetched successfully", employeeLeavingRequest);
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
@@ -331,76 +334,59 @@ exports.getEmployerLeavingRequestById = async (req, res) => {
 
 
 /*
-@API: PATCH /employee/employer-leaving/:id/status/:status | reject
-@Desc: Reject employee employer leaving request by id
+@API: PATCH /employee/employer-leaving/:id/status/:status | reject | submit_resignation
+@Desc: Reject leaving request or advance to submit_resignation
 @Access: Private
 */
-exports.rejectEmployerLeavingRequestById = async (req, res) => {
+exports.updateEmployerLeavingRequestStatus = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.auth;
     const { status } = req.params;
-    
-    if (status !== "reject") {
-      await transaction.rollback();
-      return res.apiError("Invalid status", 400);
-    }
-    const employeeLeavingRequest = await EmployeeLeavingRequest.update(
-      { status: status === "accept" ? "accepted" : "rejected" },
-      { where: { employeeId: id, id: req.params.id }, transaction },
-    );
 
-    await EmployeeEmployerStatus.create({
-      employeeAssignmentId: req.params.id,
-      status: status === "accept" ? EMPLOYER_EXIT_STATUS.ACCEPT_RESIGNATION : EMPLOYER_EXIT_STATUS.REJECT_RESIGNATION,
-      slug: "leaving",
-      actionUserBy: "employee",
-      actionUserId: id,
-    }, { transaction });
-
-
-
-    await transaction.commit();
-    return res.apiSuccess(`${status === "accept" ? "Accepted" : "Rejected"} employee leaving request successfully`, employeeLeavingRequest);
-  } catch (error) {
-    await transaction.rollback();
-    return res.apiError("Internal server error", 500, error);
-  }
-};
-
-
-/*
-@API: PATCH /employee/employer-leaving/:id/status/:status |submit_resignation
-@Desc: Submit resignation request by id
-@Access: Private
-*/
-exports.updateEmployerLeavingRequestStepStatus = async (req, res) => {
-  const transaction = await sequelize.transaction();
-  try {
-    const { id } = req.auth;
-    const { status } = req.params;
-    
-    if (status !== "submit_resignation") {
+    if (status !== "reject" && status !== "submit_resignation") {
       await transaction.rollback();
       return res.apiError("Invalid status", 400);
     }
 
-    const employeeLeavingRequest = await EmployeeLeavingRequest.findOne(  
-      { where: { employeeId: id, id: req.params.id }  }
-    );
+    const employeeLeavingRequest = await EmployeeLeaveEmployeement.findOne({
+      where: { employeeId: id, id: req.params.id },
+    });
 
     if (!employeeLeavingRequest) {
       await transaction.rollback();
       return res.apiError("Employee leaving request not found", 404);
     }
 
-    await EmployeeEmployerStatus.create({
-      employeeAssignmentId: employeeLeavingRequest.id,
-      status: EMPLOYER_EXIT_STATUS.SUBMIT_RESIGNATION,
-      slug: "leaving",
-      actionUserBy: "employee",
-      actionUserId: id,
-    }, { transaction });
+    if (status === "reject") {
+      await employeeLeavingRequest.update({ status: "rejected" }, { transaction });
+      await EmployeeEmployerStatus.create(
+        {
+          employeeAssignmentId: employeeLeavingRequest.id,
+          status: EMPLOYER_EXIT_STATUS.REJECT_RESIGNATION,
+          slug: "leaving",
+          actionUserBy: "employee",
+          actionUserId: id,
+        },
+        { transaction },
+      );
+      await transaction.commit();
+      return res.apiSuccess(
+        "Rejected employee leaving request successfully",
+        employeeLeavingRequest,
+      );
+    }
+
+    await EmployeeEmployerStatus.create(
+      {
+        employeeAssignmentId: employeeLeavingRequest.id,
+        status: EMPLOYER_EXIT_STATUS.SUBMIT_RESIGNATION,
+        slug: "leaving",
+        actionUserBy: "employee",
+        actionUserId: id,
+      },
+      { transaction },
+    );
 
     await transaction.commit();
     return res.apiSuccess("Resignation request submitted successfully");

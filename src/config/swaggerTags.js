@@ -199,6 +199,11 @@ const TAG_GROUPS = {
       name: "Employer Invitations",
       description: "Send and manage employment invitations to dealerships",
     },
+    {
+      source: "Employee App Employer Leaving",
+      name: "Employer Leaving",
+      description: "Submit and manage employment leaving / resignation requests",
+    },
   ],
   Common: [
     {

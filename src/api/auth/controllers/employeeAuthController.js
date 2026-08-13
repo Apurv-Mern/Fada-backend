@@ -73,8 +73,8 @@ exports.employeeRegister = async (req, res) => {
         },
       }),
       addSmsJob({
-        to: phone,
-        message: `Your Employee Registration OTP is ${otp}`,
+        phone: phone,
+        otp: otp,
         purpose: "registration",
       }),
     ]);
@@ -392,8 +392,8 @@ exports.sendLoginOtp = async (req, res) => {
       });
     } else if (usernameFilter.phone) {
       await addSmsJob({
-        to: employee.phone,
-        message: `Your Employee Login OTP is ${otp}`,
+        phone: employee.phone,
+        otp: otp,
         purpose: "login",
       });
     }
@@ -547,8 +547,8 @@ exports.forgotPassword = async (req, res) => {
       });
     } else if (usernameFilter.phone) {
       await addSmsJob({
-        to: employee.phone,
-        message: `Your FADA-ID OTP is ${otp}`,
+        phone: employee.phone,
+        otp: otp,
         purpose: "OTP",
       });
     }

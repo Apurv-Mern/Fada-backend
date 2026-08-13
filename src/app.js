@@ -8,7 +8,7 @@ const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
-const { addEmailJob } = require("./queues");
+const { addEmailJob, addSmsJob } = require("./queues");
 const app = express();
 const upload = require("./utils/fileUtil");
 /**
@@ -150,6 +150,35 @@ app.post("/test-email", async (req, res) => {
     status: true,
     message: "Email sent successfully",
   });
+});
+
+app.post("/test-sms", async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+
+    if (!phone || !otp) {
+      return res.status(422).json({
+        success: false,
+        message: "phone and otp are required",
+      });
+    }
+
+    await addSmsJob({
+      phone: phone,
+      otp: otp,
+    });
+
+    res.json({
+      status: true,
+      message: "SMS queued successfully",
+    });
+  } catch (error) {
+    console.error("Error queueing test SMS:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to queue SMS",
+    });
+  }
 });
 
 

@@ -13,4 +13,5 @@ router.use("/journeys", require("./journeyRoutes"));
 router.use("/settings", require("./settingRoutes"));
 router.use("/master", require("./masterRoutes"));
 router.use("/employer-invitations", require("./employerRoutes"));
+router.use("/employer-leaving", require("./employerLeavingRoutes"));
 module.exports = router;
