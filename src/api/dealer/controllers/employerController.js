@@ -177,16 +177,20 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
 /*
 @API: POST /dealer/employer-invitations/send
 @Desc: Send new invitation to employee
+@Body: { employeeId: number, outletId: number, departmentId: number, designationId: number }
 @Access: Private
 */
 exports.sendNewEmployerInvitation = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const id = req.currentDealerId;
-    const { employeeId } = req.body;
+    const { employeeId, outletId, departmentId, designationId } = req.body;
 
     const validator = new Validator(req.body, {
       employeeId: "required|integer",
+      outletId: "required|integer",
+      departmentId: "required|integer",
+      designationId: "required|integer",
     });
     if (validator.fails()) {
       await transaction.rollback();
@@ -194,33 +198,31 @@ exports.sendNewEmployerInvitation = async (req, res) => {
     }
 
     const existingEmployeeAssignment = await EmployeeAssignment.findOne({
-      where: { dealerId: id, employeeId: employeeId },
+      where: { isCurrentlyWorking :true, employeeId: employeeId },
       order: [["createdAt", "DESC"]],
     });
 
-    if (
-      existingEmployeeAssignment &&
-      existingEmployeeAssignment.isCurrentlyWorking === true
-    ) {
+    if ( existingEmployeeAssignment && existingEmployeeAssignment.isCurrentlyWorking === true ) {
       await transaction.rollback();
-      return res.apiError("Employee already working in this dealership.", 400);
+      return res.apiError("Employee already working in any other company.", 400);
     }
 
-    if (
-      existingEmployeeAssignment &&
-      existingEmployeeAssignment.status === "pending"
-    ) {
-      await transaction.rollback();
-      return res.apiError("Employee already invited to this dealership.", 400);
-    }
+
 
     const employerInvitation = await EmployeeAssignment.create(
       {
         dealerId: id,
         employeeId: employeeId,
+        outletId: outletId,
+        departmentId: departmentId,
+        designationId: designationId,
         status: "pending",
         invitationSendBy: "dealer",
         invitationSendById: id,
+        highlights: `Invited to ${outletId}`,
+        employeementType: "full-time",
+        isCurrentlyWorking: false,
+        startDate: new Date(),
       },
       { transaction },
     );

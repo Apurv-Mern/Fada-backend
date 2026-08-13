@@ -4,6 +4,7 @@ const employeeController = require("../controllers/employeeController");
 const AuthMiddleware = require("../../../middlewares/dealerAuth");
 
 router.get("/", AuthMiddleware, employeeController.getEmployees);
+router.get("/joining", AuthMiddleware, employeeController.getEmployeesForJoining);
 router.get("/:id/documents", AuthMiddleware, employeeController.getEmployeeDocuments);
 router.put(
   "/:id/approve-documents/:documentId",

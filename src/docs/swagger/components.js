@@ -465,10 +465,26 @@
  *       type: object
  *       required:
  *         - employeeId
+ *         - outletId
+ *         - departmentId
+ *         - designationId
  *       properties:
  *         employeeId:
  *           type: integer
- *           description: Employee id to invite to the authenticated dealer
+ *           description: Employee id to invite
+ *           example: 12
+ *         outletId:
+ *           type: integer
+ *           description: Target outlet under the active dealer
+ *           example: 3
+ *         departmentId:
+ *           type: integer
+ *           description: OrganizationStructure id where flag=department
+ *           example: 5
+ *         designationId:
+ *           type: integer
+ *           description: OrganizationStructure id where flag=role (must belong to departmentId)
+ *           example: 12
  *     EmployerInvitationStepItem:
  *       type: object
  *       properties:

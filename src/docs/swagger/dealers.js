@@ -435,6 +435,58 @@
 
 /**
  * @swagger
+ * /dealers/employees/joining:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Employees]
+ *     summary: Search employees for joining / invitation
+ *     description: >
+ *       Lookup employees by FADA ID for the joining/invitation flow.
+ *       Returns basic profile fields (id, fadaId, name, email, phone).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Partial or full FADA ID to search (e.g. fada-df-12345)
+ *         example: fada-df-12345
+ *     responses:
+ *       200:
+ *         description: Employees fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           fadaId:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           phone:
+ *                             type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
+ */
+
+/**
+ * @swagger
  * /dealers/employees/{id}:
  *   parameters:
  *     - $ref: '#/components/parameters/XDealerId'
@@ -583,7 +635,11 @@
  *   post:
  *     tags: [Dealer Employer Invitations]
  *     summary: Send employment invitation to an employee
- *     description: Creates a pending EmployeeAssignment with invitationSendBy dealer and logs send_invitation in EmployeeEmployerStatus. Fails if employee is already working at the dealer or already has a pending invite.
+ *     description: >
+ *       Creates a pending EmployeeAssignment for the active dealer with outletId,
+ *       departmentId, and designationId. Sets invitationSendBy=dealer and logs
+ *       send_invitation in EmployeeEmployerStatus (slug=joining).
+ *       Fails if the employee is currently working at any company.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -592,15 +648,22 @@
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/DealerEmployerInvitationSendRequest'
+ *           example:
+ *             employeeId: 12
+ *             outletId: 3
+ *             departmentId: 5
+ *             designationId: 12
  *     responses:
  *       200:
  *         description: Employer invitation sent successfully
  *       400:
- *         description: Employee already working or already invited
+ *         description: Employee already working in any other company
  *       422:
- *         description: Validation error
+ *         description: Validation error (missing employeeId, outletId, departmentId, or designationId)
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
  */
 
 /**

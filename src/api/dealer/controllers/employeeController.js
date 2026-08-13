@@ -429,3 +429,28 @@ exports.getEmployeeDocuments = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
+
+
+/*
+@API: GET /dealers/employees/joining?search=fada-df-12345
+@Desc: Get employees for joining
+@Access: Private
+*/
+exports.getEmployeesForJoining = async (req, res) => {
+  try {
+    const { search } = req.query;
+    if (!search || String(search).trim() === "") {
+      return res.apiError("search query is required", 422);
+    }
+
+    const employees = await Employee.findAll({
+      where: { fadaId: { [Op.like]: `%${String(search).trim()}%` } },
+      attributes: ["id", "fadaId", "name", "email", "phone"],
+    });
+    return res.apiSuccess("Employees fetched successfully", employees);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+ 
