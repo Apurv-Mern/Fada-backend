@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "fadaid-server",
+      name: "server",
       script: "./src/server.js",
       instances: 1,
       exec_mode: "fork",
@@ -13,7 +13,7 @@ module.exports = {
       },
     },
     {
-      name: "fadaid-worker",
+      name: "worker",
       script: "./src/workers/index.js",
       instances: 1,
       exec_mode: "fork",
