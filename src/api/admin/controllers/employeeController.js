@@ -9,12 +9,18 @@ const {
   Outlet,
   EmployeeDocument,
   Document,
+  EmployeeAddress,
+  EmployeeAppreciation,
+  EmployeeCertificate,
+  EmployeePromotion,
+  EmployeeTraining,
+  EmployeeSkill,
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const dayjs = require("dayjs");
 const { assign } = require("nodemailer/lib/shared");
 const employeeAttributes = {
-  exclude: ["password", "otp", "refreshToken", "mpin"],
+  exclude: ["password", "otp", "refreshToken", "mpin","emailOTP","updatedAt", "deletedAt"],
 };
 
 const employeeStatus = ["temporary", "pending", "approved", "rejected"];
@@ -315,11 +321,88 @@ exports.getEmployees = async (req, res) => {
 */
 exports.getEmployeeById = async (req, res) => {
   try {
-    const employee = await loadEmployee(req.params.id);
+     
+    const employee = await Employee.findOne({
+      where: { id: req.params.id },
+      attributes: employeeAttributes,
+      include: [
+        {
+          model: EmployeeAddress,
+          as: "addresses",
+          required: false,
+        },
+          
+        {
+          model: EmployeeDocument,
+          attributes: ["id", "isApproved", "isVerified","reason","status"],
+          as: "documents",
+          required: false,
+          include: [
+            {
+              model: Document,
+              as: "document",
+              attributes: ["id", "name"],
+            },
+          ],
+        },
+        {
+          model : EmployeeAppreciation,
+          as: "appreciations",
+          required: false, 
+        },
+        {
+          model  : EmployeeCertificate,
+          as: "certificates",
+          required: false, 
+        },
+        {
+          model : EmployeePromotion,
+          as: "promotions",
+          required: false, 
+        },
+        {
+          model : EmployeeTraining,
+          as: "trainings",
+          required: false, 
+        },
+         {
+          model :EmployeeSkill,
+          as: "skills",
+          required: false, 
+         },
+         {
+          model: EmployeeAssignment,
+          as: "workExperiences",
+          required: false,
+          attributes: ["id", "startDate","employeementType","isCurrentlyWorking", "endDate","highlights"],
+          include: [
+            {
+              model: Dealer,
+              as: "dealership",
+              attributes: ["id", "name"],
+            },
+            {
+              model: Outlet,
+              as: "branch",
+              attributes: ["id", "name","city","state"],
+            },
+            {
+              model: OrganizationStructure,
+              as: "department",
+              attributes: ["id", "name"],
+            },
+            {
+              model: OrganizationStructure,
+              as: "designation",
+              attributes: ["id", "name"],
+            },
+          ],
+        }, 
+      ],
+    });
     if (!employee) {
       return res.apiError("Employee not found", 404);
     }
-
     return res.apiSuccess("Employee fetched successfully", employee);
   } catch (error) {
     return res.apiError(error.message, 500, error);
