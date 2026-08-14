@@ -127,6 +127,11 @@ const TAG_GROUPS = {
       description:
         "Read-only master data for dealer forms and dropdowns (requires dealer Bearer; accepts optional X-Dealer-Id)",
     },
+    {
+      source: "Dealer Announcements",
+      name: "Announcements",
+      description: "In-app announcements and circulars for the dealer portal",
+    },
   ],
   Employee: [
     {
