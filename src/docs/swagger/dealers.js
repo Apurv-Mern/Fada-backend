@@ -487,6 +487,36 @@
 
 /**
  * @swagger
+ * /dealers/employees/profile/{id}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Employees]
+ *     summary: Get full employee profile by id
+ *     description: >
+ *       Returns the employee with addresses, documents (approval/verification status),
+ *       appreciations, certificates, promotions, trainings, skills, and work experiences
+ *       (assignments with dealership, branch, department, and designation).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Employee id
+ *     responses:
+ *       200:
+ *         description: Employee profile fetched successfully
+ *       404:
+ *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
  * /dealers/employees/{id}:
  *   parameters:
  *     - $ref: '#/components/parameters/XDealerId'

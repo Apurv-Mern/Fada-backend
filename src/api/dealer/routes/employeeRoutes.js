@@ -11,9 +11,11 @@ router.put(
   AuthMiddleware,
   employeeController.approveEmployeeDocuments,
 );
+router.get("/profile/:id", AuthMiddleware, employeeController.getEmployeeProfile);
 router.get("/:id", AuthMiddleware, employeeController.getEmployeeById);
 router.post("/", AuthMiddleware, employeeController.createEmployee);
 router.put("/:id", AuthMiddleware, employeeController.updateEmployee);
 router.delete("/:id", AuthMiddleware, employeeController.deleteEmployee);
+
 
 module.exports = router;

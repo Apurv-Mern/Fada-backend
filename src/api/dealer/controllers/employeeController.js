@@ -13,6 +13,8 @@ const {
   EmployeePromotion,
   EmployeeTraining,
   EmployeeSkill,
+  Dealer,
+  Outlet,
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const {
@@ -138,8 +140,8 @@ exports.getEmployeeById = async (req, res) => {
 
 
 /*
-@API: GET /dealers/employees/:id/profile
-@Desc: Get an employee by id
+@API: GET /dealers/employees/profile/:id
+@Desc: Get an employee profile by id
 @Access: Private
 */
 exports.getEmployeeProfile = async (req, res) => {
