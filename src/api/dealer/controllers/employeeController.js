@@ -147,7 +147,7 @@ exports.getEmployeeById = async (req, res) => {
 */
 exports.getEmployeeProfile = async (req, res) => {
   try {
-     
+
     const employee = await Employee.findOne({
       where: { id: req.params.id },
       attributes: employeeAttributes,
@@ -157,10 +157,10 @@ exports.getEmployeeProfile = async (req, res) => {
           as: "addresses",
           required: false,
         },
-          
+
         {
           model: EmployeeDocument,
-          attributes: ["id", "isApproved", "isVerified","reason","status"],
+          attributes: ["id", "isApproved", "isVerified", "reason", "status"],
           as: "documents",
           required: false,
           include: [
@@ -172,35 +172,35 @@ exports.getEmployeeProfile = async (req, res) => {
           ],
         },
         {
-          model : EmployeeAppreciation,
+          model: EmployeeAppreciation,
           as: "appreciations",
-          required: false, 
+          required: false,
         },
         {
-          model  : EmployeeCertificate,
+          model: EmployeeCertificate,
           as: "certificates",
-          required: false, 
+          required: false,
         },
         {
-          model : EmployeePromotion,
+          model: EmployeePromotion,
           as: "promotions",
-          required: false, 
+          required: false,
         },
         {
-          model : EmployeeTraining,
+          model: EmployeeTraining,
           as: "trainings",
-          required: false, 
+          required: false,
         },
-         {
-          model :EmployeeSkill,
+        {
+          model: EmployeeSkill,
           as: "skills",
-          required: false, 
-         },
-         {
+          required: false,
+        },
+        {
           model: EmployeeAssignment,
           as: "workExperiences",
           required: false,
-          attributes: ["id", "startDate","employeementType","isCurrentlyWorking", "endDate","highlights"],
+          attributes: ["id", "startDate", "employeementType", "isCurrentlyWorking", "endDate", "highlights"],
           include: [
             {
               model: Dealer,
@@ -210,7 +210,7 @@ exports.getEmployeeProfile = async (req, res) => {
             {
               model: Outlet,
               as: "branch",
-              attributes: ["id", "name","city","state"],
+              attributes: ["id", "name", "city", "state"],
             },
             {
               model: OrganizationStructure,
@@ -223,7 +223,7 @@ exports.getEmployeeProfile = async (req, res) => {
               attributes: ["id", "name"],
             },
           ],
-        }, 
+        },
       ],
     });
     if (!employee) {
@@ -557,13 +557,14 @@ exports.getEmployeesForJoining = async (req, res) => {
     }
  
     const employee = await Employee.findOne({
-      where: { fadaId: search, isActive: true,status: "approved" },
-      attributes: ["id", "fadaId", "name", "email", "phone"],
+      where: { fadaId: search },
+      attributes: ["id", "fadaId", "name", "email", "phone", "isProfilePrivate"],
     });
 
-    if(!employee){
+
+    if (!employee) {
       return res.apiError("Employee not found", 404);
-    } 
+    }
 
     const assignment = await EmployeeAssignment.findOne({
       where: { employeeId: employee.id, dealerId: dealerId, isCurrentlyWorking: true },
@@ -578,16 +579,16 @@ exports.getEmployeesForJoining = async (req, res) => {
       where: { employeeId: employee.id, dealerId: dealerId, isActive: true },
     });
 
-    if(!prodileAccess && employee.isProfilePrivate){
+    if (!prodileAccess && employee.isProfilePrivate) {
       return res.apiError("Employee profile is private and cannot be viewed.", 404);
     }
 
-   return res.apiSuccess("Employee profile fetched successfully", employee);
+    return res.apiSuccess("Employee profile fetched successfully", employee);
 
-    
+
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }
 };
 
- 
+

@@ -73,6 +73,20 @@ exports.getOutlets = async (req, res) => {
     }
 
     const { rows: outlets, count: total } = await Outlet.findAndCountAll({
+      attributes: ["id", "name", "code", "city", "state", "manager", "pinCode", "isActive", "dealerId", "createdAt",
+        "updatedAt", "functions", "address", "brandId",
+        [sequelize.literal("(SELECT COUNT(*) FROM EmployeeAssignments WHERE EmployeeAssignments.outletId = Outlet.id AND EmployeeAssignments.isCurrentlyWorking = true)"), "employeeCount"],
+        [
+          sequelize.literal(`
+            (
+              SELECT GROUP_CONCAT(OutletFunctions.name)
+              FROM OutletFunctions
+              WHERE JSON_CONTAINS(Outlet.functions, CAST(OutletFunctions.id AS JSON))
+            )
+          `),
+          "functionNames"
+        ]
+      ],
       where,
       include: outletIncludes,
       order: [["id", "DESC"]],
