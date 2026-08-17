@@ -555,16 +555,24 @@ exports.getEmployeesForJoining = async (req, res) => {
     if (!search || String(search).trim() === "") {
       return res.apiError("search query is required", 422);
     }
-
+ 
     const employee = await Employee.findOne({
-      where: { fadaId: search },
+      where: { fadaId: search, isActive: true,status: "approved" },
       attributes: ["id", "fadaId", "name", "email", "phone"],
     });
-
 
     if(!employee){
       return res.apiError("Employee not found", 404);
     } 
+
+    const assignment = await EmployeeAssignment.findOne({
+      where: { employeeId: employee.id, dealerId: dealerId, isCurrentlyWorking: true },
+    });
+
+    if(assignment){
+      return res.apiError("This employee is already working at your dealership.", 404);
+    }
+    
 
     const prodileAccess = await EmployeeProfileShare.findOne({
       where: { employeeId: employee.id, dealerId: dealerId, isActive: true },

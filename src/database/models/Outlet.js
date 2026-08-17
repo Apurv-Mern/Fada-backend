@@ -32,6 +32,8 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       
+
+      
     }
   }
   Outlet.init(

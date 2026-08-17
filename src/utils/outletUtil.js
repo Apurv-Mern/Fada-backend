@@ -12,6 +12,7 @@ const brandIncludes = [
     as: "brand",
     attributes: ["id", "name", "slug"],
   },
+   
 ];
 
 const buildOutletIncludes = ({ includeCompany = false } = {}) => {
