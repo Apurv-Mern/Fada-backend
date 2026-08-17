@@ -109,14 +109,14 @@ exports.getOutlets = async (req, res) => {
 */
 exports.getOutletsByParent = async (req, res) => {
   try {
-      
+
     const outlets = await Outlet.findAll({
       attributes: ["id", "name"],
-      where: { dealerId: req.params.parentId, isActive: true }, 
+      where: { dealerId: req.params.parentId, isActive: true },
       order: [["name", "ASC"]],
     });
 
-    return res.apiSuccess("Outlets fetched successfully",outlets);
+    return res.apiSuccess("Outlets fetched successfully", outlets);
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }
@@ -147,7 +147,11 @@ exports.getOutletById = async (req, res) => {
 */
 exports.createOutlet = async (req, res) => {
   try {
-    const validator = new Validator(req.body, outletValidationRules);
+    const validator = new Validator(req.body, outletValidationRules, {
+      "required.dealerId": "Dealer ID is required",
+      "required.brandId": "Brand is required",
+      "required.name": "Outlet name is required",
+    });
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
