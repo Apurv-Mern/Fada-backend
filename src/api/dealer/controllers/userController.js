@@ -23,6 +23,7 @@ exports.getProfile = async (req, res) => {
         "email",
         "phone",
         "dealerCode",
+        "brands",
         "status",
         "isActive",
         [
@@ -121,6 +122,10 @@ exports.updateProfile = async (req, res) => {
     }
     if (req.body.phone) {
       dealerData.phone = req.body.phone;
+    }
+
+    if (req.body.brandsRepresented) {
+      dealerData.brands = req.body.brandsRepresented;
     }
 
     if (Object.keys(profileData).length > 0) {
