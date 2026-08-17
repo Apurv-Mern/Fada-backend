@@ -15,6 +15,7 @@ const {
   EmployeeSkill,
   Dealer,
   Outlet,
+  EmployeeProfileShare,
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const {
@@ -546,16 +547,36 @@ exports.getEmployeeDocuments = async (req, res) => {
 */
 exports.getEmployeesForJoining = async (req, res) => {
   try {
+
     const { search } = req.query;
+
+    const dealerId = getDealerId(req);
+
     if (!search || String(search).trim() === "") {
       return res.apiError("search query is required", 422);
     }
 
-    const employees = await Employee.findAll({
-      where: { fadaId: { [Op.like]: `%${String(search).trim()}%` } },
+    const employee = await Employee.findOne({
+      where: { fadaId: search },
       attributes: ["id", "fadaId", "name", "email", "phone"],
     });
-    return res.apiSuccess("Employees fetched successfully", employees);
+
+
+    if(!employee){
+      return res.apiError("Employee not found", 404);
+    } 
+
+    const prodileAccess = await EmployeeProfileShare.findOne({
+      where: { employeeId: employee.id, dealerId: dealerId, isActive: true },
+    });
+
+    if(!prodileAccess && employee.isProfilePrivate){
+      return res.apiError("Employee profile is private and cannot be viewed.", 404);
+    }
+
+   return res.apiSuccess("Employee profile fetched successfully", employee);
+
+    
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

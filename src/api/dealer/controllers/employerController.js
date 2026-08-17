@@ -615,7 +615,7 @@ exports.sendEmployeementTransferRequest = async (req, res) => {
         outletId: outletId,
         departmentId: departmentId,
         designationId: designationId,
-        status: "pending",
+        status: "verified",
         employeementType: "full-time",
         isCurrentlyWorking: true,
         startDate: new Date(),
