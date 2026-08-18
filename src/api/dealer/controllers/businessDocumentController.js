@@ -1,5 +1,6 @@
 const { Op } = require("sequelize");
 const {
+  sequelize,
   Document,
   DealerDocument,
 } = require("../../../database/models");
@@ -10,7 +11,7 @@ const getDealerId = (req) => req.currentDealerId;
 const formatBusinessDocuments = (documents = []) =>
   documents.map((document) => {
     const data = document.get ? document.get({ plain: true }) : document;
-    const upload = data.dealerDocuments?.[0];
+    const upload = data.dealerDocuments;
 
     return {
       id: data.id,
@@ -22,13 +23,13 @@ const formatBusinessDocuments = (documents = []) =>
       isUploaded: Boolean(upload),
       upload: upload
         ? {
-            id: upload.id,
-            documentUrl: upload.documentUrl,
-            status: upload.status,
-            isVerified: upload.isVerified,
-            uploadedAt: upload.createdAt,
-            updatedAt: upload.updatedAt,
-          }
+          id: upload.id,
+          documentUrl: upload.documentUrl,
+          status: upload.status,
+          isVerified: upload.isVerified,
+          uploadedAt: upload.createdAt,
+          updatedAt: upload.updatedAt,
+        }
         : null,
     };
   });
@@ -88,35 +89,70 @@ exports.getBusinessDocuments = async (req, res) => {
 @Access: Private
 */
 exports.uploadBusinessDocument = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
   try {
     const dealerId = getDealerId(req);
+
     const validator = new Validator(req.body, {
       documentUrl: "required|string",
       documentId: "required|integer",
     });
 
     if (validator.fails()) {
-      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+      await transaction.rollback();
+      return res.apiError(
+        Object.values(validator.errors.all()).flat()[0],
+        422
+      );
     }
 
-    const document = await Document.findByPk(req.body.documentId);
+    const { documentId, documentUrl } = req.body;
+
+    // Check document type
+    const document = await Document.findOne({
+      where: { id: documentId, isActive: true },
+      transaction,
+    });
+
     if (!document) {
+      await transaction.rollback();
       return res.apiError("Document type not found", 404);
     }
 
-    const [dealerDocument] = await DealerDocument.upsert({
-      dealerId,
-      documentId: req.body.documentId,
-      documentUrl: req.body.documentUrl,
-      isVerified: false,
-      status: "pending",
+    // Remove previous document for this dealer and document type
+    await DealerDocument.destroy({
+      where: { dealerId, documentId },
+      transaction,
     });
+
+    // Create new document
+    const dealerDocument = await DealerDocument.create(
+      {
+        dealerId,
+        documentId,
+        documentUrl,
+        isVerified: false,
+        status: "pending",
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
 
     return res.apiSuccess("Business document uploaded successfully", dealerDocument);
   } catch (error) {
-    if (error.name === "SequelizeUniqueConstraintError") {
-      return res.apiError("Document already uploaded for this type", 409);
+    if (!transaction.finished) {
+      await transaction.rollback();
     }
+
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.apiError(
+        "Document already uploaded for this type",
+        409
+      );
+    }
+
     return res.apiError(error.message, 500, error);
   }
 };

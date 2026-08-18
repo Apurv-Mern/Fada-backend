@@ -78,7 +78,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         unique: true,
       },
-      
+
       name: DataTypes.STRING,
       email: DataTypes.STRING,
       password: DataTypes.TEXT,
@@ -90,6 +90,7 @@ module.exports = (sequelize, DataTypes) => {
       gender: DataTypes.STRING,
       bloodGroup: DataTypes.STRING,
       profilePicture: DataTypes.STRING,
+      qualification: DataTypes.STRING,
       isProfilePrivate: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

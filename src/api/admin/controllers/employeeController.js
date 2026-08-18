@@ -20,7 +20,7 @@ const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const dayjs = require("dayjs");
 const { assign } = require("nodemailer/lib/shared");
 const employeeAttributes = {
-  exclude: ["password", "otp", "refreshToken", "mpin","emailOTP","updatedAt", "deletedAt"],
+  exclude: ["password", "otp", "refreshToken", "mpin", "emailOTP", "updatedAt", "deletedAt"],
 };
 
 const employeeStatus = ["temporary", "pending", "approved", "rejected"];
@@ -266,6 +266,7 @@ exports.getEmployees = async (req, res) => {
         ...(dealerId ? { dealerId } : {}),
         ...(outletId ? { outletId } : {}),
         ...(departmentId ? { departmentId } : {}),
+        isCurrentlyWorking: true
       },
       include: [
         {
@@ -321,7 +322,7 @@ exports.getEmployees = async (req, res) => {
 */
 exports.getEmployeeById = async (req, res) => {
   try {
-     
+
     const employee = await Employee.findOne({
       where: { id: req.params.id },
       attributes: employeeAttributes,
@@ -331,10 +332,10 @@ exports.getEmployeeById = async (req, res) => {
           as: "addresses",
           required: false,
         },
-          
+
         {
           model: EmployeeDocument,
-          attributes: ["id", "isApproved", "isVerified","reason","status"],
+          attributes: ["id", "isApproved", "isVerified", "reason", "status"],
           as: "documents",
           required: false,
           include: [
@@ -346,35 +347,35 @@ exports.getEmployeeById = async (req, res) => {
           ],
         },
         {
-          model : EmployeeAppreciation,
+          model: EmployeeAppreciation,
           as: "appreciations",
-          required: false, 
+          required: false,
         },
         {
-          model  : EmployeeCertificate,
+          model: EmployeeCertificate,
           as: "certificates",
-          required: false, 
+          required: false,
         },
         {
-          model : EmployeePromotion,
+          model: EmployeePromotion,
           as: "promotions",
-          required: false, 
+          required: false,
         },
         {
-          model : EmployeeTraining,
+          model: EmployeeTraining,
           as: "trainings",
-          required: false, 
+          required: false,
         },
-         {
-          model :EmployeeSkill,
+        {
+          model: EmployeeSkill,
           as: "skills",
-          required: false, 
-         },
-         {
+          required: false,
+        },
+        {
           model: EmployeeAssignment,
           as: "workExperiences",
           required: false,
-          attributes: ["id", "startDate","employeementType","isCurrentlyWorking", "endDate","highlights"],
+          attributes: ["id", "startDate", "employeementType", "isCurrentlyWorking", "endDate", "highlights"],
           include: [
             {
               model: Dealer,
@@ -384,7 +385,7 @@ exports.getEmployeeById = async (req, res) => {
             {
               model: Outlet,
               as: "branch",
-              attributes: ["id", "name","city","state"],
+              attributes: ["id", "name", "city", "state"],
             },
             {
               model: OrganizationStructure,
@@ -397,7 +398,7 @@ exports.getEmployeeById = async (req, res) => {
               attributes: ["id", "name"],
             },
           ],
-        }, 
+        },
       ],
     });
     if (!employee) {
@@ -704,7 +705,7 @@ exports.activeInactiveEmployee = async (req, res) => {
 exports.getEmployeeDocuments = async (req, res) => {
   try {
     const documents = await Document.findAll({
-      attributes: ["id", "name", "code", "category","isMandatory", "isVerificationRequired", "notes"],
+      attributes: ["id", "name", "code", "category", "isMandatory", "isVerificationRequired", "notes"],
       where: {
         isActive: true,
         appliesTo: { [Op.in]: ["employee", "both"] },
@@ -743,8 +744,8 @@ exports.updateEmployeeDocumentStatus = async (req, res) => {
     }
 
     const { status, reason } = req.body;
-    const {id, documentId} = req.params;
-   
+    const { id, documentId } = req.params;
+
     const employeeDocument = await EmployeeDocument.findOne({
       where: {
         employeeId: id,

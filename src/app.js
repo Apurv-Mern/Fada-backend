@@ -26,6 +26,7 @@ const allowedOrigins = [
   "https://admin.fadaid.com",
   "https://dealer.fadaid.com",
   "http://localhost:8082",
+  "https://api.fadaid.com",
   "*"
 ];
 

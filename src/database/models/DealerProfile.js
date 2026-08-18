@@ -26,7 +26,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         unique: true,
       },
-      fadaMemberSince: DataTypes.DATEONLY,
+      fadaMemberSince: {
+        type: DataTypes.DATEONLY,
+        defaultValue: null
+      },
     },
     {
       sequelize,

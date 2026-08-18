@@ -26,6 +26,7 @@ exports.getProfile = async (req, res) => {
       attributes: [
         "id",
         "name",
+        "fadaId",
         "bloodGroup",
         "email",
         "phone",
@@ -117,6 +118,7 @@ exports.getPersonalDetails = async (req, res) => {
       attributes: [
         "id",
         "name",
+        "fadaId",
         "bloodGroup",
         "email",
         "phone",
@@ -166,6 +168,7 @@ exports.getPersonalDetails = async (req, res) => {
   "address.state": string,
   "address.country": string,
   "address.pincode": string,
+  "qualification" : "B.Tech"
 }
 @Access: Private
 */
@@ -187,6 +190,7 @@ exports.updatePersonalDetails = async (req, res) => {
       "address.state": "required|string",
       "address.country": "string",
       "address.pincode": "required|string",
+      qualification: "required|string",
     });
 
     if (validator.fails()) {
@@ -195,7 +199,7 @@ exports.updatePersonalDetails = async (req, res) => {
     }
 
     const employee = await Employee.update(
-      { name, bloodGroup, dob, gender, isProfileCompleted: true },
+      { name, bloodGroup, dob, gender, qualification, isProfileCompleted: true },
       { where: { id }, transaction },
     );
 
@@ -679,7 +683,13 @@ exports.updateAddress = async (req, res) => {
     const id = req.auth.id;
     const address = req.body;
 
-    await EmployeeAddress.update({ isActive: true, ...address }, { where: { employeeId: id } });
+    const exitsAddress = await EmployeeAddress.findOne({ where: { employeeId: id } });
+    if (exitsAddress) {
+      await exitsAddress.update(address);
+    } else {
+      await EmployeeAddress.create({ employeeId: id, isActive: true, ...address });
+    }
+
 
     return res.apiSuccess("Address updated successfully");
   } catch (error) {

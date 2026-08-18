@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "documentId",
         as: "dealerDocuments",
       });
-      Document.hasMany(models.EmployeeDocument, {
+      Document.hasOne(models.EmployeeDocument, {
         foreignKey: "documentId",
         as: "employeeDocuments",
       });
@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       appliesTo: {
-        type: DataTypes.ENUM("employee", "dealer","both"),
+        type: DataTypes.ENUM("employee", "dealer", "both"),
         allowNull: false,
       },
       isActive: {

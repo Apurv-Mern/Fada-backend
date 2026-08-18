@@ -602,7 +602,12 @@ exports.verifyForgotPasswordOtp = async (req, res) => {
       return res.apiError("Invalid OTP", 401);
     }
 
-    const resetPasswordToken = generateAccessToken({ id: employee.id }, "15m");
+    const resetPasswordToken = generateAccessToken({
+      id: employee.id,
+      email: employee.email,
+      phone: employee.phone,
+      role: "employee",
+    }, "15m");
 
     await employee.update({
       otp: null,

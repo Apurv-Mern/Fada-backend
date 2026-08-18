@@ -75,76 +75,126 @@ exports.getProfile = async (req, res) => {
     fadaMembershipId: string,
     fadaMemberSince: date,
     name: string,
-    phone: string
+    phone: string,
+    dealerLocations : {
+
+    }
 }
 @Access: Private     
 */
 exports.updateProfile = async (req, res) => {
-  const transaction = await sequelize.transaction();
+  const validator = new Validator(req.body, {
+    typeOfDealership: "string",
+    yearOfEstablishment: "string",
+    panNumber: "required|string",
+    fadaMembershipId: "string",
+    fadaMemberSince: "date",
+    name: "required|string",
+    phone: "required|string",
+    address: "required|string",
+    city: "required|string",
+    pinCode: "required|string",
+    state: "required|string",
+  });
+
+  if (validator.fails()) {
+    return res.apiError(validator.errors.all(), 400);
+  }
+
   try {
     const id = req.currentDealerId;
 
-    const validator = new Validator(req.body, {
-      typeOfDealership: "required|string",
-      yearOfEstablishment: "required|string",
-      panNumber: "required|string",
-      fadaMembershipId: "required|string",
-      fadaMemberSince: "required|date",
-      name: "required|string",
-      phone: "required|string",
+    const {
+      typeOfDealership,
+      yearOfEstablishment,
+      panNumber,
+      fadaMembershipId,
+      fadaMemberSince,
+      name,
+      phone,
+      brandsRepresented,
+      dealerLocations,
+    } = req.body;
+
+    await sequelize.transaction(async (transaction) => {
+      // Profile Data
+      const profileData = {};
+
+      if (typeOfDealership !== undefined) {
+        profileData.typeOfDealership = typeOfDealership;
+      }
+
+      if (yearOfEstablishment !== undefined) {
+        profileData.yearOfEstablishment = yearOfEstablishment;
+      }
+
+      if (panNumber !== undefined) {
+        profileData.panNumber = panNumber;
+      }
+
+      if (fadaMembershipId !== undefined) {
+        profileData.fadaMembershipId = fadaMembershipId ?? null;
+      }
+
+      if (fadaMemberSince !== undefined) {
+        profileData.fadaMemberSince = fadaMemberSince !== "" ? fadaMemberSince : null;
+      }
+
+      // Dealer Data
+      const dealerData = {};
+
+      if (name !== undefined) {
+        dealerData.name = name;
+      }
+
+      if (phone !== undefined) {
+        dealerData.phone = phone;
+      }
+
+      if (brandsRepresented !== undefined) {
+        dealerData.brands = brandsRepresented;
+      }
+
+      // Update/Create Dealer Profile
+      if (Object.keys(profileData).length > 0) {
+        const profile = await DealerProfile.findOne({ where: { dealerId: id }, transaction });
+
+        if (profile) {
+          await profile.update(profileData, { transaction });
+        } else {
+          await DealerProfile.create({ dealerId: id, ...profileData }, { transaction });
+        }
+      }
+
+      // Update Dealer
+      if (Object.keys(dealerData).length > 0) {
+        await Dealer.update(dealerData, {
+          where: { id },
+          transaction,
+        });
+      }
+
+      // Update/Create Dealer Location
+      if (dealerLocations !== undefined) {
+        const dealerLocation = await DealerLocation.findOne({ where: { dealerId: id }, transaction });
+
+        if (dealerLocation) {
+          await dealerLocation.update(dealerLocations, { transaction });
+        } else {
+          await DealerLocation.create({ dealerId: id, ...dealerLocations }, { transaction });
+        }
+      }
     });
 
-    if (validator.fails()) {
-      await transaction.rollback();
-      return res.apiError(validator.errors.all(), 400);
-    }
-
-    let profileData = {},
-      dealerData = {};
-
-    if (req.body.typeOfDealership) {
-      profileData.typeOfDealership = req.body.typeOfDealership;
-    }
-    if (req.body.yearOfEstablishment) {
-      profileData.yearOfEstablishment = req.body.yearOfEstablishment;
-    }
-    if (req.body.panNumber) {
-      profileData.panNumber = req.body.panNumber;
-    }
-    if (req.body.fadaMembershipId) {
-      profileData.fadaMembershipId = req.body.fadaMembershipId;
-    }
-    if (req.body.fadaMemberSince) {
-      profileData.fadaMemberSince = req.body.fadaMemberSince;
-    }
-    if (req.body.name) {
-      dealerData.name = req.body.name;
-    }
-    if (req.body.phone) {
-      dealerData.phone = req.body.phone;
-    }
-
-    if (req.body.brandsRepresented) {
-      dealerData.brands = req.body.brandsRepresented;
-    }
-
-    if (Object.keys(profileData).length > 0) {
-      const profile = await DealerProfile.findOne({ where: { dealerId: id }, transaction });
-      if (!profile) {
-        await DealerProfile.create({ dealerId: id, ...profileData }, { transaction });
-      } else {
-        await DealerProfile.update(profileData, { where: { dealerId: id }, transaction });
-      }
-    }
-    if (Object.keys(dealerData).length > 0) {
-      await Dealer.update(dealerData, { where: { id }, transaction });
-    }
-
-    await transaction.commit();
     return res.apiSuccess("Profile updated successfully");
   } catch (error) {
-    await transaction.rollback();
-    return res.apiError(error.message, 500, error);
+    console.error("Update profile error:", error);
+
+    return res.apiError(
+      error.message || "Something went wrong",
+      500,
+      error
+    );
   }
 };
 

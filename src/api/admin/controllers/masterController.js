@@ -75,7 +75,7 @@ exports.createDocument = async (req, res) => {
       name: "required|string",
       code: "required|string",
       category: "required|string",
-      appliesTo: "required|in:employee,dealer",
+      appliesTo: "required|in:employee,dealer,both",
       isActive: "boolean",
       sortOrder: "integer",
       isMandatory: "boolean",
@@ -136,7 +136,7 @@ exports.updateDocument = async (req, res) => {
       name: "required|string",
       code: "required|string",
       category: "required|string",
-      appliesTo: "required|in:employee,dealer",
+      appliesTo: "required|in:employee,dealer,both",
       isActive: "boolean",
       sortOrder: "integer",
       isMandatory: "boolean",
@@ -261,7 +261,7 @@ exports.getBrandsByFlag = async (req, res) => {
       attributes: ["id", "name"],
       where: { flag: req.params.flag, ...(search ? { name: { [Op.like]: `%${search}%` } } : {}) },
       order: [
-        ["name", "ASC"], 
+        ["name", "ASC"],
       ],
     });
     return res.apiSuccess("Brands fetched successfully", brands);
@@ -472,8 +472,8 @@ exports.getOrganizationStructureByFlag = async (req, res) => {
             required: false,
           },
         ],
-        order: [ 
-          ["name", "ASC"], 
+        order: [
+          ["name", "ASC"],
         ],
       }
     );
@@ -498,8 +498,8 @@ exports.getOrganizationStructureByParentAndFlag = async (req, res) => {
       {
         where: { parentId: req.params.parentId, flag: req.params.flag },
         attributes: ["id", "name", "slug", "level", "flag"],
-        order: [ 
-          ["name", "ASC"], 
+        order: [
+          ["name", "ASC"],
         ],
       }
     );
@@ -618,7 +618,7 @@ exports.updateOrganizationStructure = async (req, res) => {
     if (organizationSlug !== organizationStructure.slug) {
       const existingSlug = await OrganizationStructure.findOne({
         where: { slug: organizationSlug, flag: flag },
-         
+
       });
       if (existingSlug) {
         return res.apiError(
@@ -684,7 +684,7 @@ exports.deleteOrganizationStructure = async (req, res) => {
 */
 exports.getOutletFunctions = async (req, res) => {
   try {
-    const { search,limit,page } = req.query;
+    const { search, limit, page } = req.query;
     const offset = (page - 1) * limit;
     const outletFunctions = await OutletFunction.findAll({
       limit: limit ? parseInt(limit) : 10,
@@ -854,7 +854,7 @@ exports.getDealers = async (req, res) => {
   try {
     const dealers = await Dealer.findAll({
       attributes: ["id", "name", "dealerCode"],
-      where: {isActive: true,status: "approved"}
+      where: { isActive: true, status: "approved" }
     });
     return res.apiSuccess("Dealers fetched successfully", dealers);
   } catch (error) {

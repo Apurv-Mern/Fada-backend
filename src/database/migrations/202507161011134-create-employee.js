@@ -36,6 +36,9 @@ module.exports = {
       gender: {
         type: Sequelize.STRING,
       },
+      qualification: {
+        type: Sequelize.STRING,
+      },
       profilePicture: {
         type: Sequelize.STRING,
       },
