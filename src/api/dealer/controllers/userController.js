@@ -89,6 +89,7 @@ exports.updateProfile = async (req, res) => {
     panNumber: "required|string",
     fadaMembershipId: "string",
     fadaMemberSince: "date",
+    brandsRepresented: "required",
     name: "required|string",
     phone: "required|string",
     address: "required|string",
@@ -133,7 +134,7 @@ exports.updateProfile = async (req, res) => {
       }
 
       if (fadaMembershipId !== undefined) {
-        profileData.fadaMembershipId = fadaMembershipId ?? null;
+        profileData.fadaMembershipId = fadaMembershipId || "";
       }
 
       if (fadaMemberSince !== undefined) {

@@ -88,6 +88,7 @@ exports.getEmployees = async (req, res) => {
       required: true,
       where: {
         dealerId,
+        isCurrentlyWorking: true,
         ...(outletId ? { outletId } : {}),
         ...(departmentId ? { departmentId } : {}),
       },
@@ -555,7 +556,7 @@ exports.getEmployeesForJoining = async (req, res) => {
     if (!search || String(search).trim() === "") {
       return res.apiError("search query is required", 422);
     }
- 
+
     const employee = await Employee.findOne({
       where: { fadaId: search },
       attributes: ["id", "fadaId", "name", "email", "phone", "isProfilePrivate"],
@@ -570,10 +571,10 @@ exports.getEmployeesForJoining = async (req, res) => {
       where: { employeeId: employee.id, dealerId: dealerId, isCurrentlyWorking: true },
     });
 
-    if(assignment){
+    if (assignment) {
       return res.apiError("This employee is already working at your dealership.", 404);
     }
-    
+
 
     const prodileAccess = await EmployeeProfileShare.findOne({
       where: { employeeId: employee.id, dealerId: dealerId, isActive: true },

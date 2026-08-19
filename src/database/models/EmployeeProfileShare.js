@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
 
       EmployeeProfileShare.belongsTo(models.Dealer, {
         foreignKey: "dealerId",
-        as: "organisation",
+        as: "dealership",
       });
     }
   }

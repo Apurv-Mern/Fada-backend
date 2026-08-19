@@ -1,5 +1,5 @@
 const Validator = require("validatorjs");
-const { Op } = require("sequelize");
+const { Op, where } = require("sequelize");
 const {
   sequelize,
   Employee,
@@ -35,6 +35,7 @@ exports.getProfile = async (req, res) => {
         "isPhoneVerified",
         "isEmailVerified",
         "status",
+        "qualification",
         "score",
         "isActive",
         "isVerified",
@@ -43,6 +44,7 @@ exports.getProfile = async (req, res) => {
         "isProfileCompleted",
         "isKycCompleted",
         "isJourneyCompleted",
+        "profilePicture",
         [
           sequelize.literal(`
           (SELECT COUNT(*) FROM EmployeeProfileShares WHERE EmployeeProfileShares.employeeId = Employee.id)
@@ -122,10 +124,12 @@ exports.getPersonalDetails = async (req, res) => {
         "bloodGroup",
         "email",
         "phone",
+        "qualification",
         "dob",
         "gender",
         "isPhoneVerified",
         "isEmailVerified",
+        "profilePicture",
       ],
       include: [
         {
@@ -177,7 +181,7 @@ exports.updatePersonalDetails = async (req, res) => {
   try {
     const id = req.auth.id;
 
-    const { name, bloodGroup, dob, gender, address } = req.body;
+
 
     const validator = new Validator(req.body, {
       name: "required|string",
@@ -197,6 +201,8 @@ exports.updatePersonalDetails = async (req, res) => {
       await transaction.rollback();
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
+
+    const { name, bloodGroup, dob, gender, address, qualification } = req.body;
 
     const employee = await Employee.update(
       { name, bloodGroup, dob, gender, qualification, isProfileCompleted: true },
@@ -403,6 +409,29 @@ exports.createEmployeement = async (req, res) => {
       highlights,
     } = req.body;
 
+    if (!req.auth.isJourneyCompleted) {
+      const checkJourney = await EmployeeAssignment.count({
+        where: { employeeId: id },
+      });
+
+      await Employee.update({ isJourneyCompleted: checkJourney > 0 ? true : false }, { where: { id } });
+    }
+
+    const checkEmployeement = await EmployeeAssignment.findOne({
+      where: { employeeId: id, isCurrentlyWorking: true },
+      include: [
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name"],
+          required: false,
+        }
+      ]
+    });
+    if (checkEmployeement) {
+      return res.apiError(`You are already employed at ${checkEmployeement?.dealership?.name || "another dealership"}. Please complete the exit process from your current employment before joining a new dealership.`);
+    }
+
     await EmployeeAssignment.create({
       employeeId: id,
       dealerId,
@@ -539,13 +568,13 @@ exports.getProfileShares = async (req, res) => {
       include: [
         {
           model: EmployeeProfileShare,
-          as: "shares",
+          as: "profileShares",
           attributes: ["id", "dealerId", "isActive", "createdAt"],
           paranoid: false,
           include: [
             {
               model: Dealer,
-              as: "organisation",
+              as: "dealership",
               attributes: ["id", "name", "dealerCode"],
             },
           ],
@@ -724,3 +753,53 @@ exports.updateProfilePicture = async (req, res) => {
     return res.apiError("Internal server error", 500, error);
   }
 };
+
+/*
+@API : GET /employee/professional-details
+@Desc: Get employee address
+@Access: Private
+*/
+exports.getProfessionalDetails = async (req, res) => {
+  try {
+
+    const id = req.auth.id;
+
+    const currentEmployeement = await EmployeeAssignment.findOne({
+      where: { employeeId: id, /* isCurrentlyWorking: true */ },
+      order: [["id", "DESC"]],
+      include: [
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name"],
+          required: false,
+        },
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name"],
+          required: false,
+        },
+        {
+          model: OrganizationStructure,
+          as: "department",
+          attributes: ["id", "name"],
+          required: false,
+        },
+        {
+          model: OrganizationStructure,
+          as: "designation",
+          attributes: ["id", "name"],
+          required: false,
+        },
+      ],
+    });
+
+    return res.apiSuccess("Employee professional details.", currentEmployeement);
+
+  } catch (error) {
+    return res.apiError("Internal server error.", 500)
+  }
+}
+
+

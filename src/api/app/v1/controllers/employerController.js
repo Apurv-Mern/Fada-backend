@@ -84,6 +84,10 @@ exports.sendNewEmployerInvitation = async (req, res) => {
       { transaction },
     );
 
+    if (!req.auth.isJourneyCompleted) {
+      await Employee.update({ isJourneyCompleted: true }, { where: { id: req.auth.id }, transaction });
+    }
+
     await transaction.commit();
     return res.apiSuccess("New employer invitation sent successfully", {});
   } catch (error) {
@@ -180,6 +184,10 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
       { where: { employeeId: id, id: req.params.id }, transaction },
     );
 
+    if (!req.auth.isJourneyCompleted) {
+      await Employee.update({ isJourneyCompleted: true }, { where: { id }, transaction });
+    }
+
     await EmployeeEmployerStatus.create(
       {
         employeeAssignmentId: req.params.id,
@@ -213,24 +221,24 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
   try {
     const id = req.auth.id;
     const { reason } = req.body;
-   
+
     const validator = new Validator(req.body, {
       reason: "required|string",
     });
-   
+
     if (validator.fails()) {
       await transaction.rollback();
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
- 
+
     const employeeAssignment = await EmployeeAssignment.findOne({
       where: { employeeId: id, status: "verified", isCurrentlyWorking: true },
       order: [["createdAt", "DESC"]],
     });
-   
+
     if (!employeeAssignment) {
       await transaction.rollback();
-      return res.apiError("Employee is not currently working in any dealership", 404);
+      return res.apiError("Employee is not currently working in any dealership", 422);
     }
 
     const employeeLeavingRequest = await EmployeeLeaveEmployeement.create({
@@ -282,6 +290,11 @@ exports.getEmployerLeavingRequests = async (req, res) => {
           model: Outlet,
           as: "branch",
           attributes: ["id", "name"],
+        },
+        {
+          model: EmployeeEmployerStatus,
+          as: "statuses",
+          where: { slug: "leaving" },
         },
       ],
     });

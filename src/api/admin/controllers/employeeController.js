@@ -19,6 +19,15 @@ const {
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const dayjs = require("dayjs");
 const { assign } = require("nodemailer/lib/shared");
+const { checkAllDocumentsApproved } = require("../../../services/employeeService");
+
+
+
+
+
+
+
+
 const employeeAttributes = {
   exclude: ["password", "otp", "refreshToken", "mpin", "emailOTP", "updatedAt", "deletedAt"],
 };
@@ -765,6 +774,11 @@ exports.updateEmployeeDocumentStatus = async (req, res) => {
       status: status,
       reason: reason,
     });
+
+
+    await checkAllDocumentsApproved(id);
+
+
     return res.apiSuccess(
       status === "approved"
         ? "Employee document approved successfully"

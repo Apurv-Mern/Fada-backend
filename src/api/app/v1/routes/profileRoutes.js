@@ -19,5 +19,6 @@ router.post("/employeements", profileController.createEmployeement);
 router.get("/employeements", profileController.getEmployeements);
 router.get("/address", profileController.getAddress);
 router.put("/address", profileController.updateAddress);
+router.get("/professional-details", profileController.getProfessionalDetails);
 
 module.exports = router;

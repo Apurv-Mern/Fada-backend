@@ -38,6 +38,7 @@ const DEALER_EXIT_WORKFLOW_STATUSES = [
   EMPLOYER_EXIT_STATUS.HANDOVER_COMPLETED,
   EMPLOYER_EXIT_STATUS.CLEARANCE_COMPLETED,
   EMPLOYER_EXIT_STATUS.EXIT_COMPLETED,
+  EMPLOYER_EXIT_STATUS.SUBMIT_RESIGNATION,
 ];
 
 const leaveStatusIncludes = [
@@ -81,7 +82,7 @@ exports.getEmployerInvitations = async (req, res) => {
     const id = req.currentDealerId;
 
     const employerInvitations = await EmployeeAssignment.findAll({
-      where: { dealerId: id, status: "pending" },
+      where: { dealerId: id, },
       order: [["createdAt", "DESC"]],
       include: [
         {
@@ -198,11 +199,11 @@ exports.sendNewEmployerInvitation = async (req, res) => {
     }
 
     const existingEmployeeAssignment = await EmployeeAssignment.findOne({
-      where: { isCurrentlyWorking :true, employeeId: employeeId },
+      where: { isCurrentlyWorking: true, employeeId: employeeId },
       order: [["createdAt", "DESC"]],
     });
 
-    if ( existingEmployeeAssignment && existingEmployeeAssignment.isCurrentlyWorking === true ) {
+    if (existingEmployeeAssignment && existingEmployeeAssignment.isCurrentlyWorking === true) {
       await transaction.rollback();
       return res.apiError("Employee already working in any other company.", 400);
     }
@@ -563,19 +564,19 @@ exports.sendEmployeementTransferRequest = async (req, res) => {
   try {
     const dealerId = req.currentDealerId;
     const { employeeId, outletId, departmentId, designationId } = req.body;
-   
+
     const validator = new Validator(req.body, {
       employeeId: "required|integer",
       outletId: "required|integer",
       departmentId: "required|integer",
       designationId: "required|integer",
     });
-   
+
     if (validator.fails()) {
       await transaction.rollback();
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
-   
+
     const existingEmployeeAssignment = await EmployeeAssignment.findOne({
       where: { dealerId, employeeId },
       order: [["createdAt", "DESC"]],
@@ -587,12 +588,12 @@ exports.sendEmployeementTransferRequest = async (req, res) => {
         },
       ],
     });
-  
+
     if (!existingEmployeeAssignment) {
       await transaction.rollback();
       return res.apiError("Employee not found", 404);
     }
-    
+
     const newOutlet = await Outlet.findOne({
       where: { dealerId, id: outletId },
       transaction,
@@ -603,10 +604,10 @@ exports.sendEmployeementTransferRequest = async (req, res) => {
     }
 
     await EmployeeAssignment.update(
-      { isCurrentlyWorking: false, isActive: false,  endDate: new Date(),  },
+      { isCurrentlyWorking: false, isActive: false, endDate: new Date(), },
       { where: { dealerId, employeeId }, transaction },
     );
- 
+
 
     const employeementTransferRequest = await EmployeeAssignment.create(
       {
@@ -620,7 +621,7 @@ exports.sendEmployeementTransferRequest = async (req, res) => {
         isCurrentlyWorking: true,
         startDate: new Date(),
         invitationSendBy: "dealer",
-        invitationSendById: dealerId, 
+        invitationSendById: dealerId,
         highlights: `Transferred from ${existingEmployeeAssignment.branch.name} to ${newOutlet.name}`,
       },
       { transaction },

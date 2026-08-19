@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       fadaMembershipId: {
         type: DataTypes.STRING,
-        unique: true,
+        allowNull: true
       },
       fadaMemberSince: {
         type: DataTypes.DATEONLY,

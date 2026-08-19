@@ -36,7 +36,7 @@ module.exports = {
       fadaMembershipId: {
         type: Sequelize.STRING,
         allowNull: true,
-        unique: true,
+
       },
       fadaMemberSince: {
         type: Sequelize.DATEONLY,
