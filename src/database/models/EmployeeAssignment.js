@@ -31,7 +31,6 @@ module.exports = (sequelize, DataTypes) => {
       EmployeeAssignment.hasMany(models.EmployeeEmployerStatus, {
         foreignKey: "employeeAssignmentId",
         as: "statuses",
-        where: { slug: "joining" },
       });
 
       EmployeeAssignment.hasMany(models.EmployeeLeaveEmployeement, {

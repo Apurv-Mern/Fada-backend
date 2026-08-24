@@ -71,7 +71,17 @@ app.use(
   })
 );
 
-app.use("/uploads", express.static(upload.uploadsDir));
+//app.use("/uploads", express.static(upload.uploadsDir));
+
+// Uploads: allow embedding from dealer portal
+app.use(
+  "/uploads",
+  express.static("uploads", {
+    setHeaders(res) {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  }),
+);
 
 /**
  * Middlewares

@@ -7,6 +7,7 @@ const AuthMiddleware = require("../../../middlewares/dealerAuth");
 
 router.get("/profile", AuthMiddleware, userController.getProfile);
 router.put("/profile", AuthMiddleware, userController.updateProfile);
+router.put("/upload-profile-picture", AuthMiddleware, userController.uploadProfilePicture);
 
 router.get("/group-dealers", AuthMiddleware, userController.getGroupDealers);
 

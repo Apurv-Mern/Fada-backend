@@ -302,6 +302,8 @@ exports.createEmployee = async (req, res) => {
       );
     });
 
+    await employee.update({ isJourneyCompleted: true });
+
     //const employee = await loadEmployee(employeeId, dealerId);
     return res.apiSuccess("Employee created successfully");
   } catch (error) {

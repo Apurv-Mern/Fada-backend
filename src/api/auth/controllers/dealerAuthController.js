@@ -200,6 +200,10 @@ exports.dealerLogin = async (req, res) => {
       where: verifyUserName(email),
     });
 
+    if (!dealer) {
+      return res.apiError("Dealer not found ", 404);
+    }
+
     if (dealer.status === "rejected") {
       return res.apiError(
         "Your account has been rejected. Please contact support",
@@ -207,14 +211,7 @@ exports.dealerLogin = async (req, res) => {
       );
     }
 
-    if (!dealer) {
-      return res.apiError(
-        email
-          ? "Dealer not found with this email"
-          : "Dealer not found with this phone",
-        404,
-      );
-    }
+
 
     if (dealer && !dealer.password) {
       return res.apiError(
@@ -769,11 +766,11 @@ exports.verifyLoginOtp = async (req, res) => {
       refreshToken,
     };
 
-    /* if (dealer.status === "temporary") { */
+    /* if (dealer.status === "temporary") {  
     dealerData.status = "pending";
     dealerData.isEmailVerified = true;
     dealerData.isActive = true;
-    /*  } */
+       } */
 
     await dealer.update(dealerData);
 

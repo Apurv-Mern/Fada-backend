@@ -123,6 +123,7 @@ exports.getEmployerInvitationById = async (req, res) => {
           model: EmployeeEmployerStatus,
           as: "statuses",
           attributes: ["id", "status", "slug", "actionUserBy", "actionUserId"],
+          where: { slug: "joining" },
         },
       ],
     });
@@ -165,6 +166,9 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
       actionUserBy: "dealer",
       actionUserId: id,
     });
+
+    await Employee.update({ isJourneyCompleted: true }, { where: { id: employerInvitation.employeeId } });
+
 
     return res.apiSuccess(
       `Employer invitation ${status}ed successfully`,

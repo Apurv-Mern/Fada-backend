@@ -5,6 +5,7 @@ const {
   Dealer,
   Outlet,
   EmployeeLeaveEmployeement,
+  Employee
 } = require("../../../../database/models");
 const Validator = require("validatorjs");
 
@@ -118,6 +119,12 @@ exports.getEmployerInvitations = async (req, res) => {
           as: "branch",
           attributes: ["id", "name"],
         },
+        {
+          model: EmployeeEmployerStatus,
+          as: "statuses",
+          attributes: ["id", "status", "slug", "actionUserBy", "actionUserId"],
+          where: { slug: "joining" },
+        },
       ],
     });
     if (!employeeInvitations) {
@@ -141,13 +148,24 @@ exports.getEmployerInvitationById = async (req, res) => {
   try {
     const { id } = req.auth;
     const employeeInvitation = await EmployeeAssignment.findOne({
-      where: { employeeId: id, status: "pending", id: req.params.id },
+      where: { employeeId: id, id: req.params.id },
       order: [["createdAt", "DESC"]],
       include: [
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name"],
+        },
         {
           model: EmployeeEmployerStatus,
           as: "statuses",
           attributes: ["id", "status", "slug", "actionUserBy", "actionUserId"],
+          where: { slug: "joining" },
         },
       ],
     });

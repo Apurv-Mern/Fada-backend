@@ -226,7 +226,7 @@ const syncAssignment = async (
     return;
   }
 
-  await EmployeeAssignment.create(payload, { transaction });
+  return await EmployeeAssignment.create(payload, { transaction });
 };
 
 const loadEmployee = async (employeeId, transaction) =>
@@ -638,7 +638,15 @@ exports.updateEmployeeStatus = async (req, res) => {
       return res.apiError("Invalid status", 400);
     }
 
-    await employee.update({ status: req.params.status });
+    let data = { status: req.params.status }
+
+    if (req.params.status = "approved") {
+      data.isVerified = true;
+    }
+
+
+    await employee.update(data);
+
     return res.apiSuccess("Employee status updated successfully");
   } catch (error) {
     return res.apiError(error.message, 500, error);

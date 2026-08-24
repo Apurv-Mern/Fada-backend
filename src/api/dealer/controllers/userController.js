@@ -8,7 +8,7 @@ const {
 const Validator = require("validatorjs");
 
 /*
-@API: GET /dealer/profile
+@API: GET /dealers/profile
 @Desc: Get dealer profile
 @Access: Private     
 */
@@ -26,6 +26,7 @@ exports.getProfile = async (req, res) => {
         "brands",
         "status",
         "isActive",
+        "profilePicture",
         [
           sequelize.literal(`(
             SELECT COUNT(*)
@@ -66,7 +67,7 @@ exports.getProfile = async (req, res) => {
 };
 
 /*
-@API: PUT /dealer/profile
+@API: PUT /dealers/profile
 @Desc: Update dealer profile
 @Body: {
     typeOfDealership: string,
@@ -201,7 +202,7 @@ exports.updateProfile = async (req, res) => {
 
 
 /*
-@API: GET /dealer/group-dealers
+@API: GET /dealers/group-dealers
 @Desc: Get group dealers
 @Access: Private     
 */
@@ -219,4 +220,33 @@ exports.getGroupDealers = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
+
+/*
+@API: PUT /dealers/user/upload-profile-picture
+@Desc: Update dealer profile picture
+@Body: {
+  fileUrl: string, 
+}
+@Access: Private     
+*/
+exports.uploadProfilePicture = async (req, res) => {
+  try {
+
+    const validator = new Validator(req.body, {
+      fileUrl: "required|string",
+    });
+
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const id = req.currentDealerId;
+
+    await Dealer.update({ profilePicture: req.body.fileUrl }, { where: { id } });
+
+    return res.apiSuccess("Profile picture uploded successfully.");
+  } catch (error) {
+    return res.apiError("Internal server error", 500);
+  }
+}
 
