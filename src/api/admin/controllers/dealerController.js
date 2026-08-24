@@ -152,7 +152,7 @@ exports.getDealers = async (req, res) => {
             WHERE JSON_CONTAINS(Dealer.brands, CAST(Brands.id AS JSON))
           )`),
           "brandsName",
-        ]
+        ],
       ],
       include: [
         {
@@ -210,7 +210,29 @@ exports.getDealersGroupByHolding = async (req, res) => {
 exports.getDealerById = async (req, res) => {
   try {
     const dealer = await Dealer.findByPk(req.params.id, {
-      attributes: dealerAttributes,
+      attributes: [
+        "id",
+        "name",
+        "email",
+        "phone",
+        "dealerCode",
+        "brands",
+        "isGroupHoldingEntity",
+        "parentDealerId",
+        "status",
+        "isActive",
+        "isEmailVerified",
+        "createdAt",
+        "updatedAt",
+        [
+          sequelize.literal(`(
+            SELECT GROUP_CONCAT(DISTINCT name)
+            FROM Brands
+            WHERE JSON_CONTAINS(Dealer.brands, CAST(Brands.id AS JSON))
+          )`),
+          "brandsName",
+        ],
+      ],
       include: [
         {
           model: DealerProfile,
