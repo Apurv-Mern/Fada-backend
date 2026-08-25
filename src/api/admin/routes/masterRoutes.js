@@ -1,89 +1,107 @@
 const router = require("express").Router();
 const masterController = require("../controllers/masterController");
-const authMiddleware = require("../../../middlewares/adminAuth");
+const requirePermission = require("../../../middlewares/requirePermission");
 
+router.get(
+  "/documents",
+  requirePermission("masters.view"),
+  masterController.getDocuments,
+);
+router.get(
+  "/documents/:id",
+  requirePermission("masters.view"),
+  masterController.getDocumentById,
+);
+router.post(
+  "/documents",
+  requirePermission("masters.manage"),
+  masterController.createDocument,
+);
+router.put(
+  "/documents/:id",
+  requirePermission("masters.manage"),
+  masterController.updateDocument,
+);
+router.delete(
+  "/documents/:id",
+  requirePermission("masters.manage"),
+  masterController.deleteDocument,
+);
 
-
-router.get("/documents",authMiddleware, masterController.getDocuments);
-router.get("/documents/:id",authMiddleware, masterController.getDocumentById);
-router.post("/documents",authMiddleware, masterController.createDocument);
-router.put("/documents/:id",authMiddleware, masterController.updateDocument);
-router.delete("/documents/:id",authMiddleware, masterController.deleteDocument);
-
-router.get("/brands", authMiddleware, masterController.getBrands);
-router.get("/brands/:id", authMiddleware, masterController.getBrandById);
-router.get("/brands/flag/:flag", authMiddleware, masterController.getBrandsByFlag);
-router.post("/brands", authMiddleware, masterController.createBrand);
-router.put("/brands/:id", authMiddleware, masterController.updateBrand);
-router.delete("/brands/:id", authMiddleware, masterController.deleteBrand);
+router.get("/brands", requirePermission("masters.view"), masterController.getBrands);
+router.get("/brands/:id", requirePermission("masters.view"), masterController.getBrandById);
+router.get(
+  "/brands/flag/:flag",
+  requirePermission("masters.view"),
+  masterController.getBrandsByFlag,
+);
+router.post("/brands", requirePermission("masters.manage"), masterController.createBrand);
+router.put("/brands/:id", requirePermission("masters.manage"), masterController.updateBrand);
+router.delete("/brands/:id", requirePermission("masters.manage"), masterController.deleteBrand);
 
 router.get(
   "/organization-structures",
-  authMiddleware,
-  masterController.getOrganizationStructures
+  requirePermission("masters.view"),
+  masterController.getOrganizationStructures,
 );
 router.get(
   "/organization-structures/:id",
-  authMiddleware,
-  masterController.getOrganizationStructureById
+  requirePermission("masters.view"),
+  masterController.getOrganizationStructureById,
 );
 router.get(
   "/organization-structures/parent/:parentId/flag/:flag",
-  authMiddleware,
-  masterController.getOrganizationStructureByParentAndFlag
+  requirePermission("masters.view"),
+  masterController.getOrganizationStructureByParentAndFlag,
 );
 router.post(
   "/organization-structures",
-  authMiddleware,
-  masterController.createOrganizationStructure
+  requirePermission("masters.manage"),
+  masterController.createOrganizationStructure,
 );
 router.put(
   "/organization-structures/:id",
-  authMiddleware,
-  masterController.updateOrganizationStructure
+  requirePermission("masters.manage"),
+  masterController.updateOrganizationStructure,
 );
 router.delete(
   "/organization-structures/:id",
-  authMiddleware,
-  masterController.deleteOrganizationStructure
+  requirePermission("masters.manage"),
+  masterController.deleteOrganizationStructure,
 );
 
 router.get(
   "/organization-structures/flag/:flag",
-  authMiddleware,
-  masterController.getOrganizationStructureByFlag
+  requirePermission("masters.view"),
+  masterController.getOrganizationStructureByFlag,
 );
 
 router.get(
   "/outlet-functions",
-  authMiddleware,
-  masterController.getOutletFunctions
+  requirePermission("masters.view"),
+  masterController.getOutletFunctions,
 );
 router.get(
   "/outlet-functions/:id",
-  authMiddleware,
-  masterController.getOutletFunctionById
+  requirePermission("masters.view"),
+  masterController.getOutletFunctionById,
 );
 router.post(
   "/outlet-functions",
-  authMiddleware,
-  masterController.createOutletFunction
+  requirePermission("masters.manage"),
+  masterController.createOutletFunction,
 );
 router.put(
   "/outlet-functions/:id",
-  authMiddleware,
-  masterController.updateOutletFunction
+  requirePermission("masters.manage"),
+  masterController.updateOutletFunction,
 );
 router.delete(
   "/outlet-functions/:id",
-  authMiddleware,
-  masterController.deleteOutletFunction
+  requirePermission("masters.manage"),
+  masterController.deleteOutletFunction,
 );
 
-router.get(
-  "/dealers",
-  authMiddleware,
-  masterController.getDealers
-);
+router.get("/dealers", requirePermission("masters.view"), masterController.getDealers);
 
 module.exports = router;

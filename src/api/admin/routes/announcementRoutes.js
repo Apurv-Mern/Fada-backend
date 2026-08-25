@@ -1,10 +1,31 @@
 const router = require("express").Router();
 const announcementController = require("../controllers/announcementController");
+const requirePermission = require("../../../middlewares/requirePermission");
 
-router.get("/", announcementController.getAnnouncements);
-router.get("/:id", announcementController.getAnnouncementById);
-router.post("/", announcementController.createAnnouncement);
-router.put("/:id", announcementController.updateAnnouncement);
-router.delete("/:id", announcementController.deleteAnnouncement);
+router.get(
+  "/",
+  requirePermission("communications.view"),
+  announcementController.getAnnouncements,
+);
+router.get(
+  "/:id",
+  requirePermission("communications.view"),
+  announcementController.getAnnouncementById,
+);
+router.post(
+  "/",
+  requirePermission("communications.manage"),
+  announcementController.createAnnouncement,
+);
+router.put(
+  "/:id",
+  requirePermission("communications.manage"),
+  announcementController.updateAnnouncement,
+);
+router.delete(
+  "/:id",
+  requirePermission("communications.manage"),
+  announcementController.deleteAnnouncement,
+);
 
 module.exports = router;

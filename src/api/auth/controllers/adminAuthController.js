@@ -11,6 +11,11 @@ const {
   verifyRefreshToken,
 } = require("../../../utils/jwtUtil");
 const { addEmailJob } = require("../../../queues");
+const {
+  loadAdminWithRole,
+  getPermissionKeysForAdmin,
+  formatAdminAuthPayload,
+} = require("../../../services/rbacService");
 
 /*
 @API: POST /admin/auth/login
@@ -71,6 +76,9 @@ exports.adminLogin = async (req, res) => {
       refreshToken,
     });
 
+    const adminWithRole = await loadAdminWithRole(admin.id);
+    const permissions = await getPermissionKeysForAdmin(admin.id);
+
     // Send Refresh Token in HttpOnly Cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -83,13 +91,8 @@ exports.adminLogin = async (req, res) => {
       success: true,
       message: "Login successful",
       accessToken,
-      admin: {
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        role: "admin",
-        mustChangePassword: admin.mustChangePassword,
-      },
+      admin: formatAdminAuthPayload(adminWithRole, permissions),
+      permissions,
     });
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
@@ -283,18 +286,11 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-const toAdminProfile = (admin) => ({
-  id: admin.id,
-  name: admin.name,
-  email: admin.email,
-  phone: admin.phone,
-  profilePicture: admin.profilePicture,
-  role: "admin",
-  isActive: admin.isActive,
-  mustChangePassword: admin.mustChangePassword,
-  createdAt: admin.createdAt,
-  updatedAt: admin.updatedAt,
-});
+const toAdminProfile = async (admin) => {
+  const adminWithRole = await loadAdminWithRole(admin.id);
+  const permissions = await getPermissionKeysForAdmin(admin.id);
+  return formatAdminAuthPayload(adminWithRole, permissions);
+};
 
 /*
 @API: GET /admin/auth/profile
@@ -322,7 +318,7 @@ exports.getProfile = async (req, res) => {
 
     return res.apiSuccess(
       "Profile fetched successfully",
-      toAdminProfile(admin),
+      await toAdminProfile(admin),
     );
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
@@ -379,7 +375,7 @@ exports.updateProfile = async (req, res) => {
 
     return res.apiSuccess(
       "Profile updated successfully",
-      toAdminProfile(admin),
+      await toAdminProfile(admin),
     );
   } catch (error) {
     return res.apiError("Internal server error", 500, error);

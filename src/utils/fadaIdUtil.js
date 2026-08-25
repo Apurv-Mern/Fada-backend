@@ -1,5 +1,3 @@
-const { Op } = require("sequelize");
-
 const FADA_ALPHABET = "ABCDEFGHJKMNPRTUVWXY";
 const FADA_DIGITS = "0123456789";
 
@@ -21,47 +19,44 @@ function makeFadaId() {
   return `FADA-${letters}-${digits}`;
 }
 
+function makeDealerId() {
+  const letters = generateRandomString(FADA_ALPHABET, 2);
+  const digits = generateRandomString(FADA_DIGITS, 5);
 
+  return `DLR-${letters}-${digits}`;
+}
 
 const generateFadaId = async (Employee) => {
   const fadaId = makeFadaId();
 
-  const lastEmployee = await Employee.findOne({
-    where: {  fadaId }, 
+  const existing = await Employee.findOne({
+    where: { fadaId },
     paranoid: false,
   });
- 
-  if (lastEmployee) {
+
+  if (existing) {
     return generateFadaId(Employee);
   }
 
   return fadaId;
 };
 
-module.exports = {
-  generateFadaId,
+const generateDealerId = async (Dealer) => {
+  const dealerId = makeDealerId();
+
+  const existing = await Dealer.findOne({
+    where: { dealerId },
+    paranoid: false,
+  });
+
+  if (existing) {
+    return generateDealerId(Dealer);
+  }
+
+  return dealerId;
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 module.exports = {
   generateFadaId,
+  generateDealerId,
 };

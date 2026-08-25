@@ -90,6 +90,16 @@ exports.getEmployerInvitations = async (req, res) => {
           as: "employee",
           attributes: ["id", "name", "email", "phone"],
         },
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name", "dealerCode"],
+        },
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name"],
+        },
       ],
     });
 
@@ -256,6 +266,7 @@ exports.sendNewEmployerInvitation = async (req, res) => {
 /*
 @API: PUT /dealer/employer-invitations/:id/status/:status
 @Desc: Update employer invitation status by id
+@Body: { joiningDate: date }
 @Access: Private
 */
 exports.updateEmployerInvitationStatusById = async (req, res) => {
@@ -263,6 +274,15 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
     const dealerId = req.currentDealerId;
 
     const { status, id } = req.params;
+
+    const validator = new Validator(req.body, {
+      joiningDate: "date",
+    });
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+     
+    const { joiningDate = null } = req.body;
 
     if (!Object.values(EMPLOYER_JOINING_STATUS).includes(status)) {
       return res.apiError("Invalid status", 400);
@@ -283,6 +303,16 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
 
     if (employeeEmployerStatus) {
       return res.apiError("Employer invitation status already updated", 400);
+    }
+
+    if(joiningDate){
+      await Employee.update({
+        joinedDate: joiningDate,
+      },{where: {id: employerInvitation.employeeId}});
+     
+      await employerInvitation.update({
+        startDate: joiningDate,
+      });
     }
 
     await EmployeeEmployerStatus.create({
@@ -334,6 +364,11 @@ exports.getEmployerLeavingRequests = async (req, res) => {
           model: Employee,
           as: "employee",
           attributes: ["id", "name", "email", "phone"],
+        },
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name", "dealerCode"],
         },
         {
           model: Outlet,

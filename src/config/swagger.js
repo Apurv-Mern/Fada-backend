@@ -6,7 +6,7 @@ const options = {
     openapi: "3.0.0",
     info: {
       title: "FADA Backend API",
-      version: "1.3.7",
+      version: "1.4.0",
       description:
         "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints. Dealer business APIs accept optional header X-Dealer-Id so a group-holding dealer can act in a child dealer context without changing the login token. Employee department/designation live on EmployeeAssignment (EmployeeDesignation removed).",
     },
@@ -43,6 +43,8 @@ const options = {
     "./src/docs/swagger/score-rules.js",
     "./src/docs/swagger/score-stages.js",
     "./src/docs/swagger/announcements.js",
+    "./src/docs/swagger/staff.js",
+    "./src/docs/swagger/rbac.js",
     "./src/docs/swagger/dashboard.js",
     "./src/docs/swagger/employee*.js",
   ],

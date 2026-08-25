@@ -62,10 +62,24 @@
  *         profilePicture:
  *           type: string
  *           nullable: true
+ *         roleId:
+ *           type: integer
  *         role:
- *           type: string
- *           example: admin
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *             key:
+ *               type: string
+ *             name:
+ *               type: string
+ *             isSuperRole:
+ *               type: boolean
  *         isActive:
+ *           type: boolean
+ *         isEditable:
+ *           type: boolean
+ *         isDeletable:
  *           type: boolean
  *         mustChangePassword:
  *           type: boolean
@@ -105,6 +119,10 @@
  *           example: Login successful
  *         accessToken:
  *           type: string
+ *         permissions:
+ *           type: array
+ *           items:
+ *             type: string
  *         admin:
  *           $ref: '#/components/schemas/AdminUser'
  *     AdminChangePasswordRequest:
@@ -209,6 +227,10 @@
  *           type: string
  *         dealerCode:
  *           type: string
+ *         dealerId:
+ *           type: string
+ *           example: DLR-AB-12345
+ *           description: Auto-generated FADA dealer identifier
  *         status:
  *           type: string
  *           enum: [temporary, pending, approved, rejected]
@@ -216,7 +238,7 @@
  *           type: boolean
  *     AdminDealerUpsertRequest:
  *       type: object
- *       required: [name, email, phone, dealerCode, brands]
+ *       required: [name, email, phone, dealerCode, brands, location]
  *       properties:
  *         name:
  *           type: string
@@ -240,6 +262,24 @@
  *           type: integer
  *           nullable: true
  *           description: Parent group-holding dealer ID
+ *         location:
+ *           type: object
+ *           required: [address, city, state, country, pinCode, gstNumber]
+ *           properties:
+ *             address:
+ *               type: string
+ *             city:
+ *               type: string
+ *             state:
+ *               type: string
+ *             country:
+ *               type: string
+ *             pinCode:
+ *               type: string
+ *             gstNumber:
+ *               type: string
+ *               minLength: 15
+ *               maxLength: 15
  *     GroupHoldingDealerItem:
  *       type: object
  *       properties:
@@ -404,7 +444,7 @@
  *               type: boolean
  *     EmployeePersonalDetailsUpdateRequest:
  *       type: object
- *       required: [name, bloodGroup, dob, gender, address]
+ *       required: [name, bloodGroup, dob, gender, address, qualification]
  *       properties:
  *         name:
  *           type: string
@@ -417,6 +457,9 @@
  *         gender:
  *           type: string
  *           enum: [male, female, other]
+ *         qualification:
+ *           type: string
+ *           example: B.Tech
  *         address:
  *           type: array
  *           items:
@@ -493,6 +536,16 @@
  *           type: integer
  *           description: OrganizationStructure id where flag=role (must belong to departmentId)
  *           example: 12
+ *     DealerEmployerInvitationStatusUpdateRequest:
+ *       type: object
+ *       properties:
+ *         joiningDate:
+ *           type: string
+ *           format: date
+ *           description: >
+ *             Optional employee joining date. When provided, updates Employee.joinedDate
+ *             and EmployeeAssignment.startDate for the invitation.
+ *           example: "2026-08-25"
  *     EmployerInvitationStepItem:
  *       type: object
  *       properties:
@@ -751,6 +804,9 @@
  *           type: integer
  *         dealerCode:
  *           type: string
+ *         dealerId:
+ *           type: string
+ *           example: DLR-AB-12345
  *         name:
  *           type: string
  *         email:
@@ -771,6 +827,10 @@
  *         isGroupHoldingEntity:
  *           type: boolean
  *           description: True when this dealer is a group-holding parent that can switch into child dealers via X-Dealer-Id
+ *         userType:
+ *           type: string
+ *           enum: [dealer, staff]
+ *           default: dealer
  *         parentDealerId:
  *           type: integer
  *           nullable: true
@@ -921,6 +981,17 @@
  *           type: string
  *         dealerCode:
  *           type: string
+ *         dealerId:
+ *           type: string
+ *           example: DLR-AB-12345
+ *           description: Auto-generated FADA dealer identifier
+ *         profilePicture:
+ *           type: string
+ *           nullable: true
+ *         brands:
+ *           type: array
+ *           items:
+ *             type: integer
  *         status:
  *           type: string
  *           enum: [temporary, pending, approved, rejected]
@@ -934,6 +1005,13 @@
  *           $ref: '#/components/schemas/DealerProfileDetails'
  *         dealerLocations:
  *           $ref: '#/components/schemas/DealerLocation'
+ *     DealerProfilePictureUpdateRequest:
+ *       type: object
+ *       required: [fileUrl]
+ *       properties:
+ *         fileUrl:
+ *           type: string
+ *           description: Public URL from POST /file-upload
  *     DealerProfileUpdateRequest:
  *       type: object
  *       required:
@@ -1018,6 +1096,9 @@
  *           type: string
  *         dealerCode:
  *           type: string
+ *         dealerId:
+ *           type: string
+ *           example: DLR-AB-12345
  *         email:
  *           type: string
  *         phone:
@@ -1032,6 +1113,9 @@
  *           type: boolean
  *         isEmailVerified:
  *           type: boolean
+ *         userType:
+ *           type: string
+ *           enum: [dealer, staff]
  *         registeredAt:
  *           type: string
  *           format: date-time

@@ -244,7 +244,8 @@
  *               otp:
  *                 type: string
  *                 minLength: 4
- *                 maxLength: 8
+ *                 maxLength: 4
+ *                 example: "1234"
  *     responses:
  *       200:
  *         description: OTP verified, dealer logged in

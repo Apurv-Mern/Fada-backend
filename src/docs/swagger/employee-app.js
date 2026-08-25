@@ -182,7 +182,7 @@
  *   put:
  *     tags: [Employee App Profile]
  *     summary: Update employee address
- *     description: Updates address fields for the authenticated employee. Creates no new row if missing; ensure address exists from registration or personal-details flow.
+ *     description: Updates address fields for the authenticated employee. Creates a new EmployeeAddress row if one does not exist.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -346,6 +346,22 @@
  *         description: Personal details updated successfully
  *       422:
  *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/v1/employee/professional-details:
+ *   get:
+ *     tags: [Employee App Profile]
+ *     summary: Get current professional details
+ *     description: Returns the latest EmployeeAssignment with dealership, branch, department, and designation.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employee professional details fetched successfully
  *       401:
  *         description: Unauthorized
  */

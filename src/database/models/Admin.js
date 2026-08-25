@@ -8,6 +8,11 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
+      Admin.belongsTo(models.Role, {
+        foreignKey: "roleId",
+        as: "role",
+      });
+
       Admin.hasMany(models.Announcement, {
         foreignKey: "createdByAdminId",
         as: "announcements",
@@ -27,6 +32,16 @@ module.exports = (sequelize, DataTypes) => {
       refreshToken: DataTypes.TEXT,
       mustChangePassword: {
         type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      isEditable: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+      },
+      isDeletable: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: false,
       },
     },

@@ -18,7 +18,7 @@
  *         name: search
  *         schema:
  *           type: string
- *         description: Search by name, dealerCode, email, or phone
+ *         description: Search by name, dealerCode, dealerId, email, or phone
  *       - in: query
  *         name: status
  *         schema:
@@ -67,9 +67,16 @@
  *             brands: [1, 2]
  *             isGroupHoldingEntity: false
  *             parentCompanyId: null
+ *             location:
+ *               address: 123 MG Road
+ *               city: Mumbai
+ *               state: Maharashtra
+ *               country: India
+ *               pinCode: "400001"
+ *               gstNumber: 27AABCU9603R1ZM
  *     responses:
  *       200:
- *         description: Dealer created
+ *         description: Dealer created (includes auto-generated dealerId)
  *       422:
  *         description: Validation error or invalid brand IDs
  */

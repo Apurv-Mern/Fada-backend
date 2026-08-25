@@ -66,6 +66,21 @@ const TAG_GROUPS = {
       name: "Announcements",
       description: "Announcements and circulars with audience and delivery channels",
     },
+    {
+      source: "Admin Staff",
+      name: "Staff",
+      description: "FADA admin portal staff accounts, roles, and access control",
+    },
+    {
+      source: "Admin Roles",
+      name: "Roles",
+      description: "Role and permission management for the admin portal",
+    },
+    {
+      source: "Admin Modules",
+      name: "Modules",
+      description: "RBAC module and permission catalog for the admin portal",
+    },
   ],
   Dealer: [
     {

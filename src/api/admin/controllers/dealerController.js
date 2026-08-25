@@ -10,6 +10,7 @@ const {
 const { Op } = require("sequelize");
 const Validator = require("validatorjs");
 const { validateDealerBrands } = require("../../../utils/outletUtil");
+const { generateDealerId } = require("../../../utils/fadaIdUtil");
 
 const dealerAttributes = {
   exclude: ["password", "otp", "refreshToken"],
@@ -106,6 +107,7 @@ exports.getDealers = async (req, res) => {
           [Op.or]: [
             { name: { [Op.like]: `%${search}%` } },
             { dealerCode: { [Op.like]: `%${search}%` } },
+            { dealerId: { [Op.like]: `%${search}%` } },
             { email: { [Op.like]: `%${search}%` } },
             { phone: { [Op.like]: `%${search}%` } },
           ],
@@ -131,6 +133,7 @@ exports.getDealers = async (req, res) => {
         "email",
         "phone",
         "dealerCode",
+        "dealerId",
         "brands",
         "isGroupHoldingEntity",
         "parentDealerId",
@@ -216,6 +219,7 @@ exports.getDealerById = async (req, res) => {
         "email",
         "phone",
         "dealerCode",
+        "dealerId",
         "brands",
         "isGroupHoldingEntity",
         "parentDealerId",
@@ -403,6 +407,7 @@ exports.createDealer = async (req, res) => {
         email: req.body.email,
         phone: req.body.phone,
         dealerCode: req.body.dealerCode,
+        dealerId: await generateDealerId(Dealer),
         isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
         parentDealerId: req.body.parentCompanyId ?? null,
         brands: brandsResult.normalized,

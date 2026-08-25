@@ -64,6 +64,34 @@
 
 /**
  * @swagger
+ * /dealers/user/upload-profile-picture:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   put:
+ *     tags: [Dealer Profile]
+ *     summary: Update dealer profile picture
+ *     description: Sets profilePicture from a pre-uploaded file URL (use POST /file-upload first).
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerProfilePictureUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Profile picture updated successfully
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
+ */
+
+/**
+ * @swagger
  * /dealers/user/group-dealers:
  *   parameters:
  *     - $ref: '#/components/parameters/XDealerId'
@@ -784,7 +812,10 @@
  *   put:
  *     tags: [Dealer Employer Invitations]
  *     summary: Advance employer invitation joining workflow status
- *     description: Appends a new EmployeeEmployerStatus record for the given joining workflow step. Fails if that status was already recorded for the assignment.
+ *     description: >
+ *       Appends a new EmployeeEmployerStatus record (slug=joining) for the given workflow step.
+ *       Fails if that status was already recorded for the assignment. Optionally accepts
+ *       joiningDate in the body to set Employee.joinedDate and EmployeeAssignment.startDate.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -799,15 +830,40 @@
  *         required: true
  *         schema:
  *           type: string
- *           enum: [send_invitation, accept_invitation, share_details, employer_verification, joining_confirmed]
- *         description: Joining workflow step slug
+ *           enum:
+ *             - send_invitation
+ *             - accept_invitation
+ *             - reject_invitation
+ *             - share_details
+ *             - employer_verification
+ *             - joining_confirmed
+ *             - transfered
+ *         description: Joining workflow status key
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerEmployerInvitationStatusUpdateRequest'
  *     responses:
  *       200:
  *         description: Employer invitation status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       description: Updated EmployeeAssignment record
  *       400:
  *         description: Invalid status or status already updated
  *       404:
  *         description: Invitation not found
+ *       422:
+ *         description: Validation error (e.g. invalid joiningDate format)
  *       401:
  *         description: Unauthorized
  */

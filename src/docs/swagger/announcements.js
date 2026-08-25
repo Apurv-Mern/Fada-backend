@@ -225,9 +225,8 @@
  *     tags: [Dealer Announcements]
  *     summary: List announcements for dealer portal
  *     description: >
- *       Returns announcements targeted at dealers (`dealers`, `members_and_dealers`, `both`, or `all`)
- *       that include the `in_app` delivery channel and are either published, or scheduled with
- *       `scheduledAt` in the past. Ordered by publishedAt then createdAt (newest first).
+ *       Returns published announcements targeted at dealers (`dealers` or `both`)
+ *       with the `in_app` delivery channel. Ordered by publishedAt then createdAt (newest first).
  *     security:
  *       - bearerAuth: []
  *     responses:

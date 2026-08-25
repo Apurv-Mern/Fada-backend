@@ -12,6 +12,7 @@ const {
   verifyAccessToken,
 } = require("../../../utils/jwtUtil");
 const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
+const { generateDealerId } = require("../../../utils/fadaIdUtil");
 const { addEmailJob, addSmsJob } = require("../../../queues");
 /*
 @API: POST /dealer/auth/register
@@ -65,6 +66,7 @@ exports.dealerRegister = async (req, res) => {
     await Dealer.create({
       name,
       dealerCode,
+      dealerId: await generateDealerId(Dealer),
       email,
       password: hashedPassword,
       otp,
