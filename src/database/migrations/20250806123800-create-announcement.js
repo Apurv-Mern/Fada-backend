@@ -20,9 +20,8 @@ module.exports = {
         onDelete: "SET NULL",
       },
       postType: {
-        type: Sequelize.ENUM("announcement_circular"),
-        allowNull: false,
-        defaultValue: "announcement_circular",
+        type: Sequelize.STRING,
+        allowNull: true,
       },
       title: {
         type: Sequelize.STRING,
