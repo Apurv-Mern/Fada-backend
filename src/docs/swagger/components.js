@@ -25,6 +25,52 @@
  *         data:
  *           type: object
  *           nullable: true
+ *     ReportResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/ApiSuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               type: object
+ *               properties:
+ *                 meta:
+ *                   type: object
+ *                   properties:
+ *                     reportKey:
+ *                       type: string
+ *                     reportName:
+ *                       type: string
+ *                     portal:
+ *                       type: string
+ *                       enum: [admin, dealer]
+ *                     period:
+ *                       type: object
+ *                       nullable: true
+ *                     filtersApplied:
+ *                       type: object
+ *                     generatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     generatedBy:
+ *                       type: object
+ *                       nullable: true
+ *                 summary:
+ *                   type: object
+ *                 rows:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 breakdowns:
+ *                   type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
  *     ApiErrorResponse:
  *       type: object
  *       properties:

@@ -18,9 +18,9 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
       },
       postType: {
-        type: DataTypes.ENUM("announcement_circular"),
+        type: DataTypes.ENUM("updates", "reminders", "celebration", "announcement"),
         allowNull: false,
-        defaultValue: "announcement_circular",
+        defaultValue: "announcement",
       },
       title: {
         type: DataTypes.STRING,

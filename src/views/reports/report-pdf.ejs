@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title><%= reportTitle %> — <%= appName %></title>
+    <style>
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        line-height: 1.45;
+        color: #1e293b;
+        background: #ffffff;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .report {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      /* Header */
+      .header {
+        background: linear-gradient(135deg, #0f2744 0%, #1e4976 55%, #2563eb 100%);
+        color: #ffffff;
+        padding: 22px 24px 20px;
+        border-radius: 0 0 8px 8px;
+        margin-bottom: 20px;
+      }
+
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+      }
+
+      .brand-name {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+
+      .brand-tagline {
+        font-size: 10px;
+        opacity: 0.85;
+        margin-top: 2px;
+      }
+
+      .portal-badge {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 10px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .report-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 4px;
+        letter-spacing: -0.2px;
+      }
+
+      .report-subtitle {
+        font-size: 11px;
+        opacity: 0.9;
+      }
+
+      /* Meta bar */
+      .meta-bar {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 18px;
+        padding: 0 2px;
+      }
+
+      .meta-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+
+      .meta-label {
+        font-size: 9px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+
+      .meta-value {
+        font-size: 11px;
+        font-weight: 600;
+        color: #0f172a;
+        word-break: break-word;
+      }
+
+      /* Filters */
+      .filters {
+        margin-bottom: 18px;
+      }
+
+      .section-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f2744;
+        margin: 0 0 10px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .section-title::before {
+        content: "";
+        display: inline-block;
+        width: 4px;
+        height: 14px;
+        background: #2563eb;
+        border-radius: 2px;
+      }
+
+      .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chip {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+        border-radius: 16px;
+        padding: 4px 10px;
+        font-size: 10px;
+        font-weight: 500;
+      }
+
+      .chip strong {
+        font-weight: 700;
+      }
+
+      /* Summary KPI grid */
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .kpi-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #2563eb;
+        border-radius: 8px;
+        padding: 12px 14px;
+        box-shadow: 0 1px 2px rgba(15, 39, 68, 0.04);
+      }
+
+      .kpi-card:nth-child(4n + 2) {
+        border-left-color: #0891b2;
+      }
+
+      .kpi-card:nth-child(4n + 3) {
+        border-left-color: #059669;
+      }
+
+      .kpi-card:nth-child(4n + 4) {
+        border-left-color: #d97706;
+      }
+
+      .kpi-label {
+        font-size: 9px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        margin-bottom: 6px;
+        line-height: 1.3;
+      }
+
+      .kpi-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f2744;
+        line-height: 1.2;
+      }
+
+      /* Tables */
+      .table-wrap {
+        margin-bottom: 20px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10px;
+      }
+
+      thead {
+        background: #0f2744;
+        color: #ffffff;
+      }
+
+      thead th {
+        padding: 10px 10px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #f8fafc;
+      }
+
+      tbody tr:nth-child(odd) {
+        background: #ffffff;
+      }
+
+      tbody td {
+        padding: 8px 10px;
+        border-top: 1px solid #e2e8f0;
+        vertical-align: top;
+        word-break: break-word;
+        max-width: 140px;
+      }
+
+      .pagination-note {
+        font-size: 10px;
+        color: #64748b;
+        margin-top: 8px;
+        text-align: right;
+      }
+
+      .breakdown-block {
+        margin-bottom: 16px;
+      }
+
+      .breakdown-block h4 {
+        font-size: 11px;
+        font-weight: 700;
+        color: #334155;
+        margin: 0 0 8px;
+      }
+
+      .empty-state {
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+        color: #64748b;
+        font-size: 11px;
+        margin-bottom: 20px;
+      }
+
+      .footer-note {
+        margin-top: 24px;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 9px;
+        color: #94a3b8;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="report">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-top">
+          <div class="brand">
+            <div class="brand-mark">ID</div>
+            <div>
+              <div class="brand-name"><%= appName %></div>
+              <div class="brand-tagline">Automotive Workforce Identity Platform</div>
+            </div>
+          </div>
+          <div class="portal-badge"><%= portal %></div>
+        </div>
+        <h1 class="report-title"><%= reportTitle %></h1>
+        <div class="report-subtitle">Management &amp; operational report export</div>
+      </div>
+
+      <!-- Meta -->
+      <div class="meta-bar">
+        <div class="meta-item">
+          <div class="meta-label">Generated On</div>
+          <div class="meta-value"><%= generatedAt %></div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Generated By</div>
+          <div class="meta-value"><%= generatedBy %></div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Report Period</div>
+          <div class="meta-value"><%= periodLabel %></div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Report Key</div>
+          <div class="meta-value"><%= reportKey %></div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <% if (filterChips.length) { %>
+      <div class="filters">
+        <h2 class="section-title">Applied Filters</h2>
+        <div class="filter-chips">
+          <% filterChips.forEach(function(chip) { %>
+          <span class="chip"><strong><%= chip.label %>:</strong> <%= chip.value %></span>
+          <% }); %>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Summary KPIs -->
+      <% if (summaryItems.length) { %>
+      <h2 class="section-title">Executive Summary</h2>
+      <div class="summary-grid">
+        <% summaryItems.forEach(function(item) { %>
+          <% if (!item.isGroup) { %>
+          <div class="kpi-card">
+            <div class="kpi-label"><%= item.label %></div>
+            <div class="kpi-value"><%= item.value %></div>
+          </div>
+          <% } %>
+        <% }); %>
+      </div>
+
+      <% summaryItems.forEach(function(item) { %>
+        <% if (item.isGroup && item.groupRows && item.groupRows.length) { %>
+        <div class="breakdown-block">
+          <h4><%= item.label %></h4>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <% Object.keys(item.groupRows[0]).forEach(function(col) { %>
+                  <th><%= col %></th>
+                  <% }); %>
+                </tr>
+              </thead>
+              <tbody>
+                <% item.groupRows.forEach(function(row) { %>
+                <tr>
+                  <% Object.values(row).forEach(function(val) { %>
+                  <td><%= val %></td>
+                  <% }); %>
+                </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <% } %>
+      <% }); %>
+      <% } %>
+
+      <!-- Breakdowns -->
+      <% if (breakdowns && breakdowns.length) { %>
+        <% breakdowns.forEach(function(section) { %>
+          <% if (section.items && section.items.length) { %>
+          <div class="breakdown-block">
+            <h2 class="section-title"><%= section.title %></h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <% Object.keys(section.items[0]).forEach(function(col) { %>
+                    <th><%= col %></th>
+                    <% }); %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% section.items.forEach(function(row) { %>
+                  <tr>
+                    <% Object.values(row).forEach(function(val) { %>
+                    <td><%= val %></td>
+                    <% }); %>
+                  </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <% } %>
+        <% }); %>
+      <% } %>
+
+      <!-- Detail table -->
+      <% if (hasDetailTable) { %>
+      <h2 class="section-title">Detail Records</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <% columns.forEach(function(col) { %>
+              <th><%= col.label %></th>
+              <% }); %>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach(function(row) { %>
+            <tr>
+              <% columns.forEach(function(col) { %>
+              <td><%= row[col.key] !== undefined ? row[col.key] : '—' %></td>
+              <% }); %>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+      <% if (pagination && pagination.total > rows.length) { %>
+      <div class="pagination-note">
+        Showing <%= rows.length %> of <%= pagination.total %> records in this export
+      </div>
+      <% } %>
+      <% } else if (isSummaryOnly) { %>
+      <div class="empty-state">
+        This report is summary-only. No row-level detail is included for this view.
+      </div>
+      <% } else { %>
+      <div class="empty-state">
+        No records matched the selected filters for this report.
+      </div>
+      <% } %>
+
+      <div class="footer-note">
+        This document was generated automatically by the <%= appName %> reporting system.
+        Data reflects the state at generation time and may differ from live dashboards.
+      </div>
+    </div>
+  </body>
+</html>

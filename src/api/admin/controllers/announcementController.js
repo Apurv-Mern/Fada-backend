@@ -2,7 +2,7 @@ const Validator = require("validatorjs");
 const { Op } = require("sequelize");
 const { Announcement, Admin } = require("../../../database/models");
 
-const POST_TYPES = ["announcement_circular"];
+const POST_TYPES = ["updates", "reminders", "celebration", "announcement"];
 const TARGET_AUDIENCES = [
   "employees",
   "dealers",
@@ -76,7 +76,7 @@ function buildAnnouncementPayload(body, existing) {
   }
 
   const payload = {
-    postType: body.postType ?? existing?.postType ?? "announcement_circular",
+    postType: body.postType ?? existing?.postType ?? "announcement",
     title: body.title?.trim() ?? existing?.title,
     messageBody: body.messageBody ?? existing?.messageBody ?? null,
     targetAudience: body.targetAudience ?? existing?.targetAudience,

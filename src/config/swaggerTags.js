@@ -81,6 +81,11 @@ const TAG_GROUPS = {
       name: "Modules",
       description: "RBAC module and permission catalog for the admin portal",
     },
+    {
+      source: "Admin Reports",
+      name: "Reports",
+      description: "Admin ecosystem reports (A1–A5) and shared employee reports",
+    },
   ],
   Dealer: [
     {
@@ -146,6 +151,11 @@ const TAG_GROUPS = {
       source: "Dealer Announcements",
       name: "Announcements",
       description: "In-app announcements and circulars for the dealer portal",
+    },
+    {
+      source: "Dealer Reports",
+      name: "Reports",
+      description: "Dealer-scoped employee and adoption reports (D1–D5)",
     },
   ],
   Employee: [
