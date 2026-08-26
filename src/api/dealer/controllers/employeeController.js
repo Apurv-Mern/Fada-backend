@@ -148,6 +148,7 @@ exports.getEmployeeById = async (req, res) => {
 */
 exports.getEmployeeProfile = async (req, res) => {
   try {
+    const dealerId = getDealerId(req);
 
     const employee = await Employee.findOne({
       where: { id: req.params.id },
@@ -176,26 +177,31 @@ exports.getEmployeeProfile = async (req, res) => {
           model: EmployeeAppreciation,
           as: "appreciations",
           required: false,
+          where: { dealerId },
         },
         {
           model: EmployeeCertificate,
           as: "certificates",
           required: false,
+          where: { dealerId },
         },
         {
           model: EmployeePromotion,
           as: "promotions",
           required: false,
+          where: { dealerId },
         },
         {
           model: EmployeeTraining,
           as: "trainings",
           required: false,
+          where: { dealerId },
         },
         {
           model: EmployeeSkill,
           as: "skills",
           required: false,
+          where: { dealerId },
         },
         {
           model: EmployeeAssignment,

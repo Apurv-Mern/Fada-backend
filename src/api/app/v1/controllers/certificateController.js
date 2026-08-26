@@ -1,15 +1,22 @@
 const Validator = require("validatorjs");
 const { EmployeeCertificate } = require("../../../../database/models");
+const { getEmployeeDealerId } = require("../../../../services/employeeService");
 
 /*
-@API: GET /employee/certificates
+@API: GET /employee/certificates?dealerId=4
 @Desc: Get employee certificates
 @Access: Private
 */
 
 exports.getCertificates = async (req, res) => {
   try {
-    const certificates = await EmployeeCertificate.findAll({where: {employeeId: req.auth.id}});
+    const whereClause = {
+      employeeId: req.auth.id,
+    };
+    if (req.query?.dealerId) {
+      whereClause.dealerId = req.query?.dealerId;
+    }
+    const certificates = await EmployeeCertificate.findAll({where: whereClause});
     return res.apiSuccess("Employee certificates fetched successfully", certificates);
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
@@ -57,7 +64,8 @@ exports.createCertificate = async (req, res) => {
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
-     await EmployeeCertificate.create({...req.body, employeeId: req.auth.id});
+     const dealerId = await getEmployeeDealerId(req.auth.id);
+     await EmployeeCertificate.create({ ...req.body, employeeId: req.auth.id, dealerId });
     return res.apiSuccess("Employee certificate created successfully");
   } catch (error) {
     return res.apiError("Internal server error", 500, error);

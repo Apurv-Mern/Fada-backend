@@ -433,11 +433,67 @@
  *   get:
  *     tags: [Employee App Employment]
  *     summary: List employment history
+ *     description: >
+ *       Returns employment assignments with dealership, outlet, department, designation,
+ *       and up to 2 latest key records per dealer (appreciations, certificates, promotions,
+ *       skills, trainings) merged via SQL UNION.
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Employment records fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           dealerId:
+ *                             type: integer
+ *                           employeementType:
+ *                             type: string
+ *                           city:
+ *                             type: string
+ *                           startDate:
+ *                             type: string
+ *                             format: date
+ *                           endDate:
+ *                             type: string
+ *                             format: date
+ *                             nullable: true
+ *                           isCurrentlyWorking:
+ *                             type: boolean
+ *                           keyRecords:
+ *                             type: array
+ *                             description: Up to 2 latest achievements for this dealer
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 recordType:
+ *                                   type: string
+ *                                   enum: [appreciation, certificate, promotion, skill, training]
+ *                                 id:
+ *                                   type: integer
+ *                                 title:
+ *                                   type: string
+ *                                 description:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 issuedBy:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 recordDate:
+ *                                   type: string
+ *                                   format: date
+ *                                   nullable: true
  *       401:
  *         description: Unauthorized
  *   post:

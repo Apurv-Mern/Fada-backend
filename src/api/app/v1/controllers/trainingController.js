@@ -1,5 +1,6 @@
 const Validator = require("validatorjs");
 const { EmployeeTraining } = require("../../../../database/models");
+const { getEmployeeDealerId } = require("../../../../services/employeeService");
 
 const trainingValidationRules = {
   trainingTitle: "required|string",
@@ -16,14 +17,20 @@ async function findOwnedTraining(trainingId, employeeId) {
 }
 
 /*
-@API: GET /employee/trainings
+@API: GET /employee/trainings?dealerId=4
 @Desc: Get employee trainings
 @Access: Private
 */
 exports.getTrainings = async (req, res) => {
   try {
+    const whereClause = {
+      employeeId: req.auth.id,
+    };
+    if (req.query?.dealerId) {
+      whereClause.dealerId = req.query?.dealerId;
+    }
     const trainings = await EmployeeTraining.findAll({
-      where: { employeeId: req.auth.id },
+      where: whereClause,
     });
     return res.apiSuccess("Employee trainings fetched successfully", trainings);
   } catch (error) {
@@ -69,7 +76,8 @@ exports.createTraining = async (req, res) => {
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
-    await EmployeeTraining.create({ ...req.body, employeeId: req.auth.id });
+    const dealerId = await getEmployeeDealerId(req.auth.id);
+    await EmployeeTraining.create({ ...req.body, employeeId: req.auth.id, dealerId });
     return res.apiSuccess("Employee training created successfully");
   } catch (error) {
     return res.apiError("Internal server error", 500, error);

@@ -1,6 +1,7 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
 const {
+  sequelize,
   Employee,
   EmployeeAssignment,
   EmployeeDocument,
@@ -9,6 +10,7 @@ const {
   Dealer,
   Outlet,
 } = require("../database/models");
+const { tryCatch } = require("bullmq");
 
 const employeeAttributes = {
   exclude: ["password", "otp", "refreshToken", "mpin"],
@@ -392,6 +394,149 @@ const employerLeavingSteps = () => {
   ];
 };
 
+const getCurrentEmployeement = async (employeeId) => {
+  try {
+    const currentEmployeement = await EmployeeAssignment.findOne({
+      where: { employeeId, isCurrentlyWorking: true },
+    });
+    return currentEmployeement ?? null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const getEmployeeDealerId = async (employeeId) => {
+  const currentEmployeement = await getCurrentEmployeement(employeeId);
+  return currentEmployeement?.dealerId ?? null;
+};
+
+const EMPLOYMENT_KEY_RECORDS_UNION_SQL = `
+  SELECT
+    ranked.recordType,
+    ranked.id,
+    ranked.employeeId,
+    ranked.dealerId,
+    ranked.title,
+    ranked.description,
+    ranked.issuedBy,
+    ranked.recordDate,
+    ranked.createdAt
+  FROM (
+    SELECT
+      unioned.*,
+      ROW_NUMBER() OVER (
+        PARTITION BY unioned.dealerId
+        ORDER BY COALESCE(unioned.recordDate, unioned.createdAt) DESC, unioned.createdAt DESC
+      ) AS rowNum
+    FROM (
+      SELECT
+        'appreciation' AS recordType,
+        id,
+        employeeId,
+        dealerId,
+        appreciationTitle AS title,
+        COALESCE(NULLIF(description, ''), quote) AS description,
+        issuedBy,
+        appreciationDate AS recordDate,
+        createdAt
+      FROM EmployeeAppreciations
+      WHERE employeeId = :employeeId AND deletedAt IS NULL
+
+      UNION ALL
+
+      SELECT
+        'certificate' AS recordType,
+        id,
+        employeeId,
+        dealerId,
+        certificateName AS title,
+        description,
+        issuingAuthority AS issuedBy,
+        issueDate AS recordDate,
+        createdAt
+      FROM EmployeeCertificates
+      WHERE employeeId = :employeeId AND deletedAt IS NULL
+
+      UNION ALL
+
+      SELECT
+        'promotion' AS recordType,
+        id,
+        employeeId,
+        dealerId,
+        roleTitle AS title,
+        description,
+        issuedBy,
+        promotionDate AS recordDate,
+        createdAt
+      FROM EmployeePromotions
+      WHERE employeeId = :employeeId AND deletedAt IS NULL
+
+      UNION ALL
+
+      SELECT
+        'skill' AS recordType,
+        id,
+        employeeId,
+        dealerId,
+        skillName AS title,
+        COALESCE(NULLIF(description, ''), CONCAT(skillCategory, ' · ', proficiencyLevel)) AS description,
+        learningSource AS issuedBy,
+        skillDate AS recordDate,
+        createdAt
+      FROM EmployeeSkills
+      WHERE employeeId = :employeeId AND deletedAt IS NULL
+
+      UNION ALL
+
+      SELECT
+        'training' AS recordType,
+        id,
+        employeeId,
+        dealerId,
+        trainingTitle AS title,
+        keyLearnings AS description,
+        trainingProvider AS issuedBy,
+        completionDate AS recordDate,
+        createdAt
+      FROM EmployeeTrainings
+      WHERE employeeId = :employeeId AND deletedAt IS NULL
+    ) AS unioned
+  ) AS ranked
+  WHERE ranked.rowNum <= :limitPerDealer
+  ORDER BY ranked.dealerId, ranked.rowNum
+`;
+
+async function getEmploymentKeyRecords(employeeId, limitPerDealer = 2) {
+  if (!employeeId) {
+    return [];
+  }
+
+  const [rows] = await sequelize.query(EMPLOYMENT_KEY_RECORDS_UNION_SQL, {
+    replacements: { employeeId, limitPerDealer },
+  });
+
+  return rows;
+}
+
+function groupKeyRecordsByDealerId(keyRecords = []) {
+  return keyRecords.reduce((grouped, record) => {
+    const dealerKey = record.dealerId ?? null;
+    if (!grouped[dealerKey]) {
+      grouped[dealerKey] = [];
+    }
+    grouped[dealerKey].push({
+      recordType: record.recordType,
+      id: record.id,
+      title: record.title,
+      description: record.description,
+      issuedBy: record.issuedBy,
+      recordDate: record.recordDate,
+    });
+    return grouped;
+  }, {});
+}
+
 module.exports = {
   employeeAttributes,
   employeeValidationRules,
@@ -405,4 +550,8 @@ module.exports = {
   checkAllDocumentsApproved,
   newEmployerSteps,
   employerLeavingSteps,
+  getCurrentEmployeement,
+  getEmployeeDealerId,
+  getEmploymentKeyRecords,
+  groupKeyRecordsByDealerId,
 };

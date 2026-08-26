@@ -12,6 +12,10 @@ const {
   Outlet,
   OrganizationStructure,
 } = require("../../../../database/models");
+const {
+  getEmploymentKeyRecords,
+  groupKeyRecordsByDealerId,
+} = require("../../../../services/employeeService");
 
 /*
 @API: GET /employee/profile
@@ -461,44 +465,60 @@ exports.getEmployeements = async (req, res) => {
   try {
     const id = req.auth.id;
 
-    const employeements = await EmployeeAssignment.findAll({
-      attributes: [
-        "id",
-        "employeementType",
-        "city",
-        "startDate",
-        "endDate",
-        "isCurrentlyWorking",
-        "highlights",
-      ],
-      where: { employeeId: id },
-      include: [
-        {
-          model: Dealer,
-          as: "dealership",
-          attributes: ["id", "name"],
-        },
-        {
-          model: Outlet,
-          as: "branch",
-          attributes: ["id", "name"],
-        },
-        {
-          model: OrganizationStructure,
-          as: "department",
-          attributes: ["id", "name"],
-        },
-        {
-          model: OrganizationStructure,
-          as: "designation",
-          attributes: ["id", "name"],
-        },
-      ],
+    const [employeements, keyRecords] = await Promise.all([
+      EmployeeAssignment.findAll({
+        attributes: [
+          "id",
+          "dealerId",
+          "employeementType",
+          "city",
+          "startDate",
+          "endDate",
+          "isCurrentlyWorking",
+          "highlights",
+        ],
+        where: { employeeId: id },
+        include: [
+          {
+            model: Dealer,
+            as: "dealership",
+            attributes: ["id", "name"],
+          },
+          {
+            model: Outlet,
+            as: "branch",
+            attributes: ["id", "name"],
+          },
+          {
+            model: OrganizationStructure,
+            as: "department",
+            attributes: ["id", "name"],
+          },
+          {
+            model: OrganizationStructure,
+            as: "designation",
+            attributes: ["id", "name"],
+          },
+        ],
+        order: [
+          ["isCurrentlyWorking", "DESC"],
+          ["startDate", "DESC"],
+        ],
+      }),
+      getEmploymentKeyRecords(id, 2),
+    ]);
+
+    const keyRecordsByDealerId = groupKeyRecordsByDealerId(keyRecords);
+
+    const data = employeements.map((employeement) => {
+      const record = employeement.toJSON();
+      record.keyRecords = keyRecordsByDealerId[record.dealerId] || [];
+      return record;
     });
 
     return res.apiSuccess(
       "Employee employeements fetched successfully",
-      employeements,
+      data,
     );
   } catch (error) {
     return res.apiError("Internal server error", 500, error);

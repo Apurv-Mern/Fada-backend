@@ -1,5 +1,6 @@
 const Validator = require("validatorjs");
 const { EmployeeSkill } = require("../../../../database/models");
+const { getEmployeeDealerId } = require("../../../../services/employeeService");
 
 const skillValidationRules = {
   skillName: "required|string",
@@ -17,14 +18,20 @@ async function findOwnedSkill(skillId, employeeId) {
 }
 
 /*
-@API: GET /employee/skills
+@API: GET /employee/skills?dealerId=4
 @Desc: Get employee skills
 @Access: Private
 */
 exports.getSkills = async (req, res) => {
   try {
+    const whereClause = {
+      employeeId: req.auth.id,
+    };
+    if (req.query?.dealerId) {
+      whereClause.dealerId = req.query?.dealerId;
+    }
     const skills = await EmployeeSkill.findAll({
-      where: { employeeId: req.auth.id },
+      where: whereClause,
     });
     return res.apiSuccess("Employee skills fetched successfully", skills);
   } catch (error) {
@@ -68,7 +75,8 @@ exports.createSkill = async (req, res) => {
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
-    await EmployeeSkill.create({ ...req.body, employeeId: req.auth.id });
+    const dealerId = await getEmployeeDealerId(req.auth.id);
+    await EmployeeSkill.create({ ...req.body, employeeId: req.auth.id, dealerId });
     return res.apiSuccess("Employee skill created successfully");
   } catch (error) {
     return res.apiError("Internal server error", 500, error);

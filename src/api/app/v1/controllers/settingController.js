@@ -25,7 +25,31 @@ exports.getAnnouncements = async (req, res) => {
         ),
       },
     });
-    return res.apiSuccess("Announcements fetched successfully", announcements);
+
+    const announcementCounts = await Announcement.count({
+      where: {
+        targetAudience: {
+          [Op.in]: ["employees", "both"],
+        },
+    
+        [Op.and]: [
+          sequelize.where(
+            sequelize.fn(
+              "JSON_CONTAINS",
+              sequelize.col("deliveryChannels"),
+              JSON.stringify("in_app")
+            ),
+            1
+          ),
+        ],
+      },
+    
+      group: ["postType"],
+    });
+    
+    return res.apiSuccess("Announcements fetched successfully", announcements,{
+      announcementCounts
+    });
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
   }

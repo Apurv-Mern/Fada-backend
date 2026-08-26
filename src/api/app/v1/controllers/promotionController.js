@@ -1,5 +1,6 @@
 const Validator = require("validatorjs");
 const { EmployeePromotion } = require("../../../../database/models");
+const { getEmployeeDealerId } = require("../../../../services/employeeService");
 
 const promotionValidationRules = {
   roleTitle: "required|string",
@@ -16,14 +17,20 @@ async function findOwnedPromotion(promotionId, employeeId) {
 }
 
 /*
-@API: GET /employee/promotions
+@API: GET /employee/promotions?dealerId=4
 @Desc: Get employee promotions
 @Access: Private
 */
 exports.getPromotions = async (req, res) => {
   try {
+    const whereClause = {
+      employeeId: req.auth.id,
+    };
+    if (req.query?.dealerId) {
+      whereClause.dealerId = req.query?.dealerId;
+    }
     const promotions = await EmployeePromotion.findAll({
-      where: { employeeId: req.auth.id },
+      where: whereClause,
     });
     return res.apiSuccess(
       "Employee promotions fetched successfully",
@@ -72,9 +79,11 @@ exports.createPromotion = async (req, res) => {
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
+    const dealerId = await getEmployeeDealerId(req.auth.id);
     await EmployeePromotion.create({
       ...req.body,
       employeeId: req.auth.id,
+      dealerId,
     });
     return res.apiSuccess("Employee promotion created successfully");
   } catch (error) {

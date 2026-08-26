@@ -1,6 +1,6 @@
 const Validator = require("validatorjs");
 const { EmployeeAppreciation } = require("../../../../database/models");
-
+const { getEmployeeDealerId } = require("../../../../services/employeeService");
 const appreciationValidationRules = {
   appreciationTitle: "required|string",
   issuedBy: "string",
@@ -16,14 +16,21 @@ async function findOwnedAppreciation(appreciationId, employeeId) {
   });
 }
 /*
-@API: GET /employee/appreciations
+@API: GET /employee/appreciations?dealerId=4
 @Desc: Get employee appreciations
 @Access: Private
 */
 exports.getAppreciations = async (req, res) => {
   try {
+
+    const whereClause = {
+      employeeId: req.auth.id,
+    };
+    if (req.query?.dealerId) {
+      whereClause.dealerId = req.query?.dealerId;
+    }
     const appreciations = await EmployeeAppreciation.findAll({
-      where: { employeeId: req.auth.id },
+      where: whereClause,
     });
     return res.apiSuccess(
       "Employee appreciations fetched successfully",
@@ -76,9 +83,13 @@ exports.createAppreciation = async (req, res) => {
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
+
+    const dealerId = await getEmployeeDealerId(req.auth.id);
+
     await EmployeeAppreciation.create({
       ...req.body,
       employeeId: req.auth.id,
+      dealerId,
     });
     return res.apiSuccess("Employee appreciation created successfully");
   } catch (error) {
