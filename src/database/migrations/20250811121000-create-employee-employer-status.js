@@ -12,12 +12,6 @@ module.exports = {
       employeeAssignmentId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: {
-          model: "EmployeeAssignments",
-          key: "id",
-        },
-        onUpdate: "CASCADE",
-        onDelete: "CASCADE",
       },
       status: {
         type: Sequelize.STRING,

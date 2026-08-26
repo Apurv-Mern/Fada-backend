@@ -155,36 +155,82 @@ exports.getEmployerInvitationById = async (req, res) => {
 @Access: Private
 */
 exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
   try {
-    const id = req.currentDealerId;
-    const { status } = req.params;
-    if (status !== "accept" && status !== "reject") {
+    const dealerId = req.currentDealerId;
+    const { status, id } = req.params;
+
+    if (!["accept", "reject"].includes(status)) {
+      await transaction.rollback();
+
       return res.apiError("Invalid status", 400);
     }
-    const employerInvitation = await EmployeeAssignment.update(
-      { status: status === "accept" ? "verified" : "rejected" },
-      { where: { dealerId: id, id: req.params.id } },
-    );
 
-    await EmployeeEmployerStatus.create({
-      employeeAssignmentId: req.params.id,
-      status:
-        status === "accept"
-          ? EMPLOYER_JOINING_STATUS.ACCEPT_INVITATION
-          : EMPLOYER_JOINING_STATUS.REJECT_INVITATION,
-      slug: "joining",
-      actionUserBy: "dealer",
-      actionUserId: id,
+    // Find invitation first
+    const employerInvitation = await EmployeeAssignment.findOne({
+      where: {
+        dealerId,
+        id,
+      },
+      transaction,
     });
 
-    await Employee.update({ isJourneyCompleted: true }, { where: { id: employerInvitation.employeeId } });
+    if (!employerInvitation) {
+      await transaction.rollback();
 
+      return res.apiError("Employer invitation not found", 404);
+    }
+
+    // Update invitation status
+    await employerInvitation.update(
+      {
+        status: status === "accept" ? "verified" : "rejected",
+      },
+      {
+        transaction,
+      },
+    );
+
+    // Create status history
+    await EmployeeEmployerStatus.create(
+      {
+        employeeAssignmentId: employerInvitation.id,
+        status:
+          status === "accept"
+            ? EMPLOYER_JOINING_STATUS.ACCEPT_INVITATION
+            : EMPLOYER_JOINING_STATUS.REJECT_INVITATION,
+        slug: "joining",
+        actionUserBy: "dealer",
+        actionUserId: dealerId,
+      },
+      {
+        transaction,
+      },
+    );
+
+    // Update employee journey status
+    await Employee.update(
+      {
+        isJourneyCompleted: true,
+      },
+      {
+        where: {
+          id: employerInvitation.employeeId,
+        },
+        transaction,
+      },
+    );
+
+    await transaction.commit();
 
     return res.apiSuccess(
       `Employer invitation ${status}ed successfully`,
       employerInvitation,
     );
   } catch (error) {
+    await transaction.rollback();
+
     return res.apiError("Internal server error", 500, error);
   }
 };
@@ -281,8 +327,8 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
-     
-    const { joiningDate = null } = req.body;
+
+    const joiningDate = (req?.body && req?.body?.joiningDate) ? req?.body?.joiningDate : null;
 
     if (!Object.values(EMPLOYER_JOINING_STATUS).includes(status)) {
       return res.apiError("Invalid status", 400);
@@ -305,11 +351,11 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
       return res.apiError("Employer invitation status already updated", 400);
     }
 
-    if(joiningDate){
+    if (joiningDate) {
       await Employee.update({
         joinedDate: joiningDate,
-      },{where: {id: employerInvitation.employeeId}});
-     
+      }, { where: { id: employerInvitation.employeeId } });
+
       await employerInvitation.update({
         startDate: joiningDate,
       });
