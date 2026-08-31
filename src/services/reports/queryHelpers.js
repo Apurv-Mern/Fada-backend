@@ -10,6 +10,7 @@ const {
   OrganizationStructure,
   EmployeeLeaveEmployeement,
   EmployeeEmployerStatus,
+  Brand,
 } = require("../../database/models");
 
 function buildDealerWhere(scope, filters) {
@@ -179,6 +180,16 @@ async function getDealerEmployeeCounts(dealerIds) {
   return counts;
 }
 
+
+async function getDealerBrands(dealerBrands) {
+  const brands = await Brand.findAll({
+    where: { isActive: true, flag: "brand", id: { [Op.in]: dealerBrands } },
+    attributes: ["id", "name"],
+    order: [["name", "ASC"]],
+  });
+  return (brands || []).map((b) => b.name).join(", ");
+};
+
 module.exports = {
   buildDealerWhere,
   buildLocationWhere,
@@ -187,6 +198,7 @@ module.exports = {
   getEmployeeDocStats,
   getDealerDocStats,
   getDealerEmployeeCounts,
+  getDealerBrands,
   Op,
   Dealer,
   DealerLocation,

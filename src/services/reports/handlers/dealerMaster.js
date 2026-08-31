@@ -5,6 +5,7 @@ const {
   DealerLocation,
   DealerProfile,
   Op,
+  getDealerBrands,
 } = require("../queryHelpers");
 const employeeMaster = require("./employeeMaster");
 
@@ -23,7 +24,7 @@ async function run({ scope, filters }) {
   }
 
   const counts = await getDealerEmployeeCounts(dealerIds);
-
+  
   const dealers = await Dealer.findAll({
     where: { id: { [Op.in]: dealerIds } },
     include: [
@@ -33,34 +34,38 @@ async function run({ scope, filters }) {
     order: [["createdAt", "DESC"]],
   });
 
-  const allRows = dealers.map((dealer) => {
-    const c = counts[dealer.id] || {
-      totalEmployees: 0,
-      fadaIdsCreated: 0,
-      verifiedEmployees: 0,
-      activeEmployees: 0,
-      lastActivityAt: null,
-    };
-    const brands = Array.isArray(dealer.brands) ? dealer.brands : [];
-    return {
-      dealerId: dealer.id,
-      dealerCode: dealer.dealerCode,
-      dealerName: dealer.name,
-      dealerType: dealer.profile?.typeOfDealership || null,
-      oemBrand: brands.join(", ") || null,
-      state: dealer.location?.state || null,
-      city: dealer.location?.city || null,
-      address: dealer.location?.address || null,
-      registrationDate: dealer.createdAt,
-      dealerStatus: dealer.status,
-      isActive: dealer.isActive,
-      totalEmployees: c.totalEmployees,
-      fadaIdsCreated: c.fadaIdsCreated,
-      verifiedEmployees: c.verifiedEmployees,
-      activeEmployees: c.activeEmployees,
-      lastActivityAt: c.lastActivityAt || dealer.updatedAt,
-    };
-  });
+  const allRows = await Promise.all(
+    dealers.map(async (dealer) => {
+      const c = counts[dealer.id] || {
+        totalEmployees: 0,
+        fadaIdsCreated: 0,
+        verifiedEmployees: 0,
+        activeEmployees: 0,
+        lastActivityAt: null,
+      };
+      const brands = Array.isArray(dealer.brands) ? dealer.brands : [];
+      const dealerBrands =
+        brands.length > 0 ? await getDealerBrands(brands) : "";
+      return {
+        dealerId: dealer.id,
+        dealerCode: dealer.dealerCode,
+        dealerName: dealer.name,
+        dealerType: dealer.profile?.typeOfDealership || null,
+        oemBrand: dealerBrands,
+        state: dealer.location?.state || null,
+        city: dealer.location?.city || null,
+        address: dealer.location?.address || null,
+        registrationDate: dealer.createdAt,
+        dealerStatus: dealer.status,
+        isActive: dealer.isActive,
+        totalEmployees: c.totalEmployees,
+        fadaIdsCreated: c.fadaIdsCreated,
+        verifiedEmployees: c.verifiedEmployees,
+        activeEmployees: c.activeEmployees,
+        lastActivityAt: c.lastActivityAt || dealer.updatedAt,
+      };
+    }),
+  );
 
   const total = allRows.length;
   const rows = allRows.slice(filters.offset, filters.offset + filters.limit);
