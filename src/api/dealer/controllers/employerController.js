@@ -6,6 +6,7 @@ const {
   EmployeeLeaveEmployeement,
   Dealer,
   Outlet,
+  OrganizationStructure
 } = require("../../../database/models");
 const Validator = require("validatorjs");
 
@@ -88,7 +89,7 @@ exports.getEmployerInvitations = async (req, res) => {
         {
           model: Employee,
           as: "employee",
-          attributes: ["id", "name", "email", "phone"],
+          attributes: ["id", "fadaId", "name", "email", "phone"],
         },
         {
           model: Dealer,
@@ -99,6 +100,21 @@ exports.getEmployerInvitations = async (req, res) => {
           model: Outlet,
           as: "branch",
           attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "department",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "designation",
+          attributes: ["id", "name"],
+        },
+        {
+          model: EmployeeEmployerStatus,
+          as: "statuses",
+          where: { slug: "joining" },
         },
       ],
     });
@@ -127,12 +143,31 @@ exports.getEmployerInvitationById = async (req, res) => {
         {
           model: Employee,
           as: "employee",
-          attributes: ["id", "name", "email", "phone"],
+          attributes: ["id", "name", "fadaId", "email", "phone"],
+        },
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name", "dealerCode"],
+        },
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "department",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "designation",
+          attributes: ["id", "name"],
         },
         {
           model: EmployeeEmployerStatus,
           as: "statuses",
-          attributes: ["id", "status", "slug", "actionUserBy", "actionUserId"],
           where: { slug: "joining" },
         },
       ],
@@ -409,7 +444,7 @@ exports.getEmployerLeavingRequests = async (req, res) => {
         {
           model: Employee,
           as: "employee",
-          attributes: ["id", "name", "email", "phone"],
+          attributes: ["id", "fadaId", "name", "email", "phone"],
         },
         {
           model: Dealer,
@@ -420,6 +455,27 @@ exports.getEmployerLeavingRequests = async (req, res) => {
           model: Outlet,
           as: "branch",
           attributes: ["id", "name"],
+        },
+        {
+          model: EmployeeAssignment,
+          as: "assignment",
+          include: [
+            {
+              model: OrganizationStructure,
+              as: "department",
+              attributes: ["id", "name"],
+            },
+            {
+              model: OrganizationStructure,
+              as: "designation",
+              attributes: ["id", "name"],
+            },
+          ],
+        },
+        {
+          model: EmployeeEmployerStatus,
+          as: "statuses",
+          where: { slug: "leaving" },
         },
       ],
     });
@@ -456,7 +512,44 @@ exports.getEmployerLeavingRequestById = async (req, res) => {
     const dealerId = req.currentDealerId;
     const employerLeavingRequest = await EmployeeLeaveEmployeement.findOne({
       where: { dealerId, id: req.params.id },
-      include: leaveStatusIncludes,
+      include: [
+        {
+          model: Employee,
+          as: "employee",
+          attributes: ["id", "fadaId", "name", "email", "phone"],
+        },
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name", "dealerCode"],
+        },
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name"],
+        },
+        {
+          model: EmployeeAssignment,
+          as: "assignment",
+          include: [
+            {
+              model: OrganizationStructure,
+              as: "department",
+              attributes: ["id", "name"],
+            },
+            {
+              model: OrganizationStructure,
+              as: "designation",
+              attributes: ["id", "name"],
+            },
+          ],
+        },
+        {
+          model: EmployeeEmployerStatus,
+          as: "statuses",
+          where: { slug: "leaving" },
+        },
+      ],
     });
     if (!employerLeavingRequest) {
       return res.apiError("Employer leaving request not found", 404);

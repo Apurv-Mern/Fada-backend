@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const {
   Dealer,
   DealerLocation,
@@ -17,8 +18,10 @@ const {
 */
 exports.getBrands = async (req, res) => {
   try {
+
+    const dealerBrans = req.auth?.brands || [];
     const brands = await Brand.findAll({
-      where: { isActive: true, flag: "brand" },
+      where: { isActive: true, flag: "brand", id: { [Op.in]: dealerBrans } },
       attributes: ["id", "name"],
       order: [["name", "ASC"]],
     });
@@ -53,17 +56,17 @@ exports.getSegments = async (req, res) => {
 @Access: Private
 */
 exports.getVehicleClass = async (req, res) => {
-    try {
-      const vehicleClass = await Brand.findAll({
-        where: { isActive: true, flag: "Vehicle-Class" },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      });
-      return res.apiSuccess("Vehicle class fetched successfully", vehicleClass);
-    } catch (error) {
-      return res.apiError(error.message, 500, error);
-    }
-  };
+  try {
+    const vehicleClass = await Brand.findAll({
+      where: { isActive: true, flag: "Vehicle-Class" },
+      attributes: ["id", "name"],
+      order: [["name", "ASC"]],
+    });
+    return res.apiSuccess("Vehicle class fetched successfully", vehicleClass);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
 
 /*
 @API: GET /dealer/masters/business-functions
@@ -167,7 +170,7 @@ exports.getDocumentTypes = async (req, res) => {
       whereClause.appliesTo = appliesTo;
     }
     const documentTypes = await Document.findAll({
-      where: whereClause, 
+      where: whereClause,
       order: [["name", "ASC"]],
     });
     return res.apiSuccess("Document types fetched successfully", documentTypes);
