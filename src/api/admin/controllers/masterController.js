@@ -1,5 +1,5 @@
 const Validator = require("validatorjs");
-const { Document, Brand, OrganizationStructure, OutletFunction } = require("../../../database/models");
+const { Document, Brand, OrganizationStructure, OutletFunction, Dealer} = require("../../../database/models");
 const { Op } = require("sequelize");
 
 
