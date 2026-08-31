@@ -13,6 +13,15 @@
  *         Omit or send the logged-in dealer id to act as self.
  *         Send a child dealer id (parentDealerId must equal the authenticated dealer)
  *         to scope business data to that sub-dealer. Invalid or unauthorized ids return 400/403.
+ *     EmployeeDealerIdQuery:
+ *       in: query
+ *       name: dealerId
+ *       required: false
+ *       schema:
+ *         type: integer
+ *       description: >
+ *         Optional dealer scope for profile records. When omitted, uses the employee's current
+ *         employment dealer if available; otherwise returns records across all employments.
  *   schemas:
  *     ApiSuccessResponse:
  *       type: object
@@ -71,6 +80,94 @@
  *                       type: integer
  *                     offset:
  *                       type: integer
+ *     ReportDealerMasterRow:
+ *       type: object
+ *       properties:
+ *         dealerId:
+ *           type: integer
+ *         dealerCode:
+ *           type: string
+ *         dealerName:
+ *           type: string
+ *         dealerType:
+ *           type: string
+ *           nullable: true
+ *         oemBrand:
+ *           type: string
+ *           description: Comma-separated brand names resolved from dealer brand IDs
+ *         state:
+ *           type: string
+ *           nullable: true
+ *         city:
+ *           type: string
+ *           nullable: true
+ *         address:
+ *           type: string
+ *           nullable: true
+ *         registrationDate:
+ *           type: string
+ *           format: date-time
+ *         dealerStatus:
+ *           type: string
+ *           enum: [temporary, pending, approved, rejected]
+ *         isActive:
+ *           type: boolean
+ *         totalEmployees:
+ *           type: integer
+ *         fadaIdsCreated:
+ *           type: integer
+ *         verifiedEmployees:
+ *           type: integer
+ *         activeEmployees:
+ *           type: integer
+ *         lastActivityAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *     ReportEmployeeMasterRow:
+ *       type: object
+ *       properties:
+ *         employeeId:
+ *           type: integer
+ *         dealerId:
+ *           type: integer
+ *         fadaId:
+ *           type: string
+ *           nullable: true
+ *         name:
+ *           type: string
+ *         employeeCode:
+ *           type: string
+ *           nullable: true
+ *         phone:
+ *           type: string
+ *           nullable: true
+ *         email:
+ *           type: string
+ *           nullable: true
+ *         department:
+ *           type: string
+ *           nullable: true
+ *         designation:
+ *           type: string
+ *           nullable: true
+ *         joiningDate:
+ *           type: string
+ *           format: date
+ *           nullable: true
+ *         employmentStatus:
+ *           type: string
+ *         fadaIdStatus:
+ *           type: string
+ *         profileCompletion:
+ *           type: object
+ *         verificationStatus:
+ *           type: string
+ *         membershipStatus:
+ *           type: string
+ *         lastProfileUpdate:
+ *           type: string
+ *           format: date-time
  *     ApiErrorResponse:
  *       type: object
  *       properties:

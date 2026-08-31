@@ -522,6 +522,8 @@
  *   get:
  *     tags: [Employee App Certificates]
  *     summary: List employee certificates
+ *     parameters:
+ *       - $ref: '#/components/parameters/EmployeeDealerIdQuery'
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -622,6 +624,8 @@
  *   get:
  *     tags: [Employee App Skills]
  *     summary: List employee skills
+ *     parameters:
+ *       - $ref: '#/components/parameters/EmployeeDealerIdQuery'
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -722,6 +726,8 @@
  *   get:
  *     tags: [Employee App Trainings]
  *     summary: List employee trainings
+ *     parameters:
+ *       - $ref: '#/components/parameters/EmployeeDealerIdQuery'
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -822,6 +828,8 @@
  *   get:
  *     tags: [Employee App Appreciations]
  *     summary: List employee appreciations
+ *     parameters:
+ *       - $ref: '#/components/parameters/EmployeeDealerIdQuery'
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -922,6 +930,8 @@
  *   get:
  *     tags: [Employee App Promotions]
  *     summary: List employee promotions
+ *     parameters:
+ *       - $ref: '#/components/parameters/EmployeeDealerIdQuery'
  *     security:
  *       - bearerAuth: []
  *     responses:
