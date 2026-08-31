@@ -28,6 +28,10 @@ function parseReportFilters(query = {}) {
     issueType: query.issueType || null,
     granularity: query.granularity || "monthly",
     format: query.format || "xlsx",
+    drillDown:
+      query.drillDown === "true" ||
+      query.drillDown === "1" ||
+      query.drillDown === true,
     limit,
     offset,
   };
