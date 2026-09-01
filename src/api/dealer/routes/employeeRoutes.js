@@ -14,6 +14,7 @@ router.put(
 router.get("/profile/:id", AuthMiddleware, employeeController.getEmployeeProfile);
 router.get("/:id", AuthMiddleware, employeeController.getEmployeeById);
 router.post("/", AuthMiddleware, employeeController.createEmployee);
+router.post("/import", AuthMiddleware, employeeController.importEmployees);
 router.put("/:id", AuthMiddleware, employeeController.updateEmployee);
 router.delete("/:id", AuthMiddleware, employeeController.deleteEmployee);
 

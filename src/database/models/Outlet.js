@@ -48,7 +48,8 @@ module.exports = (sequelize, DataTypes) => {
       },
       code: {
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: false,
+        unique: true,
       },
       manager: {
         type: DataTypes.STRING,
@@ -95,7 +96,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         {
           unique: true,
-          fields: ["dealerId", "code"],
+          fields: ["code"],
         },
       ],
     },

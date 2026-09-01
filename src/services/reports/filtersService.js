@@ -26,7 +26,7 @@ async function getFilterOptions(reportKey, portal) {
       }),
       portal === "admin"
         ? Dealer.findAll({
-            attributes: ["id", "name", "dealerCode"],
+            attributes: ["id", "name", "dealerId", "dealerCode"],
             order: [["name", "ASC"]],
             limit: 500,
           })
@@ -60,7 +60,11 @@ async function getFilterOptions(reportKey, portal) {
   const allFilters = {
     states: states.map((s) => s.state).filter(Boolean),
     cities: cities.map((c) => c.city).filter(Boolean),
-    dealers: dealers.map((d) => ({ id: d.id, name: d.name, dealerCode: d.dealerCode })),
+    dealers: dealers.map((d) => ({
+      id: d.id,
+      name: d.name,
+      dealerCode: d.dealerId || d.dealerCode,
+    })),
     brands: [...brandSet],
     dealerTypes: dealerTypes.map((t) => t.typeOfDealership).filter(Boolean),
     dealerStatuses: ["temporary", "pending", "approved", "rejected"],

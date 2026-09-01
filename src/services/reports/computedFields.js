@@ -1,5 +1,9 @@
 const dayjs = require("dayjs");
 
+function getDealerPublicCode(dealer) {
+  return dealer?.dealerId || dealer?.dealerCode || null;
+}
+
 function getFadaIdStatus(employee) {
   if (!employee?.fadaId) return "none";
   if (employee.isActive && employee.isVerified) return "active";
@@ -103,6 +107,7 @@ function getDealerOnboardingStage(dealer, profile, docStats = {}, employeeCount 
 }
 
 module.exports = {
+  getDealerPublicCode,
   getFadaIdStatus,
   getProfileCompletionStatus,
   getVerificationStatus,

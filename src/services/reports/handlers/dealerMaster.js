@@ -7,6 +7,7 @@ const {
   Op,
   getDealerBrands,
 } = require("../queryHelpers");
+const { getDealerPublicCode } = require("../computedFields");
 const employeeMaster = require("./employeeMaster");
 
 async function run({ scope, filters }) {
@@ -48,7 +49,7 @@ async function run({ scope, filters }) {
         brands.length > 0 ? await getDealerBrands(brands) : "";
       return {
         dealerId: dealer.id,
-        dealerCode: dealer.dealerCode,
+        dealerCode: getDealerPublicCode(dealer),
         dealerName: dealer.name,
         dealerType: dealer.profile?.typeOfDealership || null,
         oemBrand: dealerBrands,

@@ -65,7 +65,6 @@
  *             name: ABC Motors
  *             email: dealer@example.com
  *             phone: "9876543210"
- *             dealerCode: DLR-001
  *             brands: [1, 2]
  *             isGroupHoldingEntity: false
  *             parentCompanyId: null
@@ -78,7 +77,7 @@
  *               gstNumber: 27AABCU9603R1ZM
  *     responses:
  *       200:
- *         description: Dealer created (includes auto-generated dealerId)
+ *         description: Dealer created with auto-generated dealerId (DL##### format)
  *       422:
  *         description: Validation error or invalid brand IDs
  *       403:

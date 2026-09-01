@@ -203,12 +203,13 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, dealerCode, email, password, phone]
+ *             required: [name, email, password, phone]
  *             properties:
  *               name:
  *                 type: string
  *               dealerCode:
  *                 type: string
+ *                 description: Optional legacy manual code. Public dealerId (DL#####) is auto-generated.
  *               email:
  *                 type: string
  *                 format: email

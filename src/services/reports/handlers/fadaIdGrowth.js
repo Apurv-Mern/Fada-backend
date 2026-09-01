@@ -31,7 +31,7 @@ async function run({ scope, filters }) {
           {
             model: Dealer,
             as: "dealership",
-            attributes: ["id", "name", "dealerCode"],
+            attributes: ["id", "name", "dealerId", "dealerCode"],
             required: false,
             include: [{ model: DealerLocation, as: "location", attributes: ["state", "city"], required: false }],
           },

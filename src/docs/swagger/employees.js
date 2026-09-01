@@ -85,6 +85,42 @@
  *     EmployeeUpdateRequest:
  *       allOf:
  *         - $ref: '#/components/schemas/EmployeeCreateRequest'
+ *     AdminEmployeeImportItem:
+ *       type: object
+ *       required: [name]
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         qualification:
+ *           type: string
+ *         bloodGroup:
+ *           type: string
+ *         isProfilePrivate:
+ *           type: boolean
+ *           default: false
+ *         isRegistrationCompleted:
+ *           type: boolean
+ *           default: true
+ *         isProfileCompleted:
+ *           type: boolean
+ *           default: true
+ *         isKycCompleted:
+ *           type: boolean
+ *           default: false
+ *         isJourneyCompleted:
+ *           type: boolean
+ *           default: false
+ *         score:
+ *           type: integer
+ *     AdminEmployeeImportRequest:
+ *       type: array
+ *       items:
+ *         $ref: '#/components/schemas/AdminEmployeeImportItem'
  */
 
 /**
@@ -177,6 +213,64 @@
  *         description: Duplicate email or unique constraint violation
  *       422:
  *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /admin/employees/import:
+ *   post:
+ *     tags: [Admin Employees]
+ *     summary: Bulk import employees
+ *     description: >
+ *       Creates employees from a JSON array. Each row receives an auto-generated FADA ID,
+ *       approved status, and a temporary password email. Skipped rows (duplicate email or
+ *       phone) are returned in the response data array with a reason.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AdminEmployeeImportRequest'
+ *           example:
+ *             - name: John Doe
+ *               email: john@example.com
+ *               phone: "9876543210"
+ *               qualification: MBA
+ *               bloodGroup: O+
+ *               isProfilePrivate: false
+ *               isRegistrationCompleted: true
+ *               isProfileCompleted: true
+ *               isKycCompleted: false
+ *               isJourneyCompleted: false
+ *               score: 85
+ *     responses:
+ *       200:
+ *         description: Import completed; data contains skipped rows with reason
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/AdminEmployeeImportItem'
+ *                           - type: object
+ *                             properties:
+ *                               reason:
+ *                                 type: string
+ *                                 example: Email already exists
+ *       400:
+ *         description: Empty import payload
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Missing employees.view permission
  */
 
 /**
