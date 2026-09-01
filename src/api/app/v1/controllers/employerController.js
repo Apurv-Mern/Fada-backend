@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const {
   sequelize,
   EmployeeAssignment,
@@ -5,7 +6,8 @@ const {
   Dealer,
   Outlet,
   EmployeeLeaveEmployeement,
-  Employee
+  Employee,
+  OrganizationStructure
 } = require("../../../../database/models");
 const Validator = require("validatorjs");
 
@@ -51,16 +53,19 @@ exports.sendNewEmployerInvitation = async (req, res) => {
     const existingEmployeeAssignment = await EmployeeAssignment.findOne({
       where: {
         dealerId,
-        //outletId,
         employeeId: req.auth.id,
-        isCurrentlyWorking: true,
       },
       order: [["createdAt", "DESC"]],
     });
 
-    if (existingEmployeeAssignment) {
+    if (existingEmployeeAssignment && existingEmployeeAssignment?.isCurrentlyWorking) {
       await transaction.rollback();
       return res.apiError("Employee already working in this dealership.", 400);
+    }
+
+    if (existingEmployeeAssignment && existingEmployeeAssignment?.status === "pending") {
+      await transaction.rollback();
+      return res.apiError("Invitation has already been sent.", 400);
     }
 
     const employeeAssignment = await EmployeeAssignment.create(
@@ -105,9 +110,9 @@ exports.sendNewEmployerInvitation = async (req, res) => {
 exports.getEmployerInvitations = async (req, res) => {
   try {
     const { id } = req.auth;
-    const employeeInvitations = await EmployeeAssignment.findAll({
-      where: { employeeId: id, status: "pending" },
-      order: [["createdAt", "DESC"]],
+    const employeeInvitations = await EmployeeAssignment.findOne({
+      where: { employeeId: id, status: { [Op.in]: ["pending", "verified"], isCurrentlyWorking: false } },
+      order: [["createdAt", "ASC"]],
       include: [
         {
           model: Dealer,
@@ -117,6 +122,16 @@ exports.getEmployerInvitations = async (req, res) => {
         {
           model: Outlet,
           as: "branch",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "department",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "designation",
           attributes: ["id", "name"],
         },
         {
@@ -162,6 +177,16 @@ exports.getEmployerInvitationById = async (req, res) => {
           attributes: ["id", "name"],
         },
         {
+          model: OrganizationStructure,
+          as: "department",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "designation",
+          attributes: ["id", "name"],
+        },
+        {
           model: EmployeeEmployerStatus,
           as: "statuses",
           attributes: ["id", "status", "slug", "actionUserBy", "actionUserId"],
@@ -181,6 +206,32 @@ exports.getEmployerInvitationById = async (req, res) => {
   }
 };
 
+
+/*
+@API: PATCH /employee/employer-invitations/:id/mark-as-shared-details
+@Desc: employee mark as shared details
+@Access: Private
+*/
+exports.markAsSharedDetails = async (req, res) => {
+  try {
+    const { id } = req.auth;
+
+    await EmployeeEmployerStatus.create({
+      employeeAssignmentId: req.params.id,
+      status: EMPLOYER_JOINING_STATUS.SHARE_DETAILS,
+      slug: "joining",
+      actionUserBy: "employee",
+      actionUserId: id,
+    });
+
+    return res.apiSuccess(`Mark as shared details successfully`);
+  } catch (error) {
+    return res.apiError("Internal server error", 500, error);
+  }
+};
+
+
+
 /*
 @API: PATCH /employee/employer-invitations/:id/status/:status | accept | reject
 @Desc: Accept or reject employee employer invitation by id
@@ -189,7 +240,7 @@ exports.getEmployerInvitationById = async (req, res) => {
 exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
-    const { id } = req.auth;
+    const id = req.auth.id;
 
     const { status } = req.params;
 
@@ -197,6 +248,7 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
       await transaction.rollback();
       return res.apiError("Invalid status", 400);
     }
+
     const employeeInvitation = await EmployeeAssignment.update(
       { status: status === "accept" ? "verified" : "rejected" },
       { where: { employeeId: id, id: req.params.id }, transaction },
@@ -249,6 +301,9 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
+
+
+
     const employeeAssignment = await EmployeeAssignment.findOne({
       where: { employeeId: id, status: "verified", isCurrentlyWorking: true },
       order: [["createdAt", "DESC"]],
@@ -257,6 +312,17 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
     if (!employeeAssignment) {
       await transaction.rollback();
       return res.apiError("Employee is not currently working in any dealership", 422);
+    }
+
+    const checkPendingRequest = await EmployeeLeaveEmployeement.findOne({
+      where: {
+        dealerId: employeeAssignment.dealerId, employeeId: employeeAssignment.employeeId, status: { [Op.in]: ["pending", "accepted"] }
+      }
+    });
+
+    if (checkPendingRequest && employeeAssignment) {
+      await transaction.rollback();
+      return res.apiError("Employer leaving request already sent.", 422);
     }
 
     const employeeLeavingRequest = await EmployeeLeaveEmployeement.create({

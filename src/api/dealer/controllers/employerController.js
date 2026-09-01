@@ -293,6 +293,15 @@ exports.sendNewEmployerInvitation = async (req, res) => {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
+    const checkPendingRequest = await EmployeeAssignment.findOne({
+      where: { employeeId: employeeId, dealerId: id, status: "pending" }
+    });
+
+    if (checkPendingRequest) {
+      await transaction.rollback();
+      return res.apiError("Invitation has already been sent.", 400);
+    }
+
     const existingEmployeeAssignment = await EmployeeAssignment.findOne({
       where: { isCurrentlyWorking: true, employeeId: employeeId },
       order: [["createdAt", "DESC"]],
@@ -393,6 +402,8 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
 
       await employerInvitation.update({
         startDate: joiningDate,
+        isCurrentlyWorking: true,
+        status: "verified"
       });
     }
 
