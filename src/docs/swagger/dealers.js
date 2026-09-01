@@ -786,7 +786,7 @@
  *   patch:
  *     tags: [Dealer Employer Invitations]
  *     summary: Accept or reject employer invitation
- *     description: Updates assignment status to verified (accept) or rejected (reject) and appends EmployeeEmployerStatus history with status accepted or rejected.
+ *     description: Updates assignment status to verified (accept) or rejected (reject). Assignment status enum is pending, rejected, verified, completed.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -958,7 +958,7 @@
  *   get:
  *     tags: [Dealer Employer Leaving]
  *     summary: List employer leaving requests
- *     description: Returns EmployeeLeaveEmployeement rows for the active dealer, including employee and branch summary.
+ *     description: Returns EmployeeLeaveEmployeement rows for the active dealer. Status enum is pending, rejected, accepted, completed.
  *     security:
  *       - bearerAuth: []
  *     responses:

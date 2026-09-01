@@ -49,5 +49,6 @@ router.get("/:id", requirePermission("dealers.view"), dealerController.getDealer
 router.put("/:id", requirePermission("dealers.edit"), dealerController.updateDealer);
 router.delete("/:id", requirePermission("dealers.delete"), dealerController.deleteDealer);
 router.put("/:id/status", requirePermission("dealers.approve"), dealerController.updateDealerStatus);
+router.post("/import", requirePermission("dealers.create"), dealerController.importDealers);
 
 module.exports = router;

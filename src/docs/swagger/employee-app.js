@@ -1032,6 +1032,7 @@
  *   get:
  *     tags: [Employee App Journey]
  *     summary: List employee journey entries
+ *     description: Optional dealerId filter scopes results to a specific employment dealer.
  *     parameters:
  *       - $ref: '#/components/parameters/EmployeeDealerIdQuery'
  *     security:
@@ -1039,11 +1040,25 @@
  *     responses:
  *       200:
  *         description: Employee journeys fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/EmployeeJourneyItem'
  *       401:
  *         description: Unauthorized
  *   post:
  *     tags: [Employee App Journey]
  *     summary: Add journey entry
+ *     description: >
+ *       dealerId is set automatically from the employee's current employment.
+ *       Marks isJourneyCompleted on the employee profile when the first journey is created.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -1289,7 +1304,7 @@
  *   patch:
  *     tags: [Employee App Employer Invitations]
  *     summary: Accept or reject employer invitation
- *     description: Updates assignment status to verified (accept) or rejected (reject) and appends EmployeeEmployerStatus history with status accepted or rejected.
+ *     description: Updates assignment status to verified (accept) or rejected (reject). Assignment status enum is pending, rejected, verified, completed.
  *     security:
  *       - bearerAuth: []
  *     parameters:

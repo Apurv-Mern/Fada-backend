@@ -902,6 +902,69 @@
  *           items:
  *             type: string
  *           description: URLs or paths for photos/documents
+ *     EmployeeAssignmentStatus:
+ *       type: string
+ *       enum: [pending, rejected, verified, completed]
+ *       description: EmployeeAssignment.status — completed is set when exit workflow finishes
+ *     EmployeeLeaveEmployeementStatus:
+ *       type: string
+ *       enum: [pending, rejected, accepted, completed]
+ *       description: EmployeeLeaveEmployeement.status — completed is set on exit_completed
+ *     EmployeeJourneyItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         employeeId:
+ *           type: integer
+ *         dealerId:
+ *           type: integer
+ *           nullable: true
+ *           description: Dealer scope from current employment when the journey entry was created
+ *         title:
+ *           type: string
+ *         subtitle:
+ *           type: string
+ *           nullable: true
+ *         journeyDate:
+ *           type: string
+ *           format: date
+ *           nullable: true
+ *         attachments:
+ *           type: array
+ *           items:
+ *             type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     AdminDealerImportItem:
+ *       type: object
+ *       required: [name, email, phone, code]
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         code:
+ *           type: string
+ *           description: Unique dealer code
+ *         isGroupHoldingCompany:
+ *           type: boolean
+ *           default: false
+ *         parentCompanyCode:
+ *           type: string
+ *           nullable: true
+ *           description: Parent dealer code when not a group holding entity
+ *     AdminDealerImportRequest:
+ *       type: array
+ *       items:
+ *         $ref: '#/components/schemas/AdminDealerImportItem'
  *     EmployeeLoginResponse:
  *       type: object
  *       properties:

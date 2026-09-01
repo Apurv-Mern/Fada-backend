@@ -48,6 +48,8 @@
  *         description: Dealers fetched successfully
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Missing dealers.view permission
  *   post:
  *     tags: [Admin Dealers]
  *     summary: Create dealer
@@ -79,6 +81,62 @@
  *         description: Dealer created (includes auto-generated dealerId)
  *       422:
  *         description: Validation error or invalid brand IDs
+ *       403:
+ *         description: Missing dealers.create permission
+ */
+
+/**
+ * @swagger
+ * /admin/dealers/import:
+ *   post:
+ *     tags: [Admin Dealers]
+ *     summary: Bulk import dealers
+ *     description: >
+ *       Creates approved, active dealers from a JSON array. Skips rows when email or phone
+ *       already exists and returns those rows with a reason. Sends a temporary password email
+ *       for each successfully imported dealer.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AdminDealerImportRequest'
+ *           example:
+ *             - name: ABC Motors
+ *               email: abc@example.com
+ *               phone: "9876543210"
+ *               code: DLR-ABC-001
+ *               isGroupHoldingCompany: false
+ *               parentCompanyCode: DLR-PARENT-001
+ *     responses:
+ *       200:
+ *         description: Import completed; data contains skipped rows with reason
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       description: Rows skipped due to duplicate email/phone
+ *                       items:
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/AdminDealerImportItem'
+ *                           - type: object
+ *                             properties:
+ *                               reason:
+ *                                 type: string
+ *                                 example: Email already exists
+ *       400:
+ *         description: Empty import payload
+ *       403:
+ *         description: Missing dealers.create permission
+ *       401:
+ *         description: Unauthorized
  */
 
 /**
@@ -225,6 +283,8 @@
  *     responses:
  *       200:
  *         description: Dealer status updated
+ *       403:
+ *         description: Missing dealers.approve permission
  */
 
 /**
