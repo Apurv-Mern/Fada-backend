@@ -16,6 +16,7 @@ const {
   Dealer,
   Outlet,
   EmployeeProfileShare,
+  EmployeeJourney
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const {
@@ -213,6 +214,7 @@ exports.getEmployeeProfile = async (req, res) => {
           as: "workExperiences",
           required: false,
           attributes: ["id", "startDate", "employeementType", "isCurrentlyWorking", "endDate", "highlights"],
+          where: { status: "completed" },
           include: [
             {
               model: Dealer,

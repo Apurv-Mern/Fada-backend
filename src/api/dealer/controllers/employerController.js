@@ -403,7 +403,7 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
       await employerInvitation.update({
         startDate: joiningDate,
         isCurrentlyWorking: true,
-        status: "verified"
+        status: "completed"
       });
     }
 
