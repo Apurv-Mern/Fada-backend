@@ -132,7 +132,7 @@
  *         name: employmentStatus
  *         schema:
  *           type: string
- *           enum: [active, inactive, pending]
+ *           enum: [active, inactive, pending, completed]
  *       - in: query
  *         name: fadaIdStatus
  *         schema:
@@ -289,7 +289,7 @@
  *         name: employmentStatus
  *         schema:
  *           type: string
- *           enum: [active, inactive, pending]
+ *           enum: [active, inactive, pending, completed]
  *       - in: query
  *         name: fadaIdStatus
  *         schema:
@@ -424,7 +424,7 @@
  *         name: employmentStatus
  *         schema:
  *           type: string
- *           enum: [active, inactive, pending]
+ *           enum: [active, inactive, pending, completed]
  *       - in: query
  *         name: fadaIdStatus
  *         schema:
@@ -528,7 +528,7 @@
  *         name: employmentStatus
  *         schema:
  *           type: string
- *           enum: [active, inactive, pending]
+ *           enum: [active, inactive, pending, completed]
  *       - in: query
  *         name: fadaIdStatus
  *         schema:

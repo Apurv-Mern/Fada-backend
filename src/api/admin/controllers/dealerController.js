@@ -11,7 +11,8 @@ const { Op } = require("sequelize");
 const Validator = require("validatorjs");
 const { validateDealerBrands } = require("../../../utils/outletUtil");
 const { generateDealerId } = require("../../../utils/fadaIdUtil");
-
+const { generateRandomPassword } = require("../../../utils/passwordUtil");
+const { addEmailJob } = require("../../../utils/emailUtil");
 const dealerAttributes = {
   exclude: ["password", "otp", "refreshToken"],
 };
@@ -837,6 +838,70 @@ exports.verifyDealerBusinessDocument = async (req, res) => {
       status,
     });
     return res.apiSuccess(`Dealer document ${status} successfully`);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+
+/*
+@API: GET /admin/dealers/import
+  @Desc: Import dealers from a CSV file
+  @Access: Private
+*/
+exports.importDealers = async (req, res) => {
+  try {
+
+    let existingDealerRecords = [];
+ 
+    const data = req.body || [];
+    if (data.length === 0) {
+      return res.apiError("No data provided", 400);
+    }
+    
+    for (const item of data) {
+ 
+      const existingDealer = await Dealer.findone({where: {[Op.or]: [{phone: item.phone}, {email: item.email}]}});
+      if (existingDealer && existingDealer?.email === item?.email) {
+        item.reason = "Email already exists";
+        existingDealerRecords.push(item);
+        continue;
+      }
+
+      if (existingDealer && existingDealer?.phone === item?.phone) {
+        item.reason = "Phone number already exists";
+        existingDealerRecords.push(item);
+        continue;
+      }
+
+      const parentDealer = await Dealer.findone({where: {dealerCode: item.parentCompanyCode}});
+      
+
+       await Dealer.create({
+        name: item.name,
+        email: item.email,
+        phone: item.phone,
+        dealerCode: item.code,
+        isGroupHoldingEntity: item.isGroupHoldingCompany,
+        parentDealerId: parentDealer && parentDealer?.id || null,
+        status: "approved",
+        isActive: true,
+        isEmailVerified: true,
+      });
+
+      await addEmailJob({
+        to: item.email,
+        subject: "Dealer Temporary Password",
+        templateName: "temp-password.ejs",
+        data: {
+          name: item.name,
+          password: generateRandomPassword(),
+        },
+      });
+ 
+    }
+    return res.apiSuccess("Dealers imported successfully", existingDealerRecords);
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

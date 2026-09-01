@@ -8,6 +8,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "employeeId",
         as: "employee",
       });
+
+      EmployeeJourney.belongsTo(models.Dealer, {
+        foreignKey: "dealerId",
+        as: "dealership",
+      });
     }
   }
 
@@ -16,6 +21,10 @@ module.exports = (sequelize, DataTypes) => {
       employeeId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+      dealerId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
       },
       title: {
         type: DataTypes.STRING,
@@ -41,6 +50,9 @@ module.exports = (sequelize, DataTypes) => {
       indexes: [
         {
           fields: ["employeeId"],
+        },
+        {
+          fields: ["dealerId"],
         },
       ],
     },

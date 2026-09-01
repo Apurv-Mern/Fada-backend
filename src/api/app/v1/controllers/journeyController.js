@@ -1,5 +1,6 @@
 const Validator = require("validatorjs");
-const { EmployeeJourney } = require("../../../../database/models");
+const { Employee, EmployeeJourney } = require("../../../../database/models");
+const { getEmployeeDealerId } = require("../../../../services/employeeService");
 
 const journeyValidationRules = {
   title: "required|string",
@@ -43,14 +44,20 @@ async function findOwnedJourney(journeyId, employeeId) {
 }
 
 /*
-@API: GET /employee/journeys
+@API: GET /employee/journeys?dealerId=4
 @Desc: Get employee journeys
 @Access: Private
 */
 exports.getJourneys = async (req, res) => {
   try {
+    const whereClause = {
+      employeeId: req.auth.id,
+    };
+    if (req.query?.dealerId) {
+      whereClause.dealerId = req.query.dealerId;
+    }
     const journeys = await EmployeeJourney.findAll({
-      where: { employeeId: req.auth.id },
+      where: whereClause,
     });
     return res.apiSuccess("Employee journeys fetched successfully", journeys);
   } catch (error) {
@@ -98,9 +105,12 @@ exports.createJourney = async (req, res) => {
       return res.apiError(payload.error, 422);
     }
 
+    const dealerId = await getEmployeeDealerId(req.auth.id);
+
     await EmployeeJourney.create({
       ...payload.value,
       employeeId: req.auth.id,
+      dealerId,
     });
 
     if (!req.auth.isJourneyCompleted) {

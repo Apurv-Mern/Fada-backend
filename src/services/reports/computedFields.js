@@ -41,6 +41,7 @@ function getEmployeeCode(employee) {
 function getEmploymentStatus(assignment) {
   if (!assignment) return "unassigned";
   if (assignment.isCurrentlyWorking) return "active";
+  if (assignment.status === "completed") return "completed";
   if (assignment.status === "rejected") return "rejected";
   if (assignment.status === "pending") return "pending";
   if (!assignment.isActive) return "inactive";

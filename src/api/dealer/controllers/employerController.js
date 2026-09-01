@@ -575,6 +575,11 @@ exports.updateEmployerLeavingRequestStatusById = async (req, res) => {
       return res.apiError("Cannot update a rejected leaving request", 400);
     }
 
+    if (leaveRequest.status === "completed") {
+      await transaction.rollback();
+      return res.apiError("Leaving request is already completed", 400);
+    }
+
     if (leaveRequest.status !== "accepted") {
       await transaction.rollback();
       return res.apiError(
@@ -608,11 +613,14 @@ exports.updateEmployerLeavingRequestStatusById = async (req, res) => {
     );
 
     if (status === EMPLOYER_EXIT_STATUS.EXIT_COMPLETED) {
+      await leaveRequest.update({ status: "completed" }, { transaction });
+
       await EmployeeAssignment.update(
         {
           isCurrentlyWorking: false,
           isActive: false,
           endDate: leaveRequest.lastWorkingDate || new Date(),
+          status: "completed",
         },
         {
           where: { id: leaveRequest.employeeAssignmentId, dealerId },

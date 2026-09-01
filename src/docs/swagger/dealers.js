@@ -1073,7 +1073,8 @@
  *     summary: Advance employer leaving workflow status
  *     description: >
  *       Appends a workflow status after resignation is accepted.
- *       On exit_completed, marks the related EmployeeAssignment as no longer working.
+ *       On exit_completed, sets leave request and EmployeeAssignment status to completed
+ *       and marks the assignment as no longer working.
  *     security:
  *       - bearerAuth: []
  *     parameters:

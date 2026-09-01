@@ -70,7 +70,7 @@ async function getFilterOptions(reportKey, portal) {
       name: d.name,
       parentId: d.parentId,
     })),
-    employmentStatuses: ["active", "inactive", "pending"],
+    employmentStatuses: ["active", "inactive", "pending", "completed"],
     fadaIdStatuses: ["none", "created", "active"],
     profileStatuses: ["completed", "incomplete"],
     verificationStatuses: ["pending", "verified", "rejected"],

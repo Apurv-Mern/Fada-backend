@@ -43,6 +43,7 @@ function buildAssignmentWhere(scope, filters) {
   if (filters.employmentStatus === "active") where.isCurrentlyWorking = true;
   if (filters.employmentStatus === "inactive") where.isCurrentlyWorking = false;
   if (filters.employmentStatus === "pending") where.status = "pending";
+  if (filters.employmentStatus === "completed") where.status = "completed";
   return where;
 }
 

@@ -40,6 +40,7 @@ const buildOtpTemplateData = (data = {}) => {
     supportEmail: data.supportEmail || process.env.SUPPORT_EMAIL || "support@fada-id.com",
     supportPhone: data.supportPhone || process.env.SUPPORT_PHONE || "+91 123 456 7890",
     year: data.year || new Date().getFullYear(),
+    tempPassword: data?.password || "",
   };
 };
 

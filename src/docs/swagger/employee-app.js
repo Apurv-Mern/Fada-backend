@@ -1032,6 +1032,8 @@
  *   get:
  *     tags: [Employee App Journey]
  *     summary: List employee journey entries
+ *     parameters:
+ *       - $ref: '#/components/parameters/EmployeeDealerIdQuery'
  *     security:
  *       - bearerAuth: []
  *     responses:
