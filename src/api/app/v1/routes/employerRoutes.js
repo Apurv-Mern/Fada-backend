@@ -8,9 +8,11 @@ router.use(employeeAuth);
 router.post("/", employerController.sendNewEmployerInvitation);
 router.get("/", employerController.getEmployerInvitations);
 router.get("/:id", employerController.getEmployerInvitationById);
+router.put("/:id/mark-as-shared-details", employerController.markAsSharedDetails);
 router.patch(
   "/:id/status/:status",
   employerController.acceptOrRejectEmployerInvitationById,
 );
+
 
 module.exports = router;

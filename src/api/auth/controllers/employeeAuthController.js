@@ -142,7 +142,7 @@ exports.verifyRegistrationOtp = async (req, res) => {
     await addEmailJob({
       to: email,
       subject: "Welcome to FADA-ID – Your Login Password",
-      templateName: "employee-temp-password.ejs",
+      templateName: "emp-temp-password.ejs",
       data: {
         name: employee.name,
         password: randomPassword,

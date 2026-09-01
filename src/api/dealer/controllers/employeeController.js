@@ -159,7 +159,6 @@ exports.getEmployeeProfile = async (req, res) => {
           as: "addresses",
           required: false,
         },
-
         {
           model: EmployeeDocument,
           attributes: ["id", "isApproved", "isVerified", "reason", "status"],
@@ -200,6 +199,12 @@ exports.getEmployeeProfile = async (req, res) => {
         {
           model: EmployeeSkill,
           as: "skills",
+          required: false,
+          where: { dealerId },
+        },
+        {
+          model: EmployeeJourney,
+          as: "journeys",
           required: false,
           where: { dealerId },
         },

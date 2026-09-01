@@ -392,7 +392,7 @@ exports.createEmployeement = async (req, res) => {
       employeementType: "required|string",
       isCurrentlyWorking: "required|boolean",
       startDate: "required|date",
-      endDate: "date",
+      endDate: "required|date",
       highlights: "required|string",
     });
 
@@ -432,8 +432,14 @@ exports.createEmployeement = async (req, res) => {
         }
       ]
     });
+
     if (checkEmployeement) {
-      return res.apiError(`You are already employed at ${checkEmployeement?.dealership?.name || "another dealership"}. Please complete the exit process from your current employment before joining a new dealership.`);
+      if (!dayjs(endDate).isBefore(dayjs(checkEmployeement?.startDate), "day")) {
+        return res.apiError(
+          `You are currently employed at ${checkEmployeement?.dealership?.name || "another dealership"
+          }. The previous employment last working date must be before your current employment start date. Please enter a valid last working date.`
+        );
+      }
     }
 
     await EmployeeAssignment.create({
@@ -501,8 +507,7 @@ exports.getEmployeements = async (req, res) => {
           },
         ],
         order: [
-          ["isCurrentlyWorking", "DESC"],
-          ["startDate", "DESC"],
+          ["startDate", "ASC"],
         ],
       }),
       getEmploymentKeyRecords(id, 2),
