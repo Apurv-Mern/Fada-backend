@@ -30,6 +30,9 @@ const {
   checkAllDocumentsApproved,
 } = require("../../../services/employeeService");
 
+const { generateTempPassword, hashPassword } = require('../../../utils/passwordUtil');
+const { addEmailJob } = require('../../../queues');
+
 const employeeIncludes = buildEmployeeIncludes({ includeDealership: false });
 
 const getDealerId = (req) => req.currentDealerId;
@@ -767,7 +770,7 @@ exports.importEmployees = async (req, res) => {
       await addEmailJob({
         to: item.email,
         subject: "Employee Temporary Password",
-        templateName: "temp-password.ejs",
+        templateName: "emp-temp-password.ejs",
         data: {
           name: item.name,
           password,
