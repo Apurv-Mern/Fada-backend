@@ -292,7 +292,6 @@
  *             $ref: '#/components/schemas/DealerOutletCreateRequest'
  *           example:
  *             name: Sanganer
- *             code: OUT-02541
  *             brandId: 1
  *             manager: Shambhu
  *             pinCode: "303908"
@@ -303,7 +302,11 @@
  *             isActive: true
  *     responses:
  *       200:
- *         description: Outlet created successfully
+ *         description: Outlet created successfully; response includes auto-generated code (OT######)
+ *       409:
+ *         description: Duplicate outlet code
+ *       422:
+ *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
@@ -328,6 +331,66 @@
  *     responses:
  *       200:
  *         description: Outlet options fetched successfully
+ */
+
+/**
+ * @swagger
+ * /dealers/outlets/import:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   post:
+ *     tags: [Dealer Outlets]
+ *     summary: Bulk import outlets for the active dealer
+ *     description: >
+ *       Creates outlets from a JSON array scoped to the authenticated dealer context
+ *       (Bearer dealer, or child specified by X-Dealer-Id). Brand and outlet functions
+ *       are resolved by name. Public outlet code (OT######) is auto-generated.
+ *       Skipped rows are returned in the response data array with a reason.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerOutletImportRequest'
+ *           example:
+ *             - name: Sanganer
+ *               manager: Shambhu
+ *               pincode: "303908"
+ *               city: Jaipur
+ *               state: Rajasthan
+ *               address: "jaipur, kotkhawada"
+ *               brandName: Maruti
+ *               outletFunctions: ["sales", "service"]
+ *     responses:
+ *       200:
+ *         description: Import completed; data contains skipped rows with reason
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/DealerOutletImportItem'
+ *                           - type: object
+ *                             properties:
+ *                               reason:
+ *                                 type: string
+ *                                 enum:
+ *                                   - Outlet already exists
+ *                                   - Brand not found
+ *       400:
+ *         description: Empty import payload
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
  */
 
 /**
@@ -369,6 +432,12 @@
  *     responses:
  *       200:
  *         description: Outlet updated successfully
+ *       404:
+ *         description: Outlet not found
+ *       409:
+ *         description: Duplicate outlet code
+ *       422:
+ *         description: Validation error
  *   delete:
  *     tags: [Dealer Outlets]
  *     summary: Delete outlet

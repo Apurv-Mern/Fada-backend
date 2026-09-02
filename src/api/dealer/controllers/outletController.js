@@ -259,3 +259,88 @@ exports.deleteOutlet = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
+
+/*
+@API: GET /dealers/outlets/import
+@Desc: Import outlets from JSON array
+@Access: Private
+@Body: [
+  {
+    "name": "Outlet 1",
+    "manager": "John Doe",
+    "pincode": "123456",
+    "city": "New York",
+    "state": "NY",
+    "address": "123 Main St",
+    "brandName": "Brand 1",
+    "outletFunctions": ["sales", "service", "parts"],
+  },
+  {
+    "name": "Outlet 2",
+    "manager": "Jane Doe",
+    "pincode": "123456",
+    "city": "New York",
+    "state": "NY",
+    "address": "123 Main St",
+    "brandName": "Brand 2",
+    "outletFunctions": ["sales", "service", "parts"],
+  }
+]
+*/
+exports.importOutlets = async (req, res) => {
+  try {
+    const dealerId = getDealerId(req);
+    const data = req.body || [];
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return res.apiError("No data provided", 400);
+    }
+
+    const skippedRecords = [];
+
+    for (const item of data) {
+      const existingOutlet = await Outlet.findOne({
+        where: { name: item.name, dealerId: dealerId },
+      });
+
+      if (existingOutlet) {
+        skippedRecords.push({ ...item, reason: "Outlet already exists" });
+        continue;
+      }
+      
+      const brand = await Brand.findOne({
+        where: { name: item.brandName , flag : "Brand"},
+      });
+
+      if (!brand) {
+        skippedRecords.push({ ...item, reason: "Brand not found" });
+        continue;
+      }
+
+      const outletFunctions = await OutletFunction.findAll({
+        where: { name: { [Op.in]: item.outletFunctions } },
+      });
+
+      const functionsids = (outletFunctions || [])?.map(item => item.id);
+
+      const outlet = await Outlet.create({
+        name: item.name,
+        manager: item.manager,
+        pinCode: item.pincode,
+        city: item.city,
+        state: item.state,
+        address: item.address,
+        brandId: brand.id,
+        functions: functionsids,
+        dealerId: dealerId,
+        isActive: true,
+        code: await generateUniqueOutletPublicCode(Outlet),
+      });
+
+     
+    }
+    return res.apiSuccess("Outlets imported successfully", skippedRecords);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
