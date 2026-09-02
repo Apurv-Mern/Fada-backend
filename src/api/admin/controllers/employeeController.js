@@ -15,7 +15,7 @@ const {
   EmployeePromotion,
   EmployeeTraining,
   EmployeeSkill,
-  EmployeeJourney,
+  EmployeeJourney
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const dayjs = require("dayjs");
@@ -471,6 +471,7 @@ exports.getEmployeeById = async (req, res) => {
             "endDate",
             "highlights",
           ],
+          where: { status: "completed" },
           include: [
             {
               model: Dealer,
