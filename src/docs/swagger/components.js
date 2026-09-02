@@ -361,6 +361,104 @@
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/RecentDealerSummary'
+ *     DealerDashboardStatItem:
+ *       type: object
+ *       properties:
+ *         count:
+ *           type: integer
+ *         changeThisWeek:
+ *           type: integer
+ *           description: Net change during the current calendar week
+ *     DealerDashboardEmployeesByOutletItem:
+ *       type: object
+ *       properties:
+ *         outletId:
+ *           type: integer
+ *         outletName:
+ *           type: string
+ *         outletCode:
+ *           type: string
+ *         employeeCount:
+ *           type: integer
+ *     DealerDashboardRecentRequestItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         type:
+ *           type: string
+ *           enum: [join, exit, transfer]
+ *         employeeId:
+ *           type: integer
+ *           nullable: true
+ *         employeeName:
+ *           type: string
+ *           nullable: true
+ *         fadaId:
+ *           type: string
+ *           nullable: true
+ *         status:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *     DealerDashboardResponse:
+ *       type: object
+ *       properties:
+ *         dateRange:
+ *           type: object
+ *           properties:
+ *             startDate:
+ *               type: string
+ *               format: date
+ *             endDate:
+ *               type: string
+ *               format: date
+ *         employeeStats:
+ *           type: object
+ *           properties:
+ *             total:
+ *               $ref: '#/components/schemas/DealerDashboardStatItem'
+ *             active:
+ *               $ref: '#/components/schemas/DealerDashboardStatItem'
+ *             newJoins:
+ *               $ref: '#/components/schemas/DealerDashboardStatItem'
+ *             exits:
+ *               $ref: '#/components/schemas/DealerDashboardStatItem'
+ *         employeesByOutlet:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/DealerDashboardEmployeesByOutletItem'
+ *         pendingRequests:
+ *           type: object
+ *           properties:
+ *             join:
+ *               type: integer
+ *             exit:
+ *               type: integer
+ *             transfer:
+ *               type: integer
+ *         fadaScoreSummary:
+ *           type: object
+ *           properties:
+ *             statusLabel:
+ *               type: string
+ *               example: Needs Work
+ *             statusColor:
+ *               type: string
+ *               example: "#EF4444"
+ *             top25Percent:
+ *               type: integer
+ *               description: Percentage of dealer employees in the global top 25% by score
+ *             averageScore:
+ *               type: integer
+ *               nullable: true
+ *             employeeCount:
+ *               type: integer
+ *         recentEmploymentRequests:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/DealerDashboardRecentRequestItem'
  *     RecentDealerSummary:
  *       type: object
  *       properties:

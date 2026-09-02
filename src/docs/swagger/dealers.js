@@ -64,6 +64,55 @@
 
 /**
  * @swagger
+ * /dealers/user/dashboard:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Profile]
+ *     summary: Get dealer dashboard statistics
+ *     description: >
+ *       Returns employee KPIs, outlet distribution, pending employment requests,
+ *       FADA score summary, and recent join/exit/transfer activity for the active dealer.
+ *       Supports optional date range filtering for period-based new join and exit counts.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Period start for new joins and exits (defaults to start of current month)
+ *         example: "2026-07-01"
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Period end for new joins and exits (defaults to today)
+ *         example: "2026-07-12"
+ *     responses:
+ *       200:
+ *         description: Dashboard fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/DealerDashboardResponse'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
+ *       422:
+ *         description: Invalid date range
+ */
+
+/**
+ * @swagger
  * /dealers/user/upload-profile-picture:
  *   parameters:
  *     - $ref: '#/components/parameters/XDealerId'
