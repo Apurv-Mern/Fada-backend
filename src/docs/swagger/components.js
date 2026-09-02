@@ -1530,9 +1530,77 @@
  *           type: string
  *         slug:
  *           type: string
+ *     AdminOutletImportItem:
+ *       type: object
+ *       required: [name, companyCode]
+ *       properties:
+ *         name:
+ *           type: string
+ *         companyCode:
+ *           type: string
+ *           description: Dealer dealerCode or public dealerId (DL#####)
+ *         brandId:
+ *           type: integer
+ *           description: Preferred when known; otherwise brandName is resolved
+ *         brandName:
+ *           type: string
+ *         manager:
+ *           type: string
+ *         pinCode:
+ *           type: string
+ *         city:
+ *           type: string
+ *         state:
+ *           type: string
+ *         address:
+ *           type: string
+ *         functions:
+ *           type: array
+ *           description: Outlet function slugs, names, or IDs (comma-separated string also accepted)
+ *           items:
+ *             oneOf:
+ *               - type: string
+ *               - type: integer
+ *         isActive:
+ *           type: boolean
+ *           default: true
+ *     AdminOutletImportRequest:
+ *       type: array
+ *       items:
+ *         $ref: '#/components/schemas/AdminOutletImportItem'
+ *     DealerOutletImportItem:
+ *       type: object
+ *       required: [name, brandName, outletFunctions]
+ *       properties:
+ *         name:
+ *           type: string
+ *         manager:
+ *           type: string
+ *         pincode:
+ *           type: string
+ *           description: 6-digit pin code (lowercase key in import payload)
+ *         city:
+ *           type: string
+ *         state:
+ *           type: string
+ *         address:
+ *           type: string
+ *         brandName:
+ *           type: string
+ *           description: Brand master name (flag Brand)
+ *         outletFunctions:
+ *           type: array
+ *           description: Outlet function names from master
+ *           items:
+ *             type: string
+ *     DealerOutletImportRequest:
+ *       type: array
+ *       items:
+ *         $ref: '#/components/schemas/DealerOutletImportItem'
  *     DealerOutletCreateRequest:
  *       type: object
  *       required: [name, brandId]
+ *       description: Public outlet code (OT######) is auto-generated on create and cannot be changed later.
  *       properties:
  *         name:
  *           type: string

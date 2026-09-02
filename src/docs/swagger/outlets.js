@@ -122,6 +122,69 @@
 
 /**
  * @swagger
+ * /admin/outlets/import:
+ *   post:
+ *     tags: [Admin Outlets]
+ *     summary: Bulk import outlets
+ *     description: >
+ *       Creates outlets from a JSON array. Each row is matched to a dealer by companyCode
+ *       (dealerCode or public dealerId). Public outlet code (OT######) is auto-generated.
+ *       Skipped rows are returned in the response data array with a reason.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AdminOutletImportRequest'
+ *           example:
+ *             - name: Sanganer
+ *               companyCode: DL58372
+ *               brandName: Maruti
+ *               manager: Shambhu
+ *               pinCode: "303908"
+ *               city: Jaipur
+ *               state: Rajasthan
+ *               address: "jaipur, kotkhawada"
+ *               functions: ["sales", "service"]
+ *               isActive: true
+ *     responses:
+ *       200:
+ *         description: Import completed; data contains skipped rows with reason
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/AdminOutletImportItem'
+ *                           - type: object
+ *                             properties:
+ *                               reason:
+ *                                 type: string
+ *                                 enum:
+ *                                   - Missing required fields
+ *                                   - Company code not found
+ *                                   - Brand not found
+ *                                   - Outlet already exists for this company
+ *       400:
+ *         description: Empty import payload
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Missing dealers.create permission
+ *       409:
+ *         description: Duplicate outlet code
+ */
+
+/**
+ * @swagger
  * /admin/outlets/parent/{parentId}:
  *   get:
  *     tags: [Admin Outlets]
