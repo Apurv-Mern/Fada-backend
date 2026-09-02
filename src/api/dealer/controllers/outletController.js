@@ -5,14 +5,13 @@ const {
   buildOutletIncludes,
   validateFunctions,
   validateBrandId,
-  validateOutletCode,
   buildOutletPayload,
   enrichOutletFunctions,
 } = require("../../../utils/outletUtil");
+const { generateUniqueOutletPublicCode } = require("../../../utils/entityCodeUtil");
 
 const outletValidationRules = {
   name: "required|string",
-  code: "string",
   manager: "string",
   pinCode: "string|size:6",
   city: "string",
@@ -166,15 +165,10 @@ exports.createOutlet = async (req, res) => {
     if (!functionsResult.valid) return;
     if (!(await validateBrandId(req.body.brandId, res))) return;
 
-    const codeResult = await validateOutletCode({
-      code: req.body.code,
-      dealerId,
-      res,
-    });
-    if (!codeResult.valid) return;
+    const outletCode = await generateUniqueOutletPublicCode(Outlet);
 
     const outlet = await Outlet.create(
-      buildOutletPayload(req.body, dealerId, functionsResult.normalized),
+      buildOutletPayload(req.body, dealerId, functionsResult.normalized, outletCode),
     );
 
     const createdOutlet = await Outlet.findByPk(outlet.id, {
@@ -222,16 +216,8 @@ exports.updateOutlet = async (req, res) => {
       return res.apiError("Outlet not found", 404);
     }
 
-    const codeResult = await validateOutletCode({
-      code: req.body.code,
-      dealerId,
-      excludeOutletId: existingOutlet.id,
-      res,
-    });
-    if (!codeResult.valid) return;
-
     await existingOutlet.update(
-      buildOutletPayload(req.body, dealerId, normalizedFunctions),
+      buildOutletPayload(req.body, dealerId, normalizedFunctions, existingOutlet.code),
     );
 
     const outlet = await Outlet.findByPk(existingOutlet.id, {
@@ -265,7 +251,6 @@ exports.deleteOutlet = async (req, res) => {
     }
 
     await sequelize.transaction(async (transaction) => {
-      await outlet.update({ code: null }, { transaction });
       await outlet.destroy({ transaction });
     });
 

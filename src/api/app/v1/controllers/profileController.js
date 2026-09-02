@@ -392,7 +392,7 @@ exports.createEmployeement = async (req, res) => {
       employeementType: "required|string",
       isCurrentlyWorking: "required|boolean",
       startDate: "required|date",
-      endDate: "required|date",
+      endDate: "date",
       highlights: "required|string",
     });
 
@@ -434,7 +434,7 @@ exports.createEmployeement = async (req, res) => {
     });
 
     if (checkEmployeement) {
-      if (!dayjs(endDate).isBefore(dayjs(checkEmployeement?.startDate), "day")) {
+      if (endDate && !dayjs(endDate).isBefore(dayjs(checkEmployeement?.startDate), "day")) {
         return res.apiError(
           `You are currently employed at ${checkEmployeement?.dealership?.name || "another dealership"
           }. The previous employment last working date must be before your current employment start date. Please enter a valid last working date.`

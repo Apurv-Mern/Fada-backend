@@ -18,18 +18,92 @@ const {
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const dayjs = require("dayjs");
-const { assign } = require("nodemailer/lib/shared");
-const { checkAllDocumentsApproved } = require("../../../services/employeeService");
+const {
+  checkAllDocumentsApproved,
+} = require("../../../services/employeeService");
+const {
+  generateTempPassword,
+  hashPassword,
+} = require("../../../utils/passwordUtil");
+const { addEmailJob } = require("../../../queues");
 
+const importEmployeeValidationRules = {
+  name: "required|string",
+  email: "email",
+  phone: "string",
+  city: "string",
+  qualification: "string",
+  bloodGroup: "string",
+  isProfilePrivate: "boolean",
+  isRegistrationCompleted: "boolean",
+  isProfileCompleted: "boolean",
+  isKycCompleted: "boolean",
+  isJourneyCompleted: "boolean",
+  score: "integer",
+  isActive: "boolean",
+  joinedDate: "date",
+};
 
+function buildImportEmployeePayload(item) {
+  return {
+    name: item.name,
+    email: item.email ?? null,
+    phone: item.phone ?? null,
+    qualification: item.qualification ?? null,
+    bloodGroup: item.bloodGroup ?? null,
+    isProfilePrivate: item.isProfilePrivate ?? false,
+    isRegistrationCompleted: item.isRegistrationCompleted ?? false,
+    isProfileCompleted: item.isProfileCompleted ?? false,
+    isKycCompleted: item.isKycCompleted ?? false,
+    isJourneyCompleted: item.isJourneyCompleted ?? false,
+    score: item.score ?? 0,
+    isActive: item.isActive ?? true,
+    joinedDate: item.joinedDate ?? null,
+    status: item.status ?? "approved",
+    isVerified: item.isVerified ?? false,
+  };
+}
 
+function buildImportAssignmentPayload(item) {
+  if (!item.assignment || typeof item.assignment !== "object") {
+    return null;
+  }
 
+  const {
+    dealerId,
+    outletId,
+    departmentId,
+    designationId,
+    startDate,
+    endDate,
+    isActive,
+  } = item.assignment;
 
+  if (!dealerId) {
+    return null;
+  }
 
-
+  return {
+    dealerId,
+    outletId: outletId ?? null,
+    departmentId: departmentId ?? null,
+    designationId: designationId ?? null,
+    startDate: startDate ?? item.joinedDate ?? null,
+    endDate: endDate ?? null,
+    isActive: isActive ?? true,
+  };
+}
 
 const employeeAttributes = {
-  exclude: ["password", "otp", "refreshToken", "mpin", "emailOTP", "updatedAt", "deletedAt"],
+  exclude: [
+    "password",
+    "otp",
+    "refreshToken",
+    "mpin",
+    "emailOTP",
+    "updatedAt",
+    "deletedAt",
+  ],
 };
 
 const employeeStatus = ["temporary", "pending", "approved", "rejected"];
@@ -275,7 +349,7 @@ exports.getEmployees = async (req, res) => {
         ...(dealerId ? { dealerId } : {}),
         ...(outletId ? { outletId } : {}),
         ...(departmentId ? { departmentId } : {}),
-        isCurrentlyWorking: true
+        isCurrentlyWorking: true,
       },
       include: [
         {
@@ -331,7 +405,6 @@ exports.getEmployees = async (req, res) => {
 */
 exports.getEmployeeById = async (req, res) => {
   try {
-
     const employee = await Employee.findOne({
       where: { id: req.params.id },
       attributes: employeeAttributes,
@@ -384,7 +457,14 @@ exports.getEmployeeById = async (req, res) => {
           model: EmployeeAssignment,
           as: "workExperiences",
           required: false,
-          attributes: ["id", "startDate", "employeementType", "isCurrentlyWorking", "endDate", "highlights"],
+          attributes: [
+            "id",
+            "startDate",
+            "employeementType",
+            "isCurrentlyWorking",
+            "endDate",
+            "highlights",
+          ],
           include: [
             {
               model: Dealer,
@@ -638,12 +718,11 @@ exports.updateEmployeeStatus = async (req, res) => {
       return res.apiError("Invalid status", 400);
     }
 
-    let data = { status: req.params.status }
+    let data = { status: req.params.status };
 
-    if (req.params.status = "approved") {
+    if ((req.params.status = "approved")) {
       data.isVerified = true;
     }
-
 
     await employee.update(data);
 
@@ -722,7 +801,15 @@ exports.activeInactiveEmployee = async (req, res) => {
 exports.getEmployeeDocuments = async (req, res) => {
   try {
     const documents = await Document.findAll({
-      attributes: ["id", "name", "code", "category", "isMandatory", "isVerificationRequired", "notes"],
+      attributes: [
+        "id",
+        "name",
+        "code",
+        "category",
+        "isMandatory",
+        "isVerificationRequired",
+        "notes",
+      ],
       where: {
         isActive: true,
         appliesTo: { [Op.in]: ["employee", "both"] },
@@ -750,11 +837,9 @@ exports.getEmployeeDocuments = async (req, res) => {
 */
 exports.updateEmployeeDocumentStatus = async (req, res) => {
   try {
-
     const validator = new Validator(req.body, {
       status: "required|in:approved,rejected",
       reason: "required_if:status,rejected|string",
-
     });
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
@@ -783,9 +868,7 @@ exports.updateEmployeeDocumentStatus = async (req, res) => {
       reason: reason,
     });
 
-
     await checkAllDocumentsApproved(id);
-
 
     return res.apiSuccess(
       status === "approved"
@@ -797,7 +880,6 @@ exports.updateEmployeeDocumentStatus = async (req, res) => {
   }
 };
 
-
 /*
 @API: DELETE /admin/employees/:id/documents/:documentId
 @Desc: Delete a document for an employee
@@ -805,7 +887,6 @@ exports.updateEmployeeDocumentStatus = async (req, res) => {
 */
 exports.deleteEmployeeDocument = async (req, res) => {
   try {
-
     const employeeDocument = await EmployeeDocument.findOne({
       where: { employeeId: req.params.id, documentId: req.params.documentId },
     });
@@ -813,10 +894,104 @@ exports.deleteEmployeeDocument = async (req, res) => {
       return res.apiError("Employee document not found", 404);
     }
 
-
     await employeeDocument.destroy();
     return res.apiSuccess("Employee document deleted successfully");
   } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: POST /admin/employees/import
+@Desc: Bulk import employees from JSON array
+@Access: Private
+*/
+exports.importEmployees = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const data = req.body || [];
+
+    if (!Array.isArray(data) || data.length === 0) {
+      await transaction.rollback();
+      return res.apiError("No data provided", 400);
+    }
+
+    const skippedRecords = [];
+
+    for (const item of data) {
+      const existingEmployee = await Employee.findOne({
+        where: {
+          [Op.or]: [{ email: item.email }, { phone: item.phone }],
+        },
+        transaction,
+      });
+
+      if (existingEmployee) {
+        if (existingEmployee.email === item.email) {
+          skippedRecords.push({
+            ...item,
+            reason: "Email already exists",
+          });
+          continue;
+        }
+
+        if (existingEmployee.phone === item.phone) {
+          skippedRecords.push({
+            ...item,
+            reason: "Phone number already exists",
+          });
+          continue;
+        }
+      }
+
+      const password = generateTempPassword();
+
+      const fadaId = await generateFadaId(Employee, transaction);
+
+      await Employee.create(
+        {
+          fadaId,
+          name: item.name,
+          email: item.email,
+          phone: item.phone,
+          qualification: item.qualification,
+          bloodGroup: item.bloodGroup,
+
+          isProfilePrivate: item.isProfilePrivate ?? false,
+          isRegistrationCompleted: item.isRegistrationCompleted ?? true,
+          isProfileCompleted: item.isProfileCompleted ?? true,
+          isKycCompleted: item.isKycCompleted ?? false,
+          isJourneyCompleted: item.isJourneyCompleted ?? false,
+
+          score: item.score,
+
+          isActive: true,
+          status: "approved",
+          isVerified: true,
+
+          password: await hashPassword(password),
+        },
+        { transaction },
+      );
+
+      await addEmailJob({
+        to: item.email,
+        subject: "Employee Temporary Password",
+        templateName: "temp-password.ejs",
+        data: {
+          name: item.name,
+          password,
+        },
+      });
+    }
+
+    await transaction.commit();
+
+    return res.apiSuccess("Employees imported successfully", skippedRecords);
+  } catch (error) {
+    await transaction.rollback();
+
     return res.apiError(error.message, 500, error);
   }
 };

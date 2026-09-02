@@ -16,7 +16,7 @@ const {
   Dealer,
   Outlet,
   EmployeeProfileShare,
-  EmployeeJourney
+  EmployeeJourney,
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const {
@@ -140,8 +140,6 @@ exports.getEmployeeById = async (req, res) => {
   }
 };
 
-
-
 /*
 @API: GET /dealers/employees/profile/:id
 @Desc: Get an employee profile by id
@@ -213,8 +211,14 @@ exports.getEmployeeProfile = async (req, res) => {
           model: EmployeeAssignment,
           as: "workExperiences",
           required: false,
-          attributes: ["id", "startDate", "employeementType", "isCurrentlyWorking", "endDate", "highlights"],
-          where: { status: "completed" },
+          attributes: [
+            "id",
+            "startDate",
+            "employeementType",
+            "isCurrentlyWorking",
+            "endDate",
+            "highlights",
+          ],
           include: [
             {
               model: Dealer,
@@ -248,9 +252,6 @@ exports.getEmployeeProfile = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
-
-
-
 
 /*
 @API: POST /dealers/employees
@@ -555,7 +556,6 @@ exports.getEmployeeDocuments = async (req, res) => {
   }
 };
 
-
 /*
 @API: GET /dealers/employees/joining?search=fada-df-12345
 @Desc: Get employees for joining
@@ -563,7 +563,6 @@ exports.getEmployeeDocuments = async (req, res) => {
 */
 exports.getEmployeesForJoining = async (req, res) => {
   try {
-
     const { search } = req.query;
 
     const dealerId = getDealerId(req);
@@ -574,37 +573,214 @@ exports.getEmployeesForJoining = async (req, res) => {
 
     const employee = await Employee.findOne({
       where: { fadaId: search },
-      attributes: ["id", "fadaId", "name", "email", "phone", "isProfilePrivate"],
+      attributes: [
+        "id",
+        "fadaId",
+        "name",
+        "email",
+        "phone",
+        "isProfilePrivate",
+      ],
     });
-
 
     if (!employee) {
       return res.apiError("Employee not found", 404);
     }
 
     const assignment = await EmployeeAssignment.findOne({
-      where: { employeeId: employee.id, dealerId: dealerId, isCurrentlyWorking: true },
+      where: {
+        employeeId: employee.id,
+        dealerId: dealerId,
+        isCurrentlyWorking: true,
+      },
     });
 
     if (assignment) {
-      return res.apiError("This employee is already working at your dealership.", 404);
+      return res.apiError(
+        "This employee is already working at your dealership.",
+        404,
+      );
     }
-
 
     const prodileAccess = await EmployeeProfileShare.findOne({
       where: { employeeId: employee.id, dealerId: dealerId, isActive: true },
     });
 
     if (!prodileAccess && employee.isProfilePrivate) {
-      return res.apiError("Employee profile is private and cannot be viewed.", 404);
+      return res.apiError(
+        "Employee profile is private and cannot be viewed.",
+        404,
+      );
     }
 
     return res.apiSuccess("Employee profile fetched successfully", employee);
-
-
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }
 };
 
+/*
+@API: POST /dealers/employees/import
+@Desc: Bulk import employees from JSON array
+@Access: Private
+@Body: [
+  { 
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "1234567890",  
+    "designation": "Software Engineer",
+    "department": "Engineering",
+    "outletCode": "9876543210",
+    "startDate": "2021-01-01", 
+  },
+  { 
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "phone": "0987654321",  
+    "designation": "Software Developer",
+    "department": "Engineering",
+    "outletCode": "9876543278",
+    "startDate": "2021-01-01", 
+  }, 
+]
+@Response:
+{
+  "message": "Employees imported successfully",
+  "data": [
+    { "name": "John Doe", "email": "john.doe@example.com", "phone": "1234567890", "reason": "Employee already working presently." },
+    { "name": "Jane Doe", "email": "jane.doe@example.com", "phone": "0987654321", "reason": "Employee already working presently." }
+  ]
+}
+*/
+exports.importEmployees = async (req, res) => {
+  const transaction = await sequelize.transaction();
 
+  try {
+    const data = req.body || [];
+
+    const dealerId = getDealerId(req);
+
+    if (!Array.isArray(data) || data.length === 0) {
+      await transaction.rollback();
+      return res.apiError("No data provided", 400);
+    }
+
+    const skippedRecords = [];
+
+    for (const item of data) {
+      let existingEmployee = await Employee.findOne({
+        where: {
+          [Op.or]: [{ email: item.email }, { phone: item.phone }],
+        },
+        transaction,
+      });
+
+      if (!existingEmployee) {
+        const password = generateTempPassword();
+
+        const fadaId = await generateFadaId(Employee, transaction);
+
+        existingEmployee = await Employee.create(
+          {
+            fadaId,
+            name: item.name,
+            email: item.email,
+            phone: item.phone,
+            isProfilePrivate: true,
+            isRegistrationCompleted: true,
+            isActive: true,
+            status: "pending",
+            isVerified: false,
+            password: await hashPassword(password),
+          },
+          { transaction },
+        );
+      }
+
+      const existingAssignment = await EmployeeAssignment.findOne({
+        where: { employeeId: existingEmployee.id, isCurrentlyWorking: true },
+        transaction,
+      });
+
+      if (existingAssignment) {
+        skippedRecords.push({
+          ...item,
+          reason: "Employee already working presently.",
+        });
+        continue;
+      }
+
+      const [outlet, department, designation] = await Promise.all([
+        Outlet.findOne({
+          where: { code: item.outletCode },
+          transaction,
+        }),
+        OrganizationStructure.findOne({
+          where: { name: item.department, slug: "department" },
+          transaction,
+        }),
+        OrganizationStructure.findOne({
+          where: { name: item.designation, slug: "role" },
+          transaction,
+        }),
+      ]);
+
+      if (!outlet) {
+        skippedRecords.push({
+          ...item,
+          reason: "Outlet not found",
+        });
+        continue;
+      }
+
+      if (!department) {
+        skippedRecords.push({
+          ...item,
+          reason: "Department not found",
+        });
+        continue;
+      }
+
+      if (!designation) {
+        skippedRecords.push({
+          ...item,
+          reason: "Designation not found",
+        });
+        continue;
+      }
+
+      await EmployeeAssignment.create({
+        employeeId: existingEmployee.id,
+        dealerId: dealerId,
+        outletId: outlet.id,
+        departmentId: department.id,
+        designationId: designation.id,
+        startDate: item.startDate,
+        endDate: null,
+        isCurrentlyWorking: true,
+        status: "completed",
+        invitationSendBy: "dealer",
+        employeementType: "full-time",
+        isActive: true,
+      });
+
+      await addEmailJob({
+        to: item.email,
+        subject: "Employee Temporary Password",
+        templateName: "temp-password.ejs",
+        data: {
+          name: item.name,
+          password,
+        },
+      });
+    }
+
+    await transaction.commit();
+
+    return res.apiSuccess("Employees imported successfully", skippedRecords);
+  } catch (error) {
+    await transaction.rollback();
+
+    return res.apiError(error.message, 500, error);
+  }
+};

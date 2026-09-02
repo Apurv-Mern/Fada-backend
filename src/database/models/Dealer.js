@@ -59,7 +59,7 @@ module.exports = (sequelize, DataTypes) => {
       name: DataTypes.STRING,
       dealerCode: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         unique: true,
       },
       dealerId: {

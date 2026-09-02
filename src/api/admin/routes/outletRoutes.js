@@ -8,6 +8,7 @@ router.get(
   requirePermission("dealers.view"),
   outletController.getOutletsByParent,
 );
+router.post("/import", requirePermission("dealers.create"), outletController.importOutlets);
 router.get("/:id", requirePermission("dealers.view"), outletController.getOutletById);
 router.post("/", requirePermission("dealers.create"), outletController.createOutlet);
 router.put("/:id", requirePermission("dealers.edit"), outletController.updateOutlet);

@@ -24,7 +24,7 @@ exports.dealerRegister = async (req, res) => {
   try {
     const validator = new Validator(req.body, {
       name: "required|string",
-      dealerCode: "required|string",
+      dealerCode: "string",
       email: "required|email",
       password: "required|string|min:6",
       phone: "required|string",
@@ -42,9 +42,11 @@ exports.dealerRegister = async (req, res) => {
       return res.apiError("A dealer with this email already exists", 409);
     }
 
-    const existingDealerCode = await Dealer.findOne({ where: { dealerCode } });
-    if (existingDealerCode) {
-      return res.apiError("A dealer with this dealer code already exists", 409);
+    if (dealerCode) {
+      const existingDealerCode = await Dealer.findOne({ where: { dealerCode } });
+      if (existingDealerCode) {
+        return res.apiError("A dealer with this dealer code already exists", 409);
+      }
     }
 
     const hashedPassword = await hashPassword(password);
@@ -65,7 +67,7 @@ exports.dealerRegister = async (req, res) => {
 
     await Dealer.create({
       name,
-      dealerCode,
+      dealerCode: dealerCode || null,
       dealerId: await generateDealerId(Dealer),
       email,
       password: hashedPassword,

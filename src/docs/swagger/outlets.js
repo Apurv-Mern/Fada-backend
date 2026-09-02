@@ -12,12 +12,11 @@
  *     OutletCreateRequest:
  *       type: object
  *       required: [dealerId, name, brandId]
+ *       description: Public outlet code (OT######) is auto-generated on create and cannot be changed later.
  *       properties:
  *         dealerId:
  *           type: integer
  *         name:
- *           type: string
- *         code:
  *           type: string
  *         manager:
  *           type: string
@@ -104,7 +103,6 @@
  *           example:
  *             dealerId: 1
  *             name: Sanganer
- *             code: OUT-02541
  *             manager: Shambhu
  *             pinCode: "303908"
  *             city: Jaipur
@@ -115,9 +113,9 @@
  *             isActive: true
  *     responses:
  *       200:
- *         description: Outlet created successfully
+ *         description: Outlet created successfully; response includes auto-generated code (OT######)
  *       409:
- *         description: Duplicate outlet code for company
+ *         description: Duplicate outlet code
  *       422:
  *         description: Validation error
  */
@@ -185,7 +183,7 @@
  *       404:
  *         description: Outlet not found
  *       409:
- *         description: Duplicate outlet code for company
+ *         description: Duplicate outlet code
  *       422:
  *         description: Validation error
  *   delete:

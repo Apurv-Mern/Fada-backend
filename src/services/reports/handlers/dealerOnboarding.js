@@ -7,7 +7,7 @@ const {
   DealerProfile,
   Op,
 } = require("../queryHelpers");
-const { getDealerOnboardingStage } = require("../computedFields");
+const { getDealerOnboardingStage, getDealerPublicCode } = require("../computedFields");
 const { DEALER_ONBOARDING_STAGES } = require("../reportConstants");
 
 async function run({ scope, filters }) {
@@ -42,7 +42,7 @@ async function run({ scope, filters }) {
     );
     return {
       dealerId: dealer.id,
-      dealerCode: dealer.dealerCode,
+      dealerCode: getDealerPublicCode(dealer),
       dealerName: dealer.name,
       state: dealer.location?.state || null,
       city: dealer.location?.city || null,

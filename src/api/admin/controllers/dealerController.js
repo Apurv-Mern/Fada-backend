@@ -11,8 +11,11 @@ const { Op } = require("sequelize");
 const Validator = require("validatorjs");
 const { validateDealerBrands } = require("../../../utils/outletUtil");
 const { generateDealerId } = require("../../../utils/fadaIdUtil");
-const { generateRandomPassword } = require("../../../utils/passwordUtil");
-const { addEmailJob } = require("../../../utils/emailUtil");
+const {
+  generateTempPassword,
+  hashPassword,
+} = require("../../../utils/passwordUtil");
+const { addEmailJob } = require("../../../queues");
 const dealerAttributes = {
   exclude: ["password", "otp", "refreshToken"],
 };
@@ -346,7 +349,7 @@ exports.createDealer = async (req, res) => {
       name: "required|string",
       email: "required|email",
       phone: "required|string",
-      dealerCode: "required|string",
+      dealerCode: "string",
       brands: "required|array",
       isGroupHoldingEntity: "boolean",
       parentCompanyId: "integer",
@@ -391,15 +394,17 @@ exports.createDealer = async (req, res) => {
       return res.apiError("Dealer with this phone number already exists", 400);
     }
 
-    const existingDealerByDealerCode = await Dealer.findOne(
-      {
-        where: { dealerCode: req.body.dealerCode },
-      },
-      { transaction },
-    );
-    if (existingDealerByDealerCode) {
-      await transaction.rollback();
-      return res.apiError("Dealer with this dealer code already exists", 400);
+    if (req.body.dealerCode) {
+      const existingDealerByDealerCode = await Dealer.findOne(
+        {
+          where: { dealerCode: req.body.dealerCode },
+        },
+        { transaction },
+      );
+      if (existingDealerByDealerCode) {
+        await transaction.rollback();
+        return res.apiError("Dealer with this dealer code already exists", 400);
+      }
     }
 
     const dealer = await Dealer.create(
@@ -407,8 +412,8 @@ exports.createDealer = async (req, res) => {
         name: req.body.name,
         email: req.body.email,
         phone: req.body.phone,
-        dealerCode: req.body.dealerCode,
-        dealerId: await generateDealerId(Dealer),
+        dealerCode: req.body.dealerCode || null,
+        dealerId: await generateDealerId(Dealer, { transaction }),
         isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
         parentDealerId: req.body.parentCompanyId ?? null,
         brands: brandsResult.normalized,
@@ -448,7 +453,7 @@ exports.updateDealer = async (req, res) => {
       name: "required|string",
       email: "required|email",
       phone: "required|string",
-      dealerCode: "required|string",
+      dealerCode: "string",
       brands: "required|array",
       isGroupHoldingEntity: "boolean",
       parentCompanyId: "integer",
@@ -493,18 +498,20 @@ exports.updateDealer = async (req, res) => {
       return res.apiError("Dealer with this phone number already exists", 400);
     }
 
-    const existingDealerByDealerCode = await Dealer.findOne(
-      {
-        where: {
-          dealerCode: req.body.dealerCode,
-          id: { [Op.ne]: req.params.id },
+    if (req.body.dealerCode) {
+      const existingDealerByDealerCode = await Dealer.findOne(
+        {
+          where: {
+            dealerCode: req.body.dealerCode,
+            id: { [Op.ne]: req.params.id },
+          },
         },
-      },
-      { transaction },
-    );
-    if (existingDealerByDealerCode) {
-      await transaction.rollback();
-      return res.apiError("Dealer with this dealer code already exists", 400);
+        { transaction },
+      );
+      if (existingDealerByDealerCode) {
+        await transaction.rollback();
+        return res.apiError("Dealer with this dealer code already exists", 400);
+      }
     }
 
     const dealer = await Dealer.update(
@@ -512,7 +519,9 @@ exports.updateDealer = async (req, res) => {
         name: req.body.name,
         email: req.body.email,
         phone: req.body.phone,
-        dealerCode: req.body.dealerCode,
+        ...(req.body.dealerCode !== undefined
+          ? { dealerCode: req.body.dealerCode || null }
+          : {}),
         isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
         parentDealerId: req.body.parentCompanyId ?? null,
         brands: brandsResult.normalized,
@@ -843,52 +852,72 @@ exports.verifyDealerBusinessDocument = async (req, res) => {
   }
 };
 
-
-
 /*
 @API: GET /admin/dealers/import
   @Desc: Import dealers from a CSV file
   @Access: Private
 */
 exports.importDealers = async (req, res) => {
-  try {
+  const transaction = await sequelize.transaction();
 
-    let existingDealerRecords = [];
- 
+  try {
+    const existingDealerRecords = [];
     const data = req.body || [];
+
     if (data.length === 0) {
+      await transaction.rollback();
       return res.apiError("No data provided", 400);
     }
-    
+
     for (const item of data) {
- 
-      const existingDealer = await Dealer.findone({where: {[Op.or]: [{phone: item.phone}, {email: item.email}]}});
-      if (existingDealer && existingDealer?.email === item?.email) {
-        item.reason = "Email already exists";
-        existingDealerRecords.push(item);
-        continue;
-      }
-
-      if (existingDealer && existingDealer?.phone === item?.phone) {
-        item.reason = "Phone number already exists";
-        existingDealerRecords.push(item);
-        continue;
-      }
-
-      const parentDealer = await Dealer.findone({where: {dealerCode: item.parentCompanyCode}});
-      
-
-       await Dealer.create({
-        name: item.name,
-        email: item.email,
-        phone: item.phone,
-        dealerCode: item.code,
-        isGroupHoldingEntity: item.isGroupHoldingCompany,
-        parentDealerId: parentDealer && parentDealer?.id || null,
-        status: "approved",
-        isActive: true,
-        isEmailVerified: true,
+      const existingDealer = await Dealer.findOne({
+        where: {
+          [Op.or]: [{ phone: item.phone }, { email: item.email }],
+        },
+        transaction,
       });
+
+      if (existingDealer) {
+        if (existingDealer.email === item.email) {
+          item.reason = "Email already exists";
+        } else if (existingDealer.phone === item.phone) {
+          item.reason = "Phone number already exists";
+        }
+
+        existingDealerRecords.push(item);
+        continue;
+      }
+
+      const parentDealer = item?.parentCompanyCode
+        ? await Dealer.findOne({
+            where: {
+              [Op.or]: [
+                { dealerCode: item.parentCompanyCode },
+                { dealerId: item.parentCompanyCode },
+              ],
+            },
+            transaction,
+          })
+        : null;
+
+      const tempPassword = generateTempPassword();
+
+      await Dealer.create(
+        {
+          name: item.name,
+          email: item.email,
+          phone: item.phone,
+          password: await hashPassword(tempPassword),
+          dealerCode: item.code || null,
+          dealerId: await generateDealerId(Dealer),
+          isGroupHoldingEntity: item.isGroupHoldingCompany,
+          parentDealerId: parentDealer?.id || null,
+          status: "approved",
+          isActive: true,
+          isEmailVerified: true,
+        },
+        { transaction },
+      );
 
       await addEmailJob({
         to: item.email,
@@ -896,13 +925,20 @@ exports.importDealers = async (req, res) => {
         templateName: "temp-password.ejs",
         data: {
           name: item.name,
-          password: generateRandomPassword(),
+          password: tempPassword,
         },
       });
- 
     }
-    return res.apiSuccess("Dealers imported successfully", existingDealerRecords);
+
+    await transaction.commit();
+
+    return res.apiSuccess(
+      "Dealers imported successfully",
+      existingDealerRecords,
+    );
   } catch (error) {
+    await transaction.rollback();
+
     return res.apiError(error.message, 500, error);
   }
 };

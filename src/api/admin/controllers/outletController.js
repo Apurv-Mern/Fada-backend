@@ -5,20 +5,21 @@ const {
   Outlet,
   OutletBrandCategory,
   Dealer,
+  Brand,
 } = require("../../../database/models");
 const {
   buildOutletIncludes,
   validateFunctions,
+  validateFunctionsSafe,
   validateBrandId,
-  validateOutletCode,
   buildOutletPayload,
   enrichOutletFunctions,
 } = require("../../../utils/outletUtil");
+const { generateUniqueOutletPublicCode } = require("../../../utils/entityCodeUtil");
 
 const outletValidationRules = {
   dealerId: "required|integer",
   name: "required|string",
-  code: "string",
   manager: "string",
   pinCode: "string|size:6",
   city: "string",
@@ -160,20 +161,20 @@ exports.createOutlet = async (req, res) => {
     if (!functionsResult.valid) return;
     if (!(await validateBrandId(req.body.brandId, res))) return;
 
-    const codeResult = await validateOutletCode({
-      code: req.body.code,
-      dealerId: req.body.dealerId,
-      res,
-    });
-    if (!codeResult.valid) return;
-
     const dealer = await Dealer.findByPk(req.body.dealerId);
     if (!dealer) {
       return res.apiError("Company not found", 404);
     }
 
+    const outletCode = await generateUniqueOutletPublicCode(Outlet);
+
     const createdOutlet = await Outlet.create(
-      buildOutletPayload(req.body, req.body.dealerId, functionsResult.normalized),
+      buildOutletPayload(
+        req.body,
+        req.body.dealerId,
+        functionsResult.normalized,
+        outletCode,
+      ),
     );
 
     const outlet = await Outlet.findByPk(createdOutlet.id, {
@@ -183,7 +184,7 @@ exports.createOutlet = async (req, res) => {
     return res.apiSuccess("Outlet created successfully", outlet);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
-      return res.apiError("An outlet with this code already exists for the company", 409);
+      return res.apiError("An outlet with this code already exists", 409);
     }
 
     return res.apiError(error.message, 500, error);
@@ -221,16 +222,13 @@ exports.updateOutlet = async (req, res) => {
       return res.apiError("Company not found", 404);
     }
 
-    const codeResult = await validateOutletCode({
-      code: req.body.code,
-      dealerId: req.body.dealerId,
-      excludeOutletId: existingOutlet.id,
-      res,
-    });
-    if (!codeResult.valid) return;
-
     await existingOutlet.update(
-      buildOutletPayload(req.body, req.body.dealerId, normalizedFunctions),
+      buildOutletPayload(
+        req.body,
+        req.body.dealerId,
+        normalizedFunctions,
+        existingOutlet.code,
+      ),
     );
 
     const outlet = await Outlet.findByPk(existingOutlet.id, {
@@ -240,7 +238,7 @@ exports.updateOutlet = async (req, res) => {
     return res.apiSuccess("Outlet updated successfully", outlet);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
-      return res.apiError("An outlet with this code already exists for the company", 409);
+      return res.apiError("An outlet with this code already exists", 409);
     }
 
     return res.apiError(error.message, 500, error);
@@ -264,7 +262,6 @@ exports.deleteOutlet = async (req, res) => {
         where: { outletId: outlet.id },
         transaction,
       });
-      await outlet.update({ code: null }, { transaction });
       await outlet.destroy({ transaction });
     });
 
@@ -289,6 +286,127 @@ exports.activeInactiveOutlets = async (req, res) => {
     await outlet.update({ isActive: !outlet.isActive });
     return res.apiSuccess(outlet.isActive ? "Outlet activated successfully" : "Outlet deactivated successfully");
   } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+const parseImportBoolean = (value, defaultValue = true) => {
+  if (value === undefined || value === null || value === "") return defaultValue;
+  if (typeof value === "boolean") return value;
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+};
+
+const normalizeImportFunctions = (value) => {
+  if (value === undefined || value === null || value === "") return [];
+  if (Array.isArray(value)) return value;
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+/*
+@API: POST /admin/outlets/import
+@Desc: Bulk import outlets from JSON array
+@Access: Private
+*/
+exports.importOutlets = async (req, res) => {
+  try {
+    const skippedRecords = [];
+    const data = req.body || [];
+
+    if (data.length === 0) {
+      return res.apiError("No data provided", 400);
+    }
+
+    for (const item of data) {
+      if (!item?.name || !item?.companyCode) {
+        skippedRecords.push({
+          ...item,
+          reason: "Missing required fields",
+        });
+        continue;
+      }
+
+      const dealer = await Dealer.findOne({ where: { [Op.or]: [{ dealerCode: item.companyCode }, { dealerId: item.companyCode }] } });
+
+      if (!dealer) {
+        skippedRecords.push({
+          ...item,
+          reason: "Company code not found",
+        });
+        continue;
+      }
+
+      let brandId = item.brandId ?? null;
+      if (!brandId && item.brandName) {
+        const brand = await Brand.findOne({
+          where: { name: item.brandName },
+        });
+        brandId = brand?.id ?? null;
+      }
+
+      if (!brandId) {
+        skippedRecords.push({
+          ...item,
+          reason: "Brand not found",
+        });
+        continue;
+      }
+
+      const existingOutlet = await Outlet.findOne({
+        where: {
+          dealerId: dealer.id,
+          name: item.name,
+        },
+      });
+
+      if (existingOutlet) {
+        skippedRecords.push({
+          ...item,
+          reason: "Outlet already exists for this company",
+        });
+        continue;
+      }
+
+      const functions = normalizeImportFunctions(item.functions);
+      const functionsResult = await validateFunctionsSafe(functions);
+      if (!functionsResult.valid) {
+        skippedRecords.push({
+          ...item,
+          reason: functionsResult.reason || "Invalid functions",
+        });
+        continue;
+      }
+
+      const outletCode = await generateUniqueOutletPublicCode(Outlet);
+
+      await Outlet.create(
+        buildOutletPayload(
+          {
+            name: item.name,
+            manager: item.manager ?? null,
+            pinCode: item.pinCode ?? null,
+            city: item.city ?? null,
+            state: item.state ?? null,
+            address: item.address ?? null,
+            brandId,
+            isActive: parseImportBoolean(item.isActive, true),
+          },
+          dealer.id,
+          functionsResult.normalized ?? [],
+          outletCode,
+        ),
+      );
+    }
+
+    return res.apiSuccess("Outlets imported successfully", skippedRecords);
+  } catch (error) {
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.apiError("An outlet with this code already exists", 409);
+    }
+
     return res.apiError(error.message, 500, error);
   }
 };

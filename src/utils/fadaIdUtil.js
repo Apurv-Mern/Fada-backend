@@ -1,3 +1,5 @@
+const { generateUniqueDealerPublicCode } = require("./entityCodeUtil");
+
 const FADA_ALPHABET = "ABCDEFGHJKMNPRTUVWXY";
 const FADA_DIGITS = "0123456789";
 
@@ -19,13 +21,6 @@ function makeFadaId() {
   return `FADA-${letters}-${digits}`;
 }
 
-function makeDealerId() {
-  const letters = generateRandomString(FADA_ALPHABET, 2);
-  const digits = generateRandomString(FADA_DIGITS, 5);
-
-  return `DLR-${letters}-${digits}`;
-}
-
 const generateFadaId = async (Employee) => {
   const fadaId = makeFadaId();
 
@@ -41,20 +36,8 @@ const generateFadaId = async (Employee) => {
   return fadaId;
 };
 
-const generateDealerId = async (Dealer) => {
-  const dealerId = makeDealerId();
-
-  const existing = await Dealer.findOne({
-    where: { dealerId },
-    paranoid: false,
-  });
-
-  if (existing) {
-    return generateDealerId(Dealer);
-  }
-
-  return dealerId;
-};
+const generateDealerId = async (Dealer, options = {}) =>
+  generateUniqueDealerPublicCode(Dealer, options);
 
 module.exports = {
   generateFadaId,

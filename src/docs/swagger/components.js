@@ -370,18 +370,30 @@
  *           type: string
  *         dealerCode:
  *           type: string
+ *           nullable: true
+ *           description: Optional legacy manual code
  *         dealerId:
  *           type: string
- *           example: DLR-AB-12345
- *           description: Auto-generated FADA dealer identifier
+ *           example: DL58372
+ *           description: System-generated public FADA dealer code (DL + 5 digits)
  *         status:
  *           type: string
  *           enum: [temporary, pending, approved, rejected]
  *         isActive:
  *           type: boolean
+ *     DealerPublicCode:
+ *       type: string
+ *       pattern: '^DL[1-9][0-9]{4}$'
+ *       example: DL58372
+ *       description: System-generated public dealer code
+ *     OutletPublicCode:
+ *       type: string
+ *       pattern: '^OT[1-9][0-9]{5}$'
+ *       example: OT583721
+ *       description: System-generated public outlet code
  *     AdminDealerUpsertRequest:
  *       type: object
- *       required: [name, email, phone, dealerCode, brands, location]
+ *       required: [name, email, phone, brands, location]
  *       properties:
  *         name:
  *           type: string
@@ -392,6 +404,8 @@
  *           type: string
  *         dealerCode:
  *           type: string
+ *           nullable: true
+ *           description: Optional legacy/manual dealer code. Public FADA code is auto-assigned to dealerId on create.
  *         brands:
  *           type: array
  *           description: Array of brand master IDs (multiselect)
@@ -942,7 +956,7 @@
  *           format: date-time
  *     AdminDealerImportItem:
  *       type: object
- *       required: [name, email, phone, code]
+ *       required: [name, email, phone]
  *       properties:
  *         name:
  *           type: string
@@ -953,7 +967,8 @@
  *           type: string
  *         code:
  *           type: string
- *           description: Unique dealer code
+ *           nullable: true
+ *           description: Optional legacy dealerCode. Public dealerId (DL#####) is auto-generated.
  *         isGroupHoldingCompany:
  *           type: boolean
  *           default: false
@@ -1521,8 +1536,6 @@
  *       properties:
  *         name:
  *           type: string
- *         code:
- *           type: string
  *         manager:
  *           type: string
  *         pinCode:
@@ -1612,6 +1625,33 @@
  *           description: >
  *             Assignment for the authenticated dealer. Include departmentId and designationId.
  *             Response uses assignment.department / assignment.designation.
+ *     DealerEmployeeImportItem:
+ *       type: object
+ *       required: [name, email, phone, designation, department, outletCode, startDate]
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         designation:
+ *           type: string
+ *           description: OrganizationStructure role name (slug role)
+ *         department:
+ *           type: string
+ *           description: OrganizationStructure department name (slug department)
+ *         outletCode:
+ *           $ref: '#/components/schemas/OutletPublicCode'
+ *           description: Global outlet code (OT######) under any dealer
+ *         startDate:
+ *           type: string
+ *           format: date
+ *     DealerEmployeeImportRequest:
+ *       type: array
+ *       items:
+ *         $ref: '#/components/schemas/DealerEmployeeImportItem'
  *     DealerEmployeementTransferRequest:
  *       type: object
  *       required: [employeeId, outletId, departmentId, designationId]

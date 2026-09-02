@@ -117,6 +117,74 @@ const validateFunctions = async (functions, res) => {
   return { valid: true, normalized };
 };
 
+const validateFunctionsSafe = async (functions) => {
+  if (functions === undefined) {
+    return { valid: true, normalized: [] };
+  }
+
+  if (!Array.isArray(functions)) {
+    return { valid: false, reason: "functions must be an array" };
+  }
+
+  if (!functions.length) {
+    return { valid: true, normalized: [] };
+  }
+
+  const uniqueFunctions = [...new Set(functions.map(String))];
+
+  if (uniqueFunctions.length !== functions.length) {
+    return { valid: false, reason: "Duplicate functions are not allowed" };
+  }
+
+  const numericIds = uniqueFunctions
+    .filter((item) => /^\d+$/.test(item))
+    .map(Number);
+  const slugs = uniqueFunctions.filter((item) => !/^\d+$/.test(item));
+
+  const whereConditions = [];
+  if (numericIds.length) whereConditions.push({ id: numericIds });
+  if (slugs.length) whereConditions.push({ slug: slugs });
+
+  const outletFunctions = await OutletFunction.findAll({
+    where: { [Op.or]: whereConditions },
+  });
+
+  const foundBySlug = new Map(outletFunctions.map((item) => [item.slug, item]));
+  const foundById = new Map(
+    outletFunctions.map((item) => [String(item.id), item]),
+  );
+
+  const invalid = [];
+  const inactive = [];
+  const normalized = [];
+
+  for (const item of uniqueFunctions) {
+    const match = /^\d+$/.test(item) ? foundById.get(item) : foundBySlug.get(item);
+
+    if (!match) {
+      invalid.push(item);
+      continue;
+    }
+
+    if (!match.isActive) {
+      inactive.push(item);
+      continue;
+    }
+
+    normalized.push(match.id);
+  }
+
+  if (invalid.length) {
+    return { valid: false, reason: `Invalid functions: ${invalid.join(", ")}` };
+  }
+
+  if (inactive.length) {
+    return { valid: false, reason: `Inactive outlet functions: ${inactive.join(", ")}` };
+  }
+
+  return { valid: true, normalized };
+};
+
 const validateBrandId = async (brandId, res) => {
   if (brandId === undefined || brandId === null) return true;
 
@@ -190,11 +258,11 @@ const validateOutletCode = async ({
   return { valid: true, code: normalizedCode };
 };
 
-const buildOutletPayload = (body, dealerId, normalizedFunctions) => {
+const buildOutletPayload = (body, dealerId, normalizedFunctions, code) => {
   const payload = {
     dealerId,
     name: body.name,
-    code: normalizeOutletCode(body.code),
+    code,
     manager: body.manager ?? null,
     pinCode: body.pinCode ?? null,
     city: body.city ?? null,
@@ -250,6 +318,7 @@ module.exports = {
   brandIncludes,
   buildOutletIncludes,
   validateFunctions,
+  validateFunctionsSafe,
   validateBrandId,
   validateDealerBrands,
   validateOutletCode,

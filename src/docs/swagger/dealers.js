@@ -463,6 +463,69 @@
 
 /**
  * @swagger
+ * /dealers/employees/import:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   post:
+ *     tags: [Dealer Employees]
+ *     summary: Bulk import employees for the active dealer
+ *     description: >
+ *       Creates or reuses employees and assigns them to the authenticated dealer context
+ *       (Bearer dealer, or child specified by X-Dealer-Id). New employees receive an
+ *       auto-generated FADA ID, pending status, and a temporary password email.
+ *       Existing employees (matched by email or phone) are linked via a new assignment
+ *       when they are not currently working elsewhere. Rows are skipped when the employee
+ *       is already working, or when outlet/department/designation cannot be resolved.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerEmployeeImportRequest'
+ *           example:
+ *             - name: John Doe
+ *               email: john@example.com
+ *               phone: "9876543210"
+ *               designation: Sales Executive
+ *               department: Sales
+ *               outletCode: OT583721
+ *               startDate: "2026-01-15"
+ *     responses:
+ *       200:
+ *         description: Import completed; data contains skipped rows with reason
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/DealerEmployeeImportItem'
+ *                           - type: object
+ *                             properties:
+ *                               reason:
+ *                                 type: string
+ *                                 enum:
+ *                                   - Employee already working presently.
+ *                                   - Outlet not found
+ *                                   - Department not found
+ *                                   - Designation not found
+ *       400:
+ *         description: Empty import payload
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: X-Dealer-Id is not a child of the authenticated dealer
+ */
+
+/**
+ * @swagger
  * /dealers/employees/joining:
  *   parameters:
  *     - $ref: '#/components/parameters/XDealerId'

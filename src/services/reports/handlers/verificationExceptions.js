@@ -10,6 +10,7 @@ const {
 const {
   getAgeingBucket,
   getAgeingDays,
+  getDealerPublicCode,
 } = require("../computedFields");
 const { ISSUE_TYPES } = require("../reportConstants");
 
@@ -31,7 +32,7 @@ async function run({ scope, filters }) {
       rows.push({
         entityType: "dealer",
         entityId: dealer.id,
-        dealer: { id: dealer.id, name: dealer.name, code: dealer.dealerCode },
+        dealer: { id: dealer.id, name: dealer.name, code: getDealerPublicCode(dealer) },
         employee: null,
         fadaId: null,
         issueType: "dealer_verification_pending",
@@ -56,7 +57,7 @@ async function run({ scope, filters }) {
           as: "assignment",
           required: true,
           where: dealerIds.length ? { dealerId: { [Op.in]: dealerIds } } : undefined,
-          include: [{ model: Dealer, as: "dealership", attributes: ["id", "name", "dealerCode"] }],
+          include: [{ model: Dealer, as: "dealership", attributes: ["id", "name", "dealerId", "dealerCode"] }],
         },
       ],
     });
@@ -68,7 +69,7 @@ async function run({ scope, filters }) {
           ? {
               id: employee.assignment.dealership.id,
               name: employee.assignment.dealership.name,
-              code: employee.assignment.dealership.dealerCode,
+              code: getDealerPublicCode(employee.assignment.dealership),
             }
           : null,
         employee: { id: employee.id, name: employee.name },
@@ -100,7 +101,7 @@ async function run({ scope, filters }) {
               as: "assignment",
               required: true,
               where: dealerIds.length ? { dealerId: { [Op.in]: dealerIds } } : undefined,
-              include: [{ model: Dealer, as: "dealership", attributes: ["id", "name", "dealerCode"] }],
+              include: [{ model: Dealer, as: "dealership", attributes: ["id", "name", "dealerId", "dealerCode"] }],
             },
           ],
         },
@@ -116,7 +117,7 @@ async function run({ scope, filters }) {
           ? {
               id: doc.employee.assignment.dealership.id,
               name: doc.employee.assignment.dealership.name,
-              code: doc.employee.assignment.dealership.dealerCode,
+              code: getDealerPublicCode(doc.employee.assignment.dealership),
             }
           : null,
         employee: { id: doc.employee.id, name: doc.employee.name },
@@ -177,7 +178,7 @@ async function run({ scope, filters }) {
           as: "assignment",
           required: true,
           where: dealerIds.length ? { dealerId: { [Op.in]: dealerIds } } : undefined,
-          include: [{ model: Dealer, as: "dealership", attributes: ["id", "name", "dealerCode"] }],
+          include: [{ model: Dealer, as: "dealership", attributes: ["id", "name", "dealerId", "dealerCode"] }],
         },
       ],
       limit: 100,
@@ -190,7 +191,7 @@ async function run({ scope, filters }) {
           ? {
               id: employee.assignment.dealership.id,
               name: employee.assignment.dealership.name,
-              code: employee.assignment.dealership.dealerCode,
+              code: getDealerPublicCode(employee.assignment.dealership),
             }
           : null,
         employee: { id: employee.id, name: employee.name },
