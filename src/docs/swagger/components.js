@@ -626,6 +626,10 @@
  *           format: email
  *         password:
  *           type: string
+ *         deviceToken:
+ *           type: string
+ *           nullable: true
+ *           description: FCM device token for push notifications (saved on login)
  *     EmployeeSendLoginOtpRequest:
  *       type: object
  *       required: [username]
@@ -645,6 +649,10 @@
  *           type: string
  *           minLength: 6
  *           maxLength: 6
+ *         deviceToken:
+ *           type: string
+ *           nullable: true
+ *           description: FCM device token for push notifications (saved on login)
  *     EmployeeForgotPasswordRequest:
  *       type: object
  *       required: [username]

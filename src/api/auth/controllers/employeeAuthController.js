@@ -14,6 +14,29 @@ const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const { addEmailJob, addSmsJob } = require("../../../queues");
 const { Op } = require("sequelize");
+
+function getDeviceTokenFromBody(body = {}) {
+  if (
+    !Object.prototype.hasOwnProperty.call(body, "deviceToken") &&
+    !Object.prototype.hasOwnProperty.call(body, "device_token")
+  ) {
+    return undefined;
+  }
+
+  const token = body.deviceToken ?? body.device_token;
+  if (token === null || token === "") return null;
+
+  return String(token).trim() || null;
+}
+
+function appendDeviceTokenUpdate(body, payload = {}) {
+  const deviceToken = getDeviceTokenFromBody(body);
+  if (deviceToken !== undefined) {
+    payload.deviceToken = deviceToken;
+  }
+  return payload;
+}
+
 /*
 @API: POST /employee/auth/register
 @Body: { name, email, dob, gender }
@@ -165,11 +188,12 @@ exports.verifyRegistrationOtp = async (req, res) => {
 */
 exports.employeeLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, deviceToken } = req.body;
 
     const validator = new Validator(req.body, {
       email: "required|email",
       password: "required|string",
+      deviceToken: "required|string",
     });
 
     if (validator.fails()) {
@@ -217,7 +241,9 @@ exports.employeeLogin = async (req, res) => {
       role: "employee",
     });
 
-    await employee.update({ refreshToken });
+    await employee.update(
+      appendDeviceTokenUpdate(req.body, { refreshToken }),
+    );
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -312,7 +338,7 @@ exports.logout = async (req, res) => {
       });
 
       if (employee) {
-        await employee.update({ refreshToken: null });
+        await employee.update({ refreshToken: null, deviceToken: null });
       }
     }
 
@@ -417,6 +443,7 @@ exports.verifyLoginOtp = async (req, res) => {
     const validator = new Validator(req.body, {
       username: "required",
       otp: "required|string|min:4|max:4",
+      deviceToken: "required|string",
     });
 
     if (validator.fails()) {
@@ -464,11 +491,13 @@ exports.verifyLoginOtp = async (req, res) => {
       role: "employee",
     });
 
-    await employee.update({
-      otp: null,
-      emailOTP: null,
-      refreshToken,
-    });
+    await employee.update(
+      appendDeviceTokenUpdate(req.body, {
+        otp: null,
+        emailOTP: null,
+        refreshToken,
+      }),
+    );
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,

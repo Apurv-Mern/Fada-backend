@@ -8,7 +8,8 @@ const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
-const { addEmailJob, addSmsJob } = require("./queues");
+const { addEmailJob, addSmsJob, addPushJob } = require("./queues");
+const { sendPushNotification } = require("./utils/notificationUtil");
 const app = express();
 const upload = require("./utils/fileUtil");
 /**
@@ -27,7 +28,7 @@ const allowedOrigins = [
   "https://dealer.fadaid.com",
   "http://localhost:8081",
   "https://api.fadaid.com",
-  "*"
+  "*",
 ];
 
 /**
@@ -43,7 +44,7 @@ app.use(
         imgSrc: ["'self'", "data:", "https:"],
       },
     },
-  })
+  }),
 );
 
 /**
@@ -54,21 +55,10 @@ app.use(
     origin: allowedOrigins,
     credentials: true,
 
-    methods: [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-      "OPTIONS",
-    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "x-dealer-id"
-    ],
-  })
+    allowedHeaders: ["Content-Type", "Authorization", "x-dealer-id"],
+  }),
 );
 
 //app.use("/uploads", express.static(upload.uploadsDir));
@@ -93,7 +83,7 @@ app.use(express.json());
 app.use(
   express.urlencoded({
     extended: false,
-  })
+  }),
 );
 
 app.use(cookieParser());
@@ -143,8 +133,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-
-
 app.post("/test-email", async (req, res) => {
   await addEmailJob({
     to: req.body.email,
@@ -192,6 +180,33 @@ app.post("/test-sms", async (req, res) => {
   }
 });
 
+app.post("/test-push", async (req, res) => {
+  try {
+    const { token, title, body, data } = req.body;
+
+    if (!title?.trim() || !body?.trim()) {
+      return res.apiError("title and body are required", 422);
+    }
+
+    const payload = {
+      title: title.trim(),
+      body: body.trim(),
+      tokens: [token],
+      data: data,
+    };
+
+    
+
+    const result = await sendPushNotification(payload);
+    return res.apiSuccess("Push notification sent successfully", result);
+  } catch (error) {
+    return res.apiError(
+      error.message || "Failed to send push notification",
+      500,
+      error,
+    );
+  }
+});
 
 app.post("/file-upload", upload.single("file"), (req, res) => {
   res.json({
@@ -199,7 +214,6 @@ app.post("/file-upload", upload.single("file"), (req, res) => {
     file: process.env.API_URL + "/uploads/" + req.file.filename,
   });
 });
-
 
 /**
  * 404 Handler

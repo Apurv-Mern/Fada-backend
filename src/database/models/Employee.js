@@ -124,6 +124,10 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: false,
       },
       refreshToken: DataTypes.TEXT,
+      deviceToken: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
       status: {
         type: DataTypes.ENUM("temporary", "pending", "approved", "rejected"),
         defaultValue: "pending",

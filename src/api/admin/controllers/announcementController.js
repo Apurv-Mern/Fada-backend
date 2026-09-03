@@ -9,7 +9,7 @@ const TARGET_AUDIENCES = [
   "employees",
   "dealers",
   "members_and_dealers",
-  "both",
+  "all",
 ];
 const STATUSES = ["draft", "published", "scheduled"];
 const DELIVERY_CHANNELS = ["in_app", "email", "push"];
@@ -77,11 +77,16 @@ function buildAnnouncementPayload(body, existing) {
     return channelsResult;
   }
 
+  let audience = body.targetAudience ?? existing?.targetAudience;
+  if (audience === "all") {
+    audience = "both";
+  }
+
   const payload = {
     postType: body.postType ?? existing?.postType ?? "announcement",
     title: body.title?.trim() ?? existing?.title,
     messageBody: body.messageBody ?? existing?.messageBody ?? null,
-    targetAudience: body.targetAudience ?? existing?.targetAudience,
+    targetAudience: audience,
     deliveryChannels: channelsResult.value,
     status: body.status ?? existing?.status ?? "draft",
     scheduledAt: body.scheduledAt ?? existing?.scheduledAt ?? null,
@@ -242,7 +247,7 @@ exports.sendNow = async (req, res) => {
 
     if (announcement.targetAudience === "employees") {
       targets = await Employee.findAll({
-        attributes: ["id", "name", "email"],
+        attributes: ["id", "name", "email", "deviceToken"],
         where: {
           isActive: true,
         },
@@ -256,7 +261,7 @@ exports.sendNow = async (req, res) => {
       });
     } else if (announcement.targetAudience === "both") {
       const employees = await Employee.findAll({
-        attributes: ["id", "name", "email"],
+        attributes: ["id", "name", "email", "deviceToken"],
         where: {
           isActive: true,
         },
@@ -273,11 +278,18 @@ exports.sendNow = async (req, res) => {
     //send push notification to targets
     if (announcement.deliveryChannels.includes("push")) {
       await addPushJobs(
-        targets.map((target) => ({
-          token: target.deviceToken,
-          title: announcement.title,
-          body: announcement.messageBody,
-        }))
+        targets
+          .filter((target) => target.deviceToken)
+          .map((target) => ({
+            tokens: [target.deviceToken],
+            title: announcement.title,
+            body: announcement.messageBody,
+            data: {
+              announcementId: announcement.id,
+              userId: target.id,
+              userName: target.name,
+            },
+          })),
       );
     }
 
