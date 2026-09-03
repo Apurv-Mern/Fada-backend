@@ -268,7 +268,10 @@
  *   post:
  *     tags: [Dealer Auth]
  *     summary: Dealer password login
- *     description: Accepts email or phone. If email is not verified, sends OTP instead of logging in.
+ *     description: >
+ *       Accepts email or phone. Supports primary dealer accounts (userType=dealer) and portal staff
+ *       accounts (userType=staff). Staff logins operate under their parent company via parentDealerId.
+ *       If email is not verified, sends OTP instead of logging in.
  *     requestBody:
  *       required: true
  *       content:
