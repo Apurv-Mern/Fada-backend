@@ -67,4 +67,10 @@ module.exports = {
     type: process.env.SMS_TYPE || "TRANS",
     enabled: process.env.IS_SMS_ENABLED === "true",
   },
+
+  push: {
+    enabled: process.env.IS_PUSH_ENABLED === "true",
+    serverKey: process.env.FCM_SERVER_KEY || "",
+    apiUrl: process.env.FCM_API_URL || "https://fcm.googleapis.com/fcm/send",
+  },
 };

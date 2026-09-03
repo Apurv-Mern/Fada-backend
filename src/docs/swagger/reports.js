@@ -51,11 +51,294 @@
 
 /**
  * @swagger
+ * /admin/reports/dealer-master:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "A1 — Company Master & Company Status"
+ *     description: Main company register with employee and FADA ID counts. Filter params via /admin/reports/filters?reportKey=dealer-master
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ReportResponse'
+ */
+
+/**
+ * @swagger
+ * /admin/reports/dealer-master/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export A1 — Company Master & Company Status"
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [xlsx, pdf]
+ *           default: xlsx
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/dealer-onboarding:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "A2 — Company Onboarding & Activation"
+ *     description: Tracks company funnel from invitation through activation.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/dealer-onboarding/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export A2 — Company Onboarding & Activation"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/fada-id-growth:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "A3 — FADA ID Registration & Growth"
+ *     description: Ecosystem growth metrics and registration trends.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/fada-id-growth/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export A3 — FADA ID Registration & Growth"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/verification-exceptions:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "A4 — Verification & Exceptions"
+ *     description: Records needing admin intervention or follow-up.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/verification-exceptions/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export A4 — Verification & Exceptions"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/ecosystem-health:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "A5 — Company & Workforce Health"
+ *     description: Management summary of adoption and ecosystem health.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/ecosystem-health/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export A5 — Company & Workforce Health"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/employee-master:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "D1 — Employee Master & Profile"
+ *     description: Employee register with profile and verification status.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/employee-master/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export D1 — Employee Master & Profile"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/onboarding-verification:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "D2 — FADA ID Onboarding & Verification"
+ *     description: Identifies who completed onboarding and who still needs action.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/onboarding-verification/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export D2 — FADA ID Onboarding & Verification"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/employee-movement:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "D3 — Employee Movement"
+ *     description: Tracks joiners, exits, and employment changes in a period.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/employee-movement/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export D3 — Employee Movement"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/workforce-analytics:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "D4 — Workforce & FADA ID Analytics"
+ *     description: Shows workforce composition and coverage by department.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/workforce-analytics/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export D4 — Workforce & FADA ID Analytics"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
+ * /admin/reports/adoption-compliance:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "D5 — FADA ID Adoption & Compliance"
+ *     description: Adoption percentages and department-wise gaps.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+
+/**
+ * @swagger
+ * /admin/reports/adoption-compliance/export:
+ *   get:
+ *     tags: [Admin Reports]
+ *     summary: "Export D5 — FADA ID Adoption & Compliance"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+
+/**
+ * @swagger
  * /admin/reports/{reportKey}:
  *   get:
  *     tags: [Admin Reports]
- *     summary: Generate admin report
+ *     summary: Generate admin report (legacy)
+ *     deprecated: true
  *     description: >
+ *       Deprecated — use dedicated endpoints such as GET /admin/reports/dealer-master.
  *       Returns summary, detail rows, optional breakdowns, and pagination for the requested report key.
  *       For dealer-master, pass dealerId and drillDown=true to return employee-master rows scoped to that dealer.
  *       Available filters vary by reportKey; see /admin/reports/filters?reportKey=...
@@ -209,8 +492,10 @@
  * /admin/reports/{reportKey}/export:
  *   get:
  *     tags: [Admin Reports]
- *     summary: Export admin report
+ *     summary: Export admin report (legacy)
+ *     deprecated: true
  *     description: >
+ *       Deprecated — use dedicated export endpoints such as GET /admin/reports/dealer-master/export.
  *       Exports report as Excel (.xlsx) or professionally formatted PDF (EJS template rendered via headless Chrome).
  *       Accepts the same filter query params as the screen report endpoint. Max 5000 rows synchronously.
  *     security:

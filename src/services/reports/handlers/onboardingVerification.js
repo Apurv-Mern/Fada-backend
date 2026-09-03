@@ -49,6 +49,7 @@ async function run({ scope, filters }) {
     return {
       employeeId: employee.id,
       dealerId: assignment.dealerId,
+      dealerName: assignment.dealer?.name || null,
       employeeName: employee.name,
       fadaId: employee.fadaId,
       department: assignment.department?.name || null,

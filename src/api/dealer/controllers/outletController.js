@@ -1,9 +1,10 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
-const { sequelize, Outlet } = require("../../../database/models");
+const { sequelize, Outlet, Brand } = require("../../../database/models");
 const {
   buildOutletIncludes,
   validateFunctions,
+  validateFunctionsSafe,
   validateBrandId,
   buildOutletPayload,
   enrichOutletFunctions,
@@ -261,31 +262,9 @@ exports.deleteOutlet = async (req, res) => {
 };
 
 /*
-@API: GET /dealers/outlets/import
+@API: POST /dealers/outlets/import
 @Desc: Import outlets from JSON array
 @Access: Private
-@Body: [
-  {
-    "name": "Outlet 1",
-    "manager": "John Doe",
-    "pincode": "123456",
-    "city": "New York",
-    "state": "NY",
-    "address": "123 Main St",
-    "brandName": "Brand 1",
-    "outletFunctions": ["sales", "service", "parts"],
-  },
-  {
-    "name": "Outlet 2",
-    "manager": "Jane Doe",
-    "pincode": "123456",
-    "city": "New York",
-    "state": "NY",
-    "address": "123 Main St",
-    "brandName": "Brand 2",
-    "outletFunctions": ["sales", "service", "parts"],
-  }
-]
 */
 exports.importOutlets = async (req, res) => {
   try {
@@ -299,17 +278,22 @@ exports.importOutlets = async (req, res) => {
     const skippedRecords = [];
 
     for (const item of data) {
+      if (!item?.name) {
+        skippedRecords.push({ ...item, reason: "Missing required fields" });
+        continue;
+      }
+
       const existingOutlet = await Outlet.findOne({
-        where: { name: item.name, dealerId: dealerId },
+        where: { name: item.name, dealerId },
       });
 
       if (existingOutlet) {
         skippedRecords.push({ ...item, reason: "Outlet already exists" });
         continue;
       }
-      
+
       const brand = await Brand.findOne({
-        where: { name: item.brandName , flag : "Brand"},
+        where: { name: item.brandName },
       });
 
       if (!brand) {
@@ -317,30 +301,45 @@ exports.importOutlets = async (req, res) => {
         continue;
       }
 
-      const outletFunctions = await OutletFunction.findAll({
-        where: { name: { [Op.in]: item.outletFunctions } },
-      });
+      const functionsResult = await validateFunctionsSafe(
+        item.outletFunctions ?? [],
+      );
 
-      const functionsids = (outletFunctions || [])?.map(item => item.id);
+      if (!functionsResult.valid) {
+        skippedRecords.push({
+          ...item,
+          reason: functionsResult.reason || "Invalid functions",
+        });
+        continue;
+      }
 
-      const outlet = await Outlet.create({
-        name: item.name,
-        manager: item.manager,
-        pinCode: item.pincode,
-        city: item.city,
-        state: item.state,
-        address: item.address,
-        brandId: brand.id,
-        functions: functionsids,
-        dealerId: dealerId,
-        isActive: true,
-        code: await generateUniqueOutletPublicCode(Outlet),
-      });
+      const outletCode = await generateUniqueOutletPublicCode(Outlet);
 
-     
+      await Outlet.create(
+        buildOutletPayload(
+          {
+            name: item.name,
+            manager: item.manager ?? null,
+            pinCode: item.pincode ?? item.pinCode ?? null,
+            city: item.city ?? null,
+            state: item.state ?? null,
+            address: item.address ?? null,
+            brandId: brand.id,
+            isActive: true,
+          },
+          dealerId,
+          functionsResult.normalized ?? [],
+          outletCode,
+        ),
+      );
     }
+
     return res.apiSuccess("Outlets imported successfully", skippedRecords);
   } catch (error) {
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.apiError("An outlet with this code already exists", 409);
+    }
+
     return res.apiError(error.message, 500, error);
   }
 };

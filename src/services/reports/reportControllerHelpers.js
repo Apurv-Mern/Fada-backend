@@ -4,9 +4,8 @@ const { runReport, runReportForExport } = require("./reportRegistry");
 const { getFilterOptions } = require("./filtersService");
 const { exportReport } = require("./exportService");
 
-async function getReport(req, res, portal) {
+async function getReportByKey(req, res, portal, reportKey) {
   try {
-    const { reportKey } = req.params;
     const filters = parseReportFilters(req.query);
     const scope =
       portal === "admin" ? buildAdminScope(req, filters) : buildDealerScope(req, filters);
@@ -28,9 +27,8 @@ async function getReport(req, res, portal) {
   }
 }
 
-async function exportReportHandler(req, res, portal) {
+async function exportReportByKey(req, res, portal, reportKey) {
   try {
-    const { reportKey } = req.params;
     const filters = parseReportFilters(req.query);
     const scope =
       portal === "admin" ? buildAdminScope(req, filters) : buildDealerScope(req, filters);
@@ -63,6 +61,14 @@ async function exportReportHandler(req, res, portal) {
   }
 }
 
+async function getReport(req, res, portal) {
+  return getReportByKey(req, res, portal, req.params.reportKey);
+}
+
+async function exportReportHandler(req, res, portal) {
+  return exportReportByKey(req, res, portal, req.params.reportKey);
+}
+
 async function getFilters(req, res, portal) {
   try {
     const { reportKey } = req.query;
@@ -73,4 +79,10 @@ async function getFilters(req, res, portal) {
   }
 }
 
-module.exports = { getReport, exportReportHandler, getFilters };
+module.exports = {
+  getReport,
+  getReportByKey,
+  exportReportHandler,
+  exportReportByKey,
+  getFilters,
+};

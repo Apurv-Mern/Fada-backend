@@ -213,6 +213,45 @@
 
 /**
  * @swagger
+ * /admin/announcements/{id}/send-now:
+ *   post:
+ *     tags: [Admin Announcements]
+ *     summary: Send a draft announcement now
+ *     description: >
+ *       Publishes a draft announcement immediately by setting status to published
+ *       and publishedAt to the current time. Clears any scheduledAt value.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Announcement sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/Announcement'
+ *       400:
+ *         description: Announcement is not in draft status
+ *       404:
+ *         description: Announcement not found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Missing communications.manage permission
+ */
+
+/**
+ * @swagger
  * tags:
  *   - name: Dealer Announcements
  *     description: In-app announcements visible to authenticated dealers
