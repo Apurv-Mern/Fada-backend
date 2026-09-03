@@ -22,6 +22,11 @@ router.put(
   requirePermission("communications.manage"),
   announcementController.updateAnnouncement,
 );
+router.post(
+  "/:id/send-now",
+  requirePermission("communications.manage"),
+  announcementController.sendNow,
+);
 router.delete(
   "/:id",
   requirePermission("communications.manage"),

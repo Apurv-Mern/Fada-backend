@@ -1,13 +1,15 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
-const { Announcement, Admin } = require("../../../database/models");
+const { Announcement, Admin, Employee, Dealer } = require("../../../database/models");
+
+const { addPushJobs, addEmailJobs } = require("../../../queues");
 
 const POST_TYPES = ["updates", "reminders", "celebration", "announcement"];
 const TARGET_AUDIENCES = [
   "employees",
   "dealers",
   "members_and_dealers",
-  "all",
+  "both",
 ];
 const STATUSES = ["draft", "published", "scheduled"];
 const DELIVERY_CHANNELS = ["in_app", "email", "push"];
@@ -217,6 +219,91 @@ exports.deleteAnnouncement = async (req, res) => {
     await announcement.destroy();
 
     return res.apiSuccess("Announcement deleted successfully");
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: POST /admin/announcements/:id/send-now
+@Desc: Publish a draft announcement immediately
+@Access: Private
+*/
+exports.sendNow = async (req, res) => {
+  try {
+    const announcement = await findAnnouncementOrError(req.params.id, res);
+    if (!announcement) return;
+
+    if (announcement.status !== "draft") {
+      return res.apiError("Only draft announcements can be sent now", 400);
+    }
+
+    let targets = [];
+
+    if (announcement.targetAudience === "employees") {
+      targets = await Employee.findAll({
+        attributes: ["id", "name", "email"],
+        where: {
+          isActive: true,
+        },
+      });
+    } else if (announcement.targetAudience === "dealers") {
+      targets = await Dealer.findAll({
+        attributes: ["id", "name", "email"],
+        where: {
+          isActive: true,
+        },
+      });
+    } else if (announcement.targetAudience === "both") {
+      const employees = await Employee.findAll({
+        attributes: ["id", "name", "email"],
+        where: {
+          isActive: true,
+        },
+      });
+      const dealers = await Dealer.findAll({
+        attributes: ["id", "name", "email"],
+        where: {
+          isActive: true,
+        },
+      });
+      targets = [...employees, ...dealers];
+    }
+
+    //send push notification to targets
+    if (announcement.deliveryChannels.includes("push")) {
+      await addPushJobs(
+        targets.map((target) => ({
+          token: target.deviceToken,
+          title: announcement.title,
+          body: announcement.messageBody,
+        }))
+      );
+    }
+
+    //send email to targets using template announcement.ejs
+    if (announcement.deliveryChannels.includes("email")) {
+      await addEmailJobs(
+        targets.map((target) => ({
+          to: target.email,
+          subject: announcement.title,
+          templateName: "announcement.ejs",
+          data: {
+            userName: target.name,
+            title: announcement.title,
+            messageBody: announcement.messageBody,
+          },
+        }))
+      );
+    }
+
+    await announcement.update({
+      status: "published",
+      publishedAt: new Date(),
+      scheduledAt: null,
+    });
+ 
+    return res.apiSuccess("Announcement sent successfully");
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

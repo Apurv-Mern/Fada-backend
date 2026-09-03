@@ -5,6 +5,7 @@ const AuthMiddleware = require("../../../middlewares/dealerAuth");
 
 router.get("/", AuthMiddleware, outletController.getOutlets);
 router.get("/options", AuthMiddleware, outletController.getOutletOptions);
+router.post("/import", AuthMiddleware, outletController.importOutlets);
 router.get("/:id", AuthMiddleware, outletController.getOutletById);
 router.post("/", AuthMiddleware, outletController.createOutlet);
 router.put("/:id", AuthMiddleware, outletController.updateOutlet);

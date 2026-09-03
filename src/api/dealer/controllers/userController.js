@@ -598,6 +598,7 @@ exports.getDashboard = async (req, res) => {
             model: EmployeeEmployerStatus,
             as: "statuses",
             required: true,
+            attributes: [],
             where: {
               slug: "joining",
               status: "transfered",
@@ -605,7 +606,7 @@ exports.getDashboard = async (req, res) => {
           },
         ],
         distinct: true,
-        col: "EmployeeAssignment.id",
+        col: "id",
       }),
       ScoreStage.findAll({
         where: { isActive: true },
