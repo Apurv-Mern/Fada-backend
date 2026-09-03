@@ -813,7 +813,7 @@ exports.sendEmployeementTransferRequest = async (req, res) => {
         outletId: outletId,
         departmentId: departmentId,
         designationId: designationId,
-        status: "verified",
+        status: "completed",
         employeementType: "full-time",
         isCurrentlyWorking: true,
         startDate: new Date(),

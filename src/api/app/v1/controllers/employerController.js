@@ -111,7 +111,7 @@ exports.getEmployerInvitations = async (req, res) => {
   try {
     const { id } = req.auth;
     const employeeInvitations = await EmployeeAssignment.findOne({
-      where: { employeeId: id, status: { [Op.in]: ["pending", "verified"], isCurrentlyWorking: false } },
+      where: { employeeId: id, status: { [Op.in]: ["pending", "verified"] }, isCurrentlyWorking: false },
       order: [["createdAt", "ASC"]],
       include: [
         {
@@ -305,7 +305,7 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
 
 
     const employeeAssignment = await EmployeeAssignment.findOne({
-      where: { employeeId: id, status: "verified", isCurrentlyWorking: true },
+      where: { employeeId: id, status: "completed", isCurrentlyWorking: true },
       order: [["createdAt", "DESC"]],
     });
 
