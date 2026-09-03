@@ -128,6 +128,7 @@ const REPORT_FILTERS = {
     "toDate",
   ],
   [REPORT_KEYS.EMPLOYEE_MASTER]: [
+    "search",
     "dealerId",
     "departmentId",
     "designationId",
@@ -140,6 +141,7 @@ const REPORT_FILTERS = {
     "toDate",
   ],
   [REPORT_KEYS.ONBOARDING_VERIFICATION]: [
+    "search",
     "dealerId",
     "departmentId",
     "designationId",
@@ -148,6 +150,7 @@ const REPORT_FILTERS = {
     "toDate",
   ],
   [REPORT_KEYS.EMPLOYEE_MOVEMENT]: [
+    "search",
     "dealerId",
     "departmentId",
     "designationId",
@@ -156,11 +159,13 @@ const REPORT_FILTERS = {
     "toDate",
   ],
   [REPORT_KEYS.WORKFORCE_ANALYTICS]: [
+    "search",
     "dealerId",
     "departmentId",
     "designationId",
   ],
   [REPORT_KEYS.ADOPTION_COMPLIANCE]: [
+    "search",
     "dealerId",
     "departmentId",
     "designationId",

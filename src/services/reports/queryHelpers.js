@@ -13,6 +13,45 @@ const {
   Brand,
 } = require("../../database/models");
 
+function buildEmployeeSearchWhere(search) {
+  if (!search?.trim()) return null;
+
+  const term = `%${search.trim()}%`;
+  return {
+    [Op.or]: [
+      { name: { [Op.like]: term } },
+      { email: { [Op.like]: term } },
+      { phone: { [Op.like]: term } },
+      { fadaId: { [Op.like]: term } },
+    ],
+  };
+}
+
+function employeeMatchesSearch(employee, search) {
+  if (!search?.trim() || !employee) return true;
+
+  const term = search.trim().toLowerCase();
+  return [employee.name, employee.email, employee.phone, employee.fadaId].some(
+    (value) => value && String(value).toLowerCase().includes(term),
+  );
+}
+
+function filterRowsBySearch(rows, search) {
+  if (!search?.trim()) return rows;
+
+  const term = search.trim().toLowerCase();
+  return rows.filter((row) =>
+    [
+      row.name,
+      row.employeeName,
+      row.fadaId,
+      row.email,
+      row.phone,
+      row.employeeCode,
+    ].some((value) => value && String(value).toLowerCase().includes(term)),
+  );
+}
+
 function buildDealerWhere(scope, filters) {
   const where = {};
   if (scope.dealerId) where.id = scope.dealerId;
@@ -195,6 +234,9 @@ module.exports = {
   buildDealerWhere,
   buildLocationWhere,
   buildAssignmentWhere,
+  buildEmployeeSearchWhere,
+  employeeMatchesSearch,
+  filterRowsBySearch,
   getScopedDealerIds,
   getEmployeeDocStats,
   getDealerDocStats,

@@ -8,6 +8,7 @@ function parseReportFilters(query = {}) {
   const offset = Math.max(parseInt(query.offset, 10) || 0, 0);
 
   const filters = {
+    search: query.search?.trim() || null,
     fromDate: query.fromDate || null,
     toDate: query.toDate || null,
     state: query.state || null,

@@ -84,6 +84,11 @@ async function getFilterOptions(reportKey, portal) {
     issueTypes: ISSUE_TYPES,
     eventTypes: EVENT_TYPES,
     granularities: ["daily", "weekly", "monthly"],
+    search: {
+      type: "text",
+      label: "Search",
+      placeholder: "Search by name, FADA ID, email, or phone",
+    },
   };
 
   if (!reportKey) return allFilters;
@@ -109,12 +114,15 @@ async function getFilterOptions(reportKey, portal) {
       issueType: "issueTypes",
       eventType: "eventTypes",
       granularity: "granularities",
+      search: "search",
       fromDate: null,
       toDate: null,
     };
     const filterKey = map[key];
     if (filterKey && allFilters[filterKey]) {
       filtered[filterKey] = allFilters[filterKey];
+    } else if (key === "fromDate" || key === "toDate") {
+      filtered[key] = { type: "date" };
     }
   }
 

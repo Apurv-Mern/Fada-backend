@@ -2,6 +2,7 @@ const {
   getScopedDealerIds,
   getEmployeeDocStats,
   buildAssignmentWhere,
+  buildEmployeeSearchWhere,
   Employee,
   EmployeeAssignment,
   OrganizationStructure,
@@ -31,6 +32,8 @@ async function run({ scope, filters }) {
     dealerId: { [Op.in]: dealerIds },
   };
 
+  const employeeSearchWhere = buildEmployeeSearchWhere(filters.search);
+
   const assignments = await EmployeeAssignment.findAll({
     where: assignmentWhere,
     include: [
@@ -38,6 +41,7 @@ async function run({ scope, filters }) {
         model: Employee,
         as: "employee",
         required: true,
+        ...(employeeSearchWhere ? { where: employeeSearchWhere } : {}),
       },
       { model: OrganizationStructure, as: "department", attributes: ["id", "name"], required: false },
       { model: OrganizationStructure, as: "designation", attributes: ["id", "name"], required: false },
