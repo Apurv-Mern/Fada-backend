@@ -362,6 +362,11 @@
  *             - workforce-analytics
  *             - adoption-compliance
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by employee name, FADA ID, email, or phone
+ *       - in: query
  *         name: fromDate
  *         schema:
  *           type: string
@@ -639,7 +644,9 @@
  *   get:
  *     tags: [Dealer Reports]
  *     summary: Get dealer report filter metadata
- *     description: Same as admin filters but scoped to dealer-portal reports and without admin-only dealer lists.
+ *     description: >
+ *       Returns filter metadata for dealer-portal reports including a search text field.
+ *       Pass reportKey to get filters for a specific report (D1–D5).
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -687,6 +694,11 @@
  *             - employee-movement
  *             - workforce-analytics
  *             - adoption-compliance
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by employee name, FADA ID, email, or phone
  *       - in: query
  *         name: fromDate
  *         schema:

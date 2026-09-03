@@ -2,6 +2,7 @@ const { Op } = require("sequelize");
 const {
   getScopedDealerIds,
   buildAssignmentWhere,
+  buildEmployeeSearchWhere,
   EmployeeAssignment,
   Employee,
   OrganizationStructure,
@@ -10,6 +11,7 @@ const { getAdoptionPercentage, getFadaIdStatus } = require("../computedFields");
 
 async function run({ scope, filters }) {
   const dealerIds = await getScopedDealerIds(scope, filters);
+  const employeeSearchWhere = buildEmployeeSearchWhere(filters.search);
 
   const assignments = await EmployeeAssignment.findAll({
     where: {
@@ -17,7 +19,12 @@ async function run({ scope, filters }) {
       ...(dealerIds.length ? { dealerId: { [Op.in]: dealerIds } } : {}),
     },
     include: [
-      { model: Employee, as: "employee", required: true },
+      {
+        model: Employee,
+        as: "employee",
+        required: true,
+        ...(employeeSearchWhere ? { where: employeeSearchWhere } : {}),
+      },
       { model: OrganizationStructure, as: "department", attributes: ["id", "name"], required: false },
     ],
   });

@@ -1,6 +1,8 @@
 const {
   getScopedDealerIds,
   buildAssignmentWhere,
+  buildEmployeeSearchWhere,
+  filterRowsBySearch,
   EmployeeAssignment,
   Employee,
   EmployeeLeaveEmployeement,
@@ -12,6 +14,14 @@ const {
 async function run({ scope, filters }) {
   const dealerIds = await getScopedDealerIds(scope, filters);
   const events = [];
+
+  const employeeSearchWhere = buildEmployeeSearchWhere(filters.search);
+  const employeeInclude = {
+    model: Employee,
+    as: "employee",
+    attributes: ["id", "name", "fadaId"],
+    ...(employeeSearchWhere ? { where: employeeSearchWhere, required: true } : {}),
+  };
 
   const dateFilter = {};
   if (filters.fromDate) dateFilter[Op.gte] = filters.fromDate;
@@ -30,7 +40,7 @@ async function run({ scope, filters }) {
         ...(hasDateFilter ? { createdAt: dateFilter } : {}),
       },
       include: [
-        { model: Employee, as: "employee", attributes: ["id", "name", "fadaId"] },
+        employeeInclude,
         { model: OrganizationStructure, as: "department", attributes: ["name"], required: false },
         { model: OrganizationStructure, as: "designation", attributes: ["name"], required: false },
       ],
@@ -56,7 +66,7 @@ async function run({ scope, filters }) {
         ...(hasDateFilter ? { createdAt: dateFilter } : {}),
       },
       include: [
-        { model: Employee, as: "employee", attributes: ["id", "name", "fadaId"] },
+        employeeInclude,
         {
           model: EmployeeAssignment,
           as: "assignment",
@@ -95,7 +105,7 @@ async function run({ scope, filters }) {
           required: true,
           where: dealerIds.length ? { dealerId: { [Op.in]: dealerIds } } : undefined,
           include: [
-            { model: Employee, as: "employee", attributes: ["id", "name", "fadaId"] },
+            employeeInclude,
             { model: OrganizationStructure, as: "department", attributes: ["name"], required: false },
             { model: OrganizationStructure, as: "designation", attributes: ["name"], required: false },
           ],
@@ -119,16 +129,17 @@ async function run({ scope, filters }) {
   }
 
   events.sort((a, b) => new Date(b.effectiveDate) - new Date(a.effectiveDate));
+  const filteredEvents = filterRowsBySearch(events, filters.search);
 
   const summary = {
-    totalEvents: events.length,
-    newJoiners: events.filter((e) => e.eventType === "new_joiner").length,
-    exits: events.filter((e) => e.eventType === "exit").length,
-    statusChanges: events.filter((e) => e.eventType === "status_change").length,
+    totalEvents: filteredEvents.length,
+    newJoiners: filteredEvents.filter((e) => e.eventType === "new_joiner").length,
+    exits: filteredEvents.filter((e) => e.eventType === "exit").length,
+    statusChanges: filteredEvents.filter((e) => e.eventType === "status_change").length,
   };
 
-  const total = events.length;
-  const rows = events.slice(filters.offset, filters.offset + filters.limit);
+  const total = filteredEvents.length;
+  const rows = filteredEvents.slice(filters.offset, filters.offset + filters.limit);
 
   return {
     summary,
