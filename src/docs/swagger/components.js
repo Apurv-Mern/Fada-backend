@@ -12,7 +12,9 @@
  *         Optional active dealer context for group-holding accounts.
  *         Omit or send the logged-in dealer id to act as self.
  *         Send a child dealer id (parentDealerId must equal the authenticated dealer)
- *         to scope business data to that sub-dealer. Invalid or unauthorized ids return 400/403.
+ *         to scope business data to that sub-dealer. Staff accounts (userType=staff) always
+ *         operate under their parentDealerId; X-Dealer-Id is ignored for staff logins.
+ *         Invalid or unauthorized ids return 400/403.
  *     EmployeeDealerIdQuery:
  *       in: query
  *       name: dealerId
@@ -1150,10 +1152,15 @@
  *           type: string
  *           enum: [dealer, staff]
  *           default: dealer
+ *           description: Primary company account (dealer) or portal staff login (staff)
+ *         roleId:
+ *           type: integer
+ *           nullable: true
+ *           description: Assigned dealer portal role id (staff accounts only)
  *         parentDealerId:
  *           type: integer
  *           nullable: true
- *           description: Parent group-holding dealer id when this dealer is a sub-dealer
+ *           description: Parent company id for staff accounts, or group-holding parent for sub-dealers
  *         mustChangePassword:
  *           type: boolean
  *           description: True when dealer must change password (legacy temp-password flow)
@@ -1831,6 +1838,169 @@
  *           type: integer
  *         designationId:
  *           type: integer
+ *     DealerStaffRole:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *           example: Dealer Manager
+ *         key:
+ *           type: string
+ *           example: dealer_manager
+ *         description:
+ *           type: string
+ *         assignableTo:
+ *           type: string
+ *           enum: [dealer, all]
+ *         isSuperRole:
+ *           type: boolean
+ *     DealerStaffMember:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *           example: Rajesh Kumar
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: staff@dealer.com
+ *         phone:
+ *           type: string
+ *           nullable: true
+ *           example: "9876543210"
+ *         roleId:
+ *           type: integer
+ *         role:
+ *           $ref: '#/components/schemas/DealerStaffRole'
+ *         userType:
+ *           type: string
+ *           enum: [staff]
+ *         parentDealerId:
+ *           type: integer
+ *           description: Company dealer id this staff member belongs to
+ *         isActive:
+ *           type: boolean
+ *           description: Inactive staff cannot sign in to the dealer portal
+ *         isEmailVerified:
+ *           type: boolean
+ *         status:
+ *           type: string
+ *           enum: [approved]
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     DealerStaffListResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/ApiSuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               type: object
+ *               properties:
+ *                 staff:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/DealerStaffMember'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *     DealerStaffActiveToggleResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/ApiSuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 isActive:
+ *                   type: boolean
+ *     DealerPortalPermission:
+ *       type: object
+ *       properties:
+ *         key:
+ *           type: string
+ *           example: dealer_outlets.manage
+ *         name:
+ *           type: string
+ *           example: Manage outlets
+ *         action:
+ *           type: string
+ *           enum: [view, edit, manage, create, delete, export]
+ *     DealerPortalModule:
+ *       type: object
+ *       description: Dealer portal sidebar module with nested permissions (RBAC catalog reference)
+ *       properties:
+ *         key:
+ *           type: string
+ *           example: dealer_outlets
+ *         name:
+ *           type: string
+ *           example: Outlets
+ *         sortOrder:
+ *           type: integer
+ *         permissions:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/DealerPortalPermission'
+ *     DealerStaffCreateRequest:
+ *       type: object
+ *       required: [name, email, roleId, password, confirmPassword]
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         roleId:
+ *           type: integer
+ *           description: Role id from GET /dealers/staff/roles
+ *         password:
+ *           type: string
+ *           minLength: 8
+ *         confirmPassword:
+ *           type: string
+ *           minLength: 8
+ *         isActive:
+ *           type: boolean
+ *           default: true
+ *     DealerStaffUpdateRequest:
+ *       type: object
+ *       required: [name, email, roleId]
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *         roleId:
+ *           type: integer
+ *         password:
+ *           type: string
+ *           minLength: 8
+ *         confirmPassword:
+ *           type: string
+ *           minLength: 8
+ *         isActive:
+ *           type: boolean
  *     FileUploadResponse:
  *       type: object
  *       properties:

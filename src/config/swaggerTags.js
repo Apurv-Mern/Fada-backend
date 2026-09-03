@@ -106,6 +106,18 @@ const TAG_GROUPS = {
         "Dealer key contact person management (scoped by X-Dealer-Id when acting as a sub-dealer)",
     },
     {
+      source: "Dealer Staff",
+      name: "Staff",
+      description:
+        "Dealer portal staff accounts with role assignment, scoped to the active company",
+    },
+    {
+      source: "Dealer Portal RBAC",
+      name: "Portal RBAC",
+      description:
+        "Reference catalog for dealer portal modules, permissions, and default roles",
+    },
+    {
       source: "Dealer Outlets",
       name: "Outlets",
       description:

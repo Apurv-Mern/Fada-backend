@@ -6,9 +6,9 @@ const options = {
     openapi: "3.0.0",
     info: {
       title: "FADA Backend API",
-      version: "1.8.0",
+      version: "1.10.0",
       description:
-        "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints. Dealer business APIs accept optional header X-Dealer-Id so a group-holding dealer can act in a child dealer context without changing the login token. Employee department/designation live on EmployeeAssignment (EmployeeDesignation removed).",
+        "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints. Dealer business APIs accept optional header X-Dealer-Id so a group-holding dealer can act in a child dealer context without changing the login token. Dealer portal staff accounts (userType=staff) operate in their parent company context. Employee department/designation live on EmployeeAssignment (EmployeeDesignation removed).",
     },
     servers: [
       {
@@ -37,6 +37,7 @@ const options = {
     "./src/docs/swagger/admin.js",
     "./src/docs/swagger/masters.js",
     "./src/docs/swagger/dealers.js",
+    "./src/docs/swagger/dealer-rbac.js",
     "./src/docs/swagger/dealer-masters.js",
     "./src/docs/swagger/outlets.js",
     "./src/docs/swagger/employees.js",

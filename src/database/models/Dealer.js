@@ -52,6 +52,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "parentDealerId",
         as: "childDealers",
       });
+
+      Dealer.belongsTo(models.Role, {
+        foreignKey: "roleId",
+        as: "role",
+      });
     }
   }
   Dealer.init(

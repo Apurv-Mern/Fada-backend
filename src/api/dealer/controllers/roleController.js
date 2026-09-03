@@ -1,6 +1,10 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
-const { Role, Permission, Admin, Dealer } = require("../../../database/models");
+const { Role, Permission, Dealer } = require("../../../database/models");
+const {
+  validateDealerPortalPermissionKeys,
+  dealerRoleManagementFilter,
+} = require("../../../services/rbacService");
 
 const roleAttributes = [
   "id",
@@ -24,17 +28,29 @@ const permissionInclude = {
   required: false,
 };
 
-const formatRole = (role) => {
+function ensurePrimaryDealerCanMutate(req, res) {
+  if (req.auth?.userType === "staff") {
+    res.apiError("Only the primary dealer account can manage roles", 403);
+    return false;
+  }
+  return true;
+}
+
+function formatRole(role) {
   const plain = role.toJSON();
   return {
     ...plain,
     permissions: (plain.permissions || []).map((permission) => permission.key),
   };
-};
+}
 
-const findRoleOrError = async (id, res) => {
-  const role = await Role.findByPk(id, {
+async function findDealerRoleOrError(id, res) {
+  const role = await Role.findOne({
     attributes: roleAttributes,
+    where: {
+      id,
+      ...dealerRoleManagementFilter,
+    },
     include: [permissionInclude],
   });
 
@@ -44,32 +60,11 @@ const findRoleOrError = async (id, res) => {
   }
 
   return role;
-};
-
-const validatePermissionKeys = async (permissionKeys, res) => {
-  if (!Array.isArray(permissionKeys) || permissionKeys.length === 0) {
-    res.apiError("At least one permission is required", 422);
-    return null;
-  }
-
-  const permissions = await Permission.findAll({
-    where: {
-      key: { [Op.in]: permissionKeys },
-      isActive: true,
-    },
-  });
-
-  if (permissions.length !== permissionKeys.length) {
-    res.apiError("One or more permission keys are invalid", 422);
-    return null;
-  }
-
-  return permissions;
-};
+}
 
 /*
-@API: GET /admin/roles
-@Desc: List roles with permission keys
+@API: GET /dealers/roles
+@Desc: List dealer portal roles with permission keys
 @Access: Private
 */
 exports.getRoles = async (req, res) => {
@@ -78,13 +73,15 @@ exports.getRoles = async (req, res) => {
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
-    const where = {};
+    const where = { ...dealerRoleManagementFilter };
+
     if (search) {
       where[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
         { key: { [Op.like]: `%${search}%` } },
       ];
     }
+
     if (isActive !== undefined && isActive !== "") {
       where.isActive = isActive === "true" || isActive === "1";
     }
@@ -93,7 +90,7 @@ exports.getRoles = async (req, res) => {
       attributes: roleAttributes,
       where,
       include: [permissionInclude],
-      order: [["id", "ASC"]],
+      order: [["name", "ASC"]],
       limit,
       offset,
       distinct: true,
@@ -104,37 +101,39 @@ exports.getRoles = async (req, res) => {
       pagination: { total, limit, offset },
     });
   } catch (error) {
-    return res.apiError("Internal server error", 500, error);
+    return res.apiError(error.message, 500, error);
   }
 };
 
 /*
-@API: GET /admin/roles/:id
-@Desc: Get role by id
+@API: GET /dealers/roles/:id
+@Desc: Get dealer portal role by id
 @Access: Private
 */
 exports.getRoleById = async (req, res) => {
   try {
-    const role = await findRoleOrError(req.params.id, res);
+    const role = await findDealerRoleOrError(req.params.id, res);
     if (!role) return;
+
     return res.apiSuccess("Role fetched successfully", formatRole(role));
   } catch (error) {
-    return res.apiError("Internal server error", 500, error);
+    return res.apiError(error.message, 500, error);
   }
 };
 
 /*
-@API: POST /admin/roles
-@Desc: Create custom role
+@API: POST /dealers/roles
+@Desc: Create custom dealer portal role
 @Access: Private
 */
 exports.createRole = async (req, res) => {
   try {
+    if (!ensurePrimaryDealerCanMutate(req, res)) return;
+
     const validator = new Validator(req.body, {
       key: "required|string|regex:/^[a-z0-9_-]+$/",
       name: "required|string",
       description: "string",
-      assignableTo: "required|in:staff,dealer,all",
       permissions: "required|array",
       isActive: "boolean",
     });
@@ -148,39 +147,44 @@ exports.createRole = async (req, res) => {
       return res.apiError("A role with this key already exists", 409);
     }
 
-    const permissions = await validatePermissionKeys(req.body.permissions, res);
-    if (!permissions) return;
+    const validation = await validateDealerPortalPermissionKeys(
+      req.body.permissions,
+    );
+    if (validation.error) {
+      return res.apiError(validation.error, 422);
+    }
 
     const role = await Role.create({
       key: req.body.key.trim().toLowerCase(),
       name: req.body.name.trim(),
       description: req.body.description || null,
-      assignableTo: req.body.assignableTo,
+      assignableTo: "dealer",
       isSystem: false,
       isSuperRole: false,
       isActive: req.body.isActive ?? true,
     });
 
-    await role.setPermissions(permissions);
+    await role.setPermissions(validation.permissions);
 
-    const created = await findRoleOrError(role.id, res);
+    const created = await findDealerRoleOrError(role.id, res);
     return res.apiSuccess("Role created successfully", formatRole(created));
   } catch (error) {
-    return res.apiError("Internal server error", 500, error);
+    return res.apiError(error.message, 500, error);
   }
 };
 
 /*
-@API: PUT /admin/roles/:id
-@Desc: Update role and replace permissions
+@API: PUT /dealers/roles/:id
+@Desc: Update dealer portal role and replace permissions
 @Access: Private
 */
 exports.updateRole = async (req, res) => {
   try {
+    if (!ensurePrimaryDealerCanMutate(req, res)) return;
+
     const validator = new Validator(req.body, {
       name: "required|string",
       description: "string",
-      assignableTo: "required|in:staff,dealer,all",
       permissions: "required|array",
       isActive: "boolean",
     });
@@ -189,44 +193,57 @@ exports.updateRole = async (req, res) => {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    const role = await Role.findByPk(req.params.id);
+    const role = await Role.findOne({
+      where: {
+        id: req.params.id,
+        ...dealerRoleManagementFilter,
+      },
+    });
+
     if (!role) {
       return res.apiError("Role not found", 404);
     }
 
-    if (role.isSystem && req.body.key && req.body.key !== role.key) {
-      return res.apiError("System role key cannot be changed", 400);
+    const validation = await validateDealerPortalPermissionKeys(
+      req.body.permissions,
+    );
+    if (validation.error) {
+      return res.apiError(validation.error, 422);
     }
-
-    const permissions = await validatePermissionKeys(req.body.permissions, res);
-    if (!permissions) return;
 
     await role.update({
       name: req.body.name.trim(),
       description: req.body.description || null,
-      assignableTo: req.body.assignableTo,
       isActive: role.isSystem ? role.isActive : (req.body.isActive ?? role.isActive),
     });
 
     if (!role.isSuperRole) {
-      await role.setPermissions(permissions);
+      await role.setPermissions(validation.permissions);
     }
 
-    const updated = await findRoleOrError(role.id, res);
+    const updated = await findDealerRoleOrError(role.id, res);
     return res.apiSuccess("Role updated successfully", formatRole(updated));
   } catch (error) {
-    return res.apiError("Internal server error", 500, error);
+    return res.apiError(error.message, 500, error);
   }
 };
 
 /*
-@API: DELETE /admin/roles/:id
-@Desc: Delete custom role
+@API: DELETE /dealers/roles/:id
+@Desc: Delete custom dealer portal role
 @Access: Private
 */
 exports.deleteRole = async (req, res) => {
   try {
-    const role = await Role.findByPk(req.params.id);
+    if (!ensurePrimaryDealerCanMutate(req, res)) return;
+
+    const role = await Role.findOne({
+      where: {
+        id: req.params.id,
+        ...dealerRoleManagementFilter,
+      },
+    });
+
     if (!role) {
       return res.apiError("Role not found", 404);
     }
@@ -235,17 +252,16 @@ exports.deleteRole = async (req, res) => {
       return res.apiError("System roles cannot be deleted", 400);
     }
 
-    const assignedAdminCount = await Admin.count({ where: { roleId: role.id } });
-    if (assignedAdminCount > 0) {
-      return res.apiError("Role is assigned to staff members and cannot be deleted", 400);
-    }
-
-    const assignedDealerCount = await Dealer.count({
-      where: { roleId: role.id, userType: "staff" },
+    const assignedCount = await Dealer.count({
+      where: {
+        roleId: role.id,
+        userType: "staff",
+      },
     });
-    if (assignedDealerCount > 0) {
+
+    if (assignedCount > 0) {
       return res.apiError(
-        "Role is assigned to dealer portal staff and cannot be deleted",
+        "Role is assigned to staff members and cannot be deleted",
         400,
       );
     }
@@ -253,6 +269,6 @@ exports.deleteRole = async (req, res) => {
     await role.destroy();
     return res.apiSuccess("Role deleted successfully");
   } catch (error) {
-    return res.apiError("Internal server error", 500, error);
+    return res.apiError(error.message, 500, error);
   }
 };

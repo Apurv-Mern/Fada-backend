@@ -276,6 +276,266 @@
 /**
  * @swagger
  * tags:
+ *   - name: Dealer Staff
+ *     description: >
+ *       Dealer portal staff accounts stored as Dealer rows with userType=staff, scoped to the active company.
+ *       Staff management lives under the Settings module (`dealer_staff.*` permissions).
+ *       Create/update/delete/toggle requires the primary dealer account (userType=dealer).
+ *
+ *       **Dealer portal modules (RBAC reference):**
+ *       Dashboard, Company Profile, Outlets, Employees, Employment Requests, Reports, Communications, Settings.
+ *       Default roles: dealer_admin (super), dealer_manager, dealer_viewer.
+ */
+
+/**
+ * @swagger
+ * /dealers/staff/roles:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Staff]
+ *     summary: List dealer-assignable roles
+ *     description: >
+ *       Returns active roles where assignableTo is dealer or all.
+ *       Used by the staff member role dropdown in Settings.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Staff roles fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/DealerStaffRole'
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/staff:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Staff]
+ *     summary: List dealer staff members
+ *     description: Returns staff accounts for the active company (parentDealerId = currentDealerId).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name, email, or phone
+ *       - in: query
+ *         name: roleId
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Staff members fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DealerStaffListResponse'
+ *       401:
+ *         description: Unauthorized
+ *   post:
+ *     tags: [Dealer Staff]
+ *     summary: Create dealer staff member
+ *     description: >
+ *       Creates a staff login for the active company. Sends a temporary password email via temp-password.ejs.
+ *       Only the primary dealer account can create staff. Requires dealer_staff.create permission when middleware is wired.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerStaffCreateRequest'
+ *     responses:
+ *       200:
+ *         description: Staff member created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/DealerStaffMember'
+ *       403:
+ *         description: Staff accounts cannot create other staff
+ *       409:
+ *         description: Duplicate email
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/staff/{id}:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   get:
+ *     tags: [Dealer Staff]
+ *     summary: Get dealer staff member by id
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Staff member fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/DealerStaffMember'
+ *       404:
+ *         description: Staff member not found
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     tags: [Dealer Staff]
+ *     summary: Update dealer staff member
+ *     description: Only the primary dealer account can update staff. Password change is optional.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DealerStaffUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Staff member updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/DealerStaffMember'
+ *       403:
+ *         description: Staff accounts cannot update other staff
+ *       404:
+ *         description: Staff member not found
+ *       409:
+ *         description: Duplicate email
+ *       422:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *   delete:
+ *     tags: [Dealer Staff]
+ *     summary: Delete dealer staff member
+ *     description: Soft-deletes the staff account. Cannot delete your own account.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Staff member deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *       400:
+ *         description: Cannot delete own account
+ *       403:
+ *         description: Staff accounts cannot delete other staff
+ *       404:
+ *         description: Staff member not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /dealers/staff/{id}/active-inactive:
+ *   parameters:
+ *     - $ref: '#/components/parameters/XDealerId'
+ *   put:
+ *     tags: [Dealer Staff]
+ *     summary: Toggle dealer staff active status
+ *     description: Flips isActive. Cannot toggle your own account. Primary dealer only.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Staff active status toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DealerStaffActiveToggleResponse'
+ *       400:
+ *         description: Cannot toggle own account
+ *       403:
+ *         description: Staff accounts cannot toggle other staff
+ *       404:
+ *         description: Staff member not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * tags:
  *   - name: Dealer Outlets
  *     description: Dealer outlet management (scoped to active dealer via Bearer + optional X-Dealer-Id)
  */

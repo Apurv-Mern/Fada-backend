@@ -25,7 +25,7 @@
  *           type: string
  *         assignableTo:
  *           type: string
- *           enum: [staff, all]
+ *           enum: [staff, dealer, all]
  *         isSystem:
  *           type: boolean
  *         isSuperRole:
@@ -50,7 +50,7 @@
  *           type: string
  *         assignableTo:
  *           type: string
- *           enum: [staff, all]
+ *           enum: [staff, dealer, all]
  *         permissions:
  *           type: array
  *           items:
@@ -68,7 +68,7 @@
  *           type: string
  *         assignableTo:
  *           type: string
- *           enum: [staff, all]
+ *           enum: [staff, dealer, all]
  *         permissions:
  *           type: array
  *           items:

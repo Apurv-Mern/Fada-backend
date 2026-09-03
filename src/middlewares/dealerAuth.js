@@ -12,7 +12,6 @@ module.exports = async function (req, res, next) {
 
     const decodedToken = verifyAccessToken(token);
 
-    // Verify logged-in dealer
     const userData = await Dealer.findOne({
       where: {
         id: decodedToken.id,
@@ -23,35 +22,39 @@ module.exports = async function (req, res, next) {
       return res.authError("Authentication failed: Token has expired", 401);
     }
 
-    // Verify role
     if (decodedToken.role !== "dealer") {
       return res.authError("Authentication failed: Unauthorized access", 401);
     }
 
-    // Actual authenticated user
     req.auth = userData;
 
-    // Selected dealer from frontend
     const headerDealerId = req.headers["x-dealer-id"];
+    const isStaffAccount = userData.userType === "staff";
+    const ownerDealerId = isStaffAccount
+      ? Number(userData.parentDealerId)
+      : Number(userData.id);
+
+    if (isStaffAccount && !ownerDealerId) {
+      return res.apiError("Staff account is not linked to a company", 403);
+    }
 
     const selectedDealerId = headerDealerId
       ? Number(headerDealerId)
-      : Number(userData.id);
+      : ownerDealerId;
 
     if (!Number.isInteger(selectedDealerId)) {
       return res.apiError("Invalid dealer ID", 400);
     }
 
-    // Main dealer selected
-    if (selectedDealerId === Number(userData.id)) {
+    if (selectedDealerId === ownerDealerId) {
+      req.currentDealerId = ownerDealerId;
+    } else if (!isStaffAccount && selectedDealerId === Number(userData.id)) {
       req.currentDealerId = userData.id;
     } else {
-      // Check whether selected dealer belongs
-      // to logged-in main dealer
       const subDealer = await Dealer.findOne({
         where: {
           id: selectedDealerId,
-          parentDealerId: userData.id,
+          parentDealerId: ownerDealerId,
         },
       });
 

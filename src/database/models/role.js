@@ -15,6 +15,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "roleId",
         as: "staffMembers",
       });
+
+      Role.hasMany(models.Dealer, {
+        foreignKey: "roleId",
+        as: "dealerStaffMembers",
+      });
     }
   }
 
@@ -28,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       description: DataTypes.TEXT,
       assignableTo: {
-        type: DataTypes.ENUM("staff", "all"),
+        type: DataTypes.ENUM("staff", "all", "dealer"),
         allowNull: false,
         defaultValue: "staff",
       },
