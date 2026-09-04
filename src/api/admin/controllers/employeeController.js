@@ -641,6 +641,10 @@ exports.createEmployee = async (req, res) => {
         {
           ...buildEmployeePayload(req.body),
           fadaId,
+          isJourneyCompleted: true,
+          isRegistrationCompleted: true,
+          isKycCompleted: true,
+          isProfilePrivate : true,
         },
         { transaction },
       );

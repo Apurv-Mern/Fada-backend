@@ -9,6 +9,7 @@ const {
   Document,
   Dealer,
   Outlet,
+  EmployeeEmployerStatus
 } = require("../database/models");
 const { tryCatch } = require("bullmq");
 
@@ -229,6 +230,8 @@ const syncAssignment = async (employeeId, assignment, joinedDate, transaction) =
     startDate: assignment.startDate ?? joinedDate ?? null,
     endDate: assignment.endDate ?? null,
     isActive: assignment.isActive ?? true,
+    isCurrentlyWorking: true,
+    status: "completed",
   };
 
   const existing = await EmployeeAssignment.findOne({
@@ -241,7 +244,20 @@ const syncAssignment = async (employeeId, assignment, joinedDate, transaction) =
     return;
   }
 
-  await EmployeeAssignment.create(payload, { transaction });
+  const data = await EmployeeAssignment.create(payload, { transaction });
+
+  await EmployeeEmployerStatus.create(
+    {
+      employeeAssignmentId: data?.id,
+      status: "send_invitation",
+      slug: "joining",
+      actionUserBy: "dealer",
+      actionUserId: assignment?.dealerId,
+    },
+    { transaction },
+  );
+
+  return data;
 };
 
 /** @deprecated Use syncAssignment with departmentId/designationId on assignment */

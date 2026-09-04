@@ -1,16 +1,16 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
-const { Announcement, Admin, Employee, Dealer } = require("../../../database/models");
+const {
+  Announcement,
+  Admin,
+  Employee,
+  Dealer,
+} = require("../../../database/models");
 
 const { addPushJobs, addEmailJobs } = require("../../../queues");
 
 const POST_TYPES = ["updates", "reminders", "celebration", "announcement"];
-const TARGET_AUDIENCES = [
-  "employees",
-  "dealers",
-  "members_and_dealers",
-  "all",
-];
+const TARGET_AUDIENCES = ["employees", "dealers", "members_and_dealers", "all"];
 const STATUSES = ["draft", "published", "scheduled"];
 const DELIVERY_CHANNELS = ["in_app", "email", "push"];
 
@@ -181,6 +181,76 @@ exports.createAnnouncement = async (req, res) => {
       createdByAdminId: req.auth.id,
     });
 
+    if (announcement.status === "published") {
+      let targets = [];
+      if (announcement.targetAudience === "employees") {
+        targets = await Employee.findAll({
+          attributes: ["id", "name", "email", "deviceToken"],
+          where: {
+            isActive: true,
+          },
+        });
+      }
+
+      if (announcement.targetAudience === "dealers") {
+        targets = await Dealer.findAll({
+          attributes: ["id", "name", "email"],
+          where: {
+            isActive: true,
+          },
+        });
+      }
+
+      if (announcement.targetAudience === "both") {
+        const employees = await Employee.findAll({
+          attributes: ["id", "name", "email", "deviceToken"],
+          where: {
+            isActive: true,
+          },
+        });
+
+        const dealers = await Dealer.findAll({
+          attributes: ["id", "name", "email"],
+          where: {
+            isActive: true,
+          },
+        });
+
+        targets = [...employees, ...dealers];
+      }
+
+      if (announcement.deliveryChannels.includes("push")) {
+        await addPushJobs(
+          targets
+            .filter((target) => target?.deviceToken)
+            .map((target) => ({
+              tokens: [target?.deviceToken],
+              title: announcement.title,
+              body: announcement.messageBody,
+              data: {
+                announcementId: announcement.id,
+                userId: target?.id,
+                userName: target?.name,
+              },
+            })),
+        );
+      }
+      if (announcement.deliveryChannels.includes("email")) {
+        await addEmailJobs(
+          targets.map((target) => ({
+            to: target?.email,
+            subject: announcement.title,
+            templateName: "announcement.ejs",
+            data: {
+              userName: target?.name,
+              title: announcement.title,
+              messageBody: announcement.messageBody,
+            },
+          })),
+        );
+      }
+    }
+
     const created = await Announcement.findByPk(announcement.id, {
       include: [adminInclude],
     });
@@ -305,7 +375,7 @@ exports.sendNow = async (req, res) => {
             title: announcement.title,
             messageBody: announcement.messageBody,
           },
-        }))
+        })),
       );
     }
 
@@ -314,7 +384,7 @@ exports.sendNow = async (req, res) => {
       publishedAt: new Date(),
       scheduledAt: null,
     });
- 
+
     return res.apiSuccess("Announcement sent successfully");
   } catch (error) {
     return res.apiError(error.message, 500, error);
