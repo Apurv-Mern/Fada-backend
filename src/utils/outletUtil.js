@@ -4,7 +4,7 @@ const {
   OutletFunction,
   Brand,
   Dealer,
-  EmployeeAssignment,Employee
+  EmployeeAssignment, Employee
 } = require("../database/models");
 
 const brandIncludes = [
@@ -20,15 +20,15 @@ const brandIncludes = [
     attributes: ["id", "employeeId", "outletId"],
     required: false,
     //where : {isCurrentlyWorking: true},
-    include : [
+    include: [
       {
         model: Employee,
         as: "employee",
         attributes: ["id", "name", "email"],
       }
     ]
-  } 
-  
+  }
+
 ];
 
 const buildOutletIncludes = ({ includeCompany = false } = {}) => {
@@ -38,7 +38,7 @@ const buildOutletIncludes = ({ includeCompany = false } = {}) => {
     includes.unshift({
       model: Dealer,
       as: "dealer",
-      attributes: ["id", "name", "dealerCode"],
+      attributes: ["id", "name", "dealerCode", "dealerId"],
     });
   }
 

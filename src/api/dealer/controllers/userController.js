@@ -216,6 +216,7 @@ exports.getProfile = async (req, res) => {
         "email",
         "phone",
         "dealerCode",
+        "dealerId",
         "brands",
         "status",
         "isActive",

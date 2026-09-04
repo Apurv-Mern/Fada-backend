@@ -108,14 +108,14 @@ exports.getDealers = async (req, res) => {
 
     const where = search
       ? {
-          [Op.or]: [
-            { name: { [Op.like]: `%${search}%` } },
-            { dealerCode: { [Op.like]: `%${search}%` } },
-            { dealerId: { [Op.like]: `%${search}%` } },
-            { email: { [Op.like]: `%${search}%` } },
-            { phone: { [Op.like]: `%${search}%` } },
-          ],
-        }
+        [Op.or]: [
+          { name: { [Op.like]: `%${search}%` } },
+          { dealerCode: { [Op.like]: `%${search}%` } },
+          { dealerId: { [Op.like]: `%${search}%` } },
+          { email: { [Op.like]: `%${search}%` } },
+          { phone: { [Op.like]: `%${search}%` } },
+        ],
+      }
       : {};
 
     if (status) {
@@ -890,14 +890,9 @@ exports.importDealers = async (req, res) => {
 
       const parentDealer = item?.parentCompanyCode
         ? await Dealer.findOne({
-            where: {
-              [Op.or]: [
-                { dealerCode: item.parentCompanyCode },
-                { dealerId: item.parentCompanyCode },
-              ],
-            },
-            transaction,
-          })
+          where: { dealerId: item.parentCompanyCode },
+          transaction,
+        })
         : null;
 
       const tempPassword = generateTempPassword();
@@ -942,3 +937,4 @@ exports.importDealers = async (req, res) => {
     return res.apiError(error.message, 500, error);
   }
 };
+

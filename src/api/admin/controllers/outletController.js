@@ -88,6 +88,12 @@ exports.getOutlets = async (req, res) => {
       distinct: true,
     });
 
+    const [totalOutlets, totalActiveOutlets, totalInactiveOutlets] = await Promise.all([
+      Outlet.count(),
+      Outlet.count({ where: { isActive: true } }),
+      Outlet.count({ where: { isActive: false } }),
+    ]);
+
     return res.apiSuccess("Outlets fetched successfully", {
       outlets,
       pagination: {
@@ -95,6 +101,12 @@ exports.getOutlets = async (req, res) => {
         limit,
         offset,
       },
+      stats: {
+        totalOutlets,
+        totalActiveOutlets,
+        totalInactiveOutlets,
+      },
+
     });
   } catch (error) {
     return res.apiError(error.message, 500, error);
@@ -315,7 +327,7 @@ exports.importOutlets = async (req, res) => {
   try {
     const skippedRecords = [];
     const data = req.body || [];
-
+    console.log("Importing outlets:", data, "records");
     if (data.length === 0) {
       return res.apiError("No data provided", 400);
     }

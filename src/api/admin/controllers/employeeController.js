@@ -15,7 +15,8 @@ const {
   EmployeePromotion,
   EmployeeTraining,
   EmployeeSkill,
-  EmployeeJourney
+  EmployeeJourney,
+  EmployeeEmployerStatus
 } = require("../../../database/models");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const dayjs = require("dayjs");
@@ -289,6 +290,8 @@ const syncAssignment = async (
     startDate: assignment.startDate ?? joinedDate ?? null,
     endDate: assignment.endDate ?? null,
     isActive: assignment.isActive ?? true,
+    isCurrentlyWorking: true,
+    status: "completed",
   };
 
   const existing = await EmployeeAssignment.findOne({
@@ -301,7 +304,20 @@ const syncAssignment = async (
     return;
   }
 
-  return await EmployeeAssignment.create(payload, { transaction });
+  const data = await EmployeeAssignment.create(payload, { transaction });
+
+  await EmployeeEmployerStatus.create(
+    {
+      employeeAssignmentId: data.id,
+      status: "send_invitation",
+      slug: "joining",
+      actionUserBy: "employee",
+      actionUserId: employeeId,
+    },
+    { transaction },
+  );
+
+  return data;
 };
 
 const loadEmployee = async (employeeId, transaction) =>
@@ -379,11 +395,18 @@ exports.getEmployees = async (req, res) => {
     const { rows: employees, count: total } = await Employee.findAndCountAll({
       attributes: employeeAttributes,
       where,
-      include: [assignmentInclude],
+      include: [
+        assignmentInclude,
+        {
+          model: EmployeeAddress,
+          as: "addresses",
+          required: false,
+        },
+      ],
       order: [["id", "DESC"]],
       limit,
       offset,
-      distinct: true,
+      //distinct: true,
     });
 
     return res.apiSuccess("Employees fetched successfully", {
@@ -394,6 +417,59 @@ exports.getEmployees = async (req, res) => {
         offset,
       },
     });
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+
+/*
+@API: GET /admin/employees/edit/:id
+@Desc: Get an employee by id
+@Access: Private
+*/
+exports.getEmployeeEditById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+
+    const where = { id };
+
+    const assignmentInclude = {
+      model: EmployeeAssignment,
+      as: "assignment",
+      required: false,
+      include: [
+        {
+          model: Dealer,
+          as: "dealership",
+          attributes: ["id", "name", "dealerCode"],
+        },
+        {
+          model: Outlet,
+          as: "branch",
+          attributes: ["id", "name", "code"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "department",
+          attributes: ["id", "name"],
+        },
+        {
+          model: OrganizationStructure,
+          as: "designation",
+          attributes: ["id", "name"],
+        },
+      ],
+    };
+
+    const employee = await Employee.findOne({
+      attributes: employeeAttributes,
+      where,
+      include: [assignmentInclude],
+    });
+
+    return res.apiSuccess("Employee fetched successfully", employee);
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }
