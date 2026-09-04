@@ -105,16 +105,19 @@ exports.getEmployerInvitations = async (req, res) => {
           model: OrganizationStructure,
           as: "department",
           attributes: ["id", "name"],
+          required: false,
         },
         {
           model: OrganizationStructure,
           as: "designation",
           attributes: ["id", "name"],
+          required: false,
         },
         {
           model: EmployeeEmployerStatus,
           as: "statuses",
           where: { slug: "joining" },
+          required: false,
         },
       ],
     });
@@ -169,6 +172,7 @@ exports.getEmployerInvitationById = async (req, res) => {
           model: EmployeeEmployerStatus,
           as: "statuses",
           where: { slug: "joining" },
+          required: false,
         },
       ],
     });

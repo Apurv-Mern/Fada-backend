@@ -130,6 +130,12 @@ exports.getStaffMembers = async (req, res) => {
       where.isActive = isActive === "true" || isActive === "1";
     }
 
+    const [totalStaff, totalActiveStaff, totalInactiveStaff] = await Promise.all([
+      Admin.count(),
+      Admin.count({ where: { isActive: true } }),
+      Admin.count({ where: { isActive: false } }),
+    ]);
+
     const { rows: staff, count: total } = await Admin.findAndCountAll({
       attributes: staffAttributes,
       where,
@@ -146,6 +152,11 @@ exports.getStaffMembers = async (req, res) => {
         total,
         limit,
         offset,
+      },
+      stats: {
+        totalStaff,
+        totalActiveStaff,
+        totalInactiveStaff,
       },
     });
   } catch (error) {

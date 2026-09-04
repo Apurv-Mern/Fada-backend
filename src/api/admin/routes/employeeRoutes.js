@@ -11,6 +11,7 @@ router.get(
   employeeController.getEmployeeForEdit,
 );
 router.get("/:id", requirePermission("employees.view"), employeeController.getEmployeeById);
+router.get("/edit/:id", requirePermission("employees.view"), employeeController.getEmployeeEditById);
 router.post("/", requirePermission("employees.view"), employeeController.createEmployee);
 router.put(
   "/:id/status/:status",

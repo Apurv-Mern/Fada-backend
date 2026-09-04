@@ -302,6 +302,7 @@ exports.createEmployee = async (req, res) => {
         {
           ...buildEmployeePayload(req.body),
           fadaId,
+          isJourneyCompleted: true
         },
         { transaction },
       );
@@ -319,7 +320,7 @@ exports.createEmployee = async (req, res) => {
       );
     });
 
-    await employee.update({ isJourneyCompleted: true });
+
 
     //const employee = await loadEmployee(employeeId, dealerId);
     return res.apiSuccess("Employee created successfully");

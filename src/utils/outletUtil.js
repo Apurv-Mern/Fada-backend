@@ -4,7 +4,7 @@ const {
   OutletFunction,
   Brand,
   Dealer,
-  EmployeeAssignment,Employee
+  EmployeeAssignment, Employee
 } = require("../database/models");
 
 const brandIncludes = [
@@ -20,15 +20,15 @@ const brandIncludes = [
     attributes: ["id", "employeeId", "outletId"],
     required: false,
     //where : {isCurrentlyWorking: true},
-    include : [
+    include: [
       {
         model: Employee,
         as: "employee",
         attributes: ["id", "name", "email"],
       }
     ]
-  } 
-  
+  }
+
 ];
 
 const buildOutletIncludes = ({ includeCompany = false } = {}) => {

@@ -1,9 +1,9 @@
 const {
-    sequelize,
-    Dealer,
-    Outlet,
-    Employee,
-  } = require("../../../database/models");
+  sequelize,
+  Dealer,
+  Outlet,
+  Employee,
+} = require("../../../database/models");
 const dayjs = require("dayjs");
 const { Op } = require("sequelize");
 
@@ -41,13 +41,14 @@ exports.getDashboardStats = async (req, res) => {
       Dealer.count({ where: { isActive: false } }),
       Dealer.count({ where: { status: "pending" } }),
       Dealer.findAll({
-        attributes: ["id", "name", "dealerCode","status", "isActive"],
-        where: {
+        attributes: ["id", "name", "dealerCode", "status", "isActive"],
+        /* where: {
           createdAt: {
             [Op.gte]: dayjs().subtract(1, "month").format("YYYY-MM-DD"),
           },
-        },
+        }, */
         limit: 5,
+        order: [["createdAt", "DESC"]],
       }),
     ]);
 
