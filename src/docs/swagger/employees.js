@@ -331,6 +331,30 @@
 
 /**
  * @swagger
+ * /admin/employees/edit/{id}:
+ *   get:
+ *     tags: [Admin Employees]
+ *     summary: Get employee edit details
+ *     description: Returns employee core fields and current assignment for the admin edit form
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Employee edit details fetched successfully
+ *       404:
+ *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
  * /admin/employees/{id}:
  *   get:
  *     tags: [Admin Employees]

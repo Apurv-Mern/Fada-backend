@@ -379,7 +379,14 @@ exports.getEmployees = async (req, res) => {
     const { rows: employees, count: total } = await Employee.findAndCountAll({
       attributes: employeeAttributes,
       where,
-      include: [assignmentInclude],
+      include: [
+        assignmentInclude,
+        {
+          model: EmployeeAddress,
+          as: "addresses",
+          required: false,
+        },
+      ],
       order: [["id", "DESC"]],
       limit,
       offset,
@@ -394,6 +401,25 @@ exports.getEmployees = async (req, res) => {
         offset,
       },
     });
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: GET /admin/employees/edit/:id
+@Desc: Get employee details for the admin edit form
+@Access: Private
+*/
+exports.getEmployeeForEdit = async (req, res) => {
+  try {
+    const employee = await loadEmployee(req.params.id);
+
+    if (!employee) {
+      return res.apiError("Employee not found", 404);
+    }
+
+    return res.apiSuccess("Employee edit details fetched successfully", employee);
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

@@ -294,7 +294,9 @@ const parseImportBoolean = (value, defaultValue = true) => {
   if (value === undefined || value === null || value === "") return defaultValue;
   if (typeof value === "boolean") return value;
   const normalized = String(value).trim().toLowerCase();
-  return normalized === "true" || normalized === "1" || normalized === "yes";
+  if (["true", "1", "yes", "y", "on"].includes(normalized)) return true;
+  if (["false", "0", "no", "n", "off"].includes(normalized)) return false;
+  return defaultValue;
 };
 
 const normalizeImportFunctions = (value) => {

@@ -5,6 +5,11 @@ const requirePermission = require("../../../middlewares/requirePermission");
 router.get("/", requirePermission("employees.view"), employeeController.getEmployees);
 router.get("/stats", requirePermission("employees.view"), employeeController.getEmployeeStats);
 router.post("/import", requirePermission("employees.view"), employeeController.importEmployees);
+router.get(
+  "/edit/:id",
+  requirePermission("employees.view"),
+  employeeController.getEmployeeForEdit,
+);
 router.get("/:id", requirePermission("employees.view"), employeeController.getEmployeeById);
 router.post("/", requirePermission("employees.view"), employeeController.createEmployee);
 router.put(
