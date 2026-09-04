@@ -21,7 +21,7 @@ exports.getBrands = async (req, res) => {
 
     const dealerBrans = req.auth?.brands || [];
     const brands = await Brand.findAll({
-      where: { isActive: true, flag: "brand", id: { [Op.in]: dealerBrans } },
+      where: { isActive: true, flag: "Brand", /* id: { [Op.in]: dealerBrans } */ },
       attributes: ["id", "name"],
       order: [["name", "ASC"]],
     });
