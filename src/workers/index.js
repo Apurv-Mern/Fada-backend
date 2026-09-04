@@ -36,7 +36,6 @@ const pushWorker = new Worker(
   "push",
   async (job) => {
     const target =
-      job.data.topic ||
       job.data.token ||
       job.data.deviceToken ||
       (job.data.tokens || job.data.deviceTokens || []).length ||

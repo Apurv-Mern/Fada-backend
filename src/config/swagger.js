@@ -6,9 +6,13 @@ const options = {
     openapi: "3.0.0",
     info: {
       title: "FADA Backend API",
-      version: "1.10.0",
+      version: "1.11.0",
       description:
-        "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints. Dealer business APIs accept optional header X-Dealer-Id so a group-holding dealer can act in a child dealer context without changing the login token. Dealer portal staff accounts (userType=staff) operate in their parent company context. Employee department/designation live on EmployeeAssignment (EmployeeDesignation removed).",
+        "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints. " +
+        "Dealer business APIs accept optional header X-Dealer-Id for group-holding context. " +
+        "Dealer portal staff (userType=staff) operate under parentDealerId. " +
+        "Push notifications use Firebase Admin SDK with device tokens (employee deviceToken saved on login). " +
+        "Employee department/designation live on EmployeeAssignment.",
     },
     servers: [
       {

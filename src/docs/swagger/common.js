@@ -120,54 +120,30 @@
  *     tags: [Common]
  *     summary: Send or queue a test push notification
  *     description: >
- *       Sends a test FCM push notification to a device token, multiple tokens, or a topic.
- *       By default the notification is queued (requires `npm run worker` or PM2 push worker).
+ *       Sends a test FCM push notification using Firebase Admin SDK (`src/config/fada-id-firebase-key.json`).
+ *       Provide `token` or `tokens`. By default the notification is queued (requires `npm run worker`).
  *       Set `sync: true` to send immediately without the queue.
- *       Requires `IS_PUSH_ENABLED=true` and `FCM_SERVER_KEY` in environment.
+ *       Requires `IS_PUSH_ENABLED=true`.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [title, body]
- *             properties:
- *               token:
- *                 type: string
- *                 description: Single FCM device token
- *               tokens:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Multiple FCM device tokens
- *               topic:
- *                 type: string
- *                 description: FCM topic (mutually exclusive with token/tokens)
- *               title:
- *                 type: string
- *                 example: Test Notification
- *               body:
- *                 type: string
- *                 example: This is a test push from FADA Backend
- *               data:
- *                 type: object
- *                 additionalProperties:
- *                   type: string
- *                 example:
- *                   type: test
- *                   screen: home
- *               imageUrl:
- *                 type: string
- *                 format: uri
- *               sync:
- *                 type: boolean
- *                 default: false
- *                 description: When true, sends immediately instead of queueing
+ *             $ref: '#/components/schemas/TestPushRequest'
  *     responses:
  *       200:
  *         description: Push notification sent or queued successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/PushNotificationResult'
  *       422:
- *         description: Validation error
+ *         description: title, body, and token/tokens are required
  *       500:
  *         description: Failed to send push notification
  */

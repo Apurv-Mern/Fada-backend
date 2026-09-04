@@ -2017,4 +2017,70 @@
  *         file:
  *           type: string
  *           description: Public URL of uploaded file
+ *     TestPushRequest:
+ *       type: object
+ *       required: [title, body]
+ *       properties:
+ *         token:
+ *           type: string
+ *           description: Single FCM device token
+ *         tokens:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Multiple FCM device tokens
+ *         title:
+ *           type: string
+ *           example: Test Notification
+ *         body:
+ *           type: string
+ *           example: This is a test push from FADA Backend
+ *         data:
+ *           type: object
+ *           additionalProperties:
+ *             type: string
+ *           example:
+ *             type: test
+ *             screen: home
+ *         imageUrl:
+ *           type: string
+ *           format: uri
+ *         sync:
+ *           type: boolean
+ *           default: false
+ *           description: When true, sends immediately via Firebase Admin SDK instead of queueing
+ *     PushNotificationResult:
+ *       type: object
+ *       properties:
+ *         token:
+ *           type: string
+ *           description: Present for single-token send
+ *         messageId:
+ *           type: string
+ *         multicast:
+ *           type: boolean
+ *         successCount:
+ *           type: integer
+ *         failureCount:
+ *           type: integer
+ *         queued:
+ *           type: boolean
+ *         tokenCount:
+ *           type: integer
+ *         skipped:
+ *           type: boolean
+ *           description: True when IS_PUSH_ENABLED=false
+ *     ReportSearchFilterField:
+ *       type: object
+ *       description: Text search filter returned by report filter metadata APIs
+ *       properties:
+ *         type:
+ *           type: string
+ *           example: text
+ *         label:
+ *           type: string
+ *           example: Search
+ *         placeholder:
+ *           type: string
+ *           example: Search by name, FADA ID, email, or phone
  */

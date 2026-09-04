@@ -34,6 +34,9 @@
  *             type: string
  *             enum: [in_app, email, push]
  *           example: [in_app, email, push]
+ *           description: >
+ *             push sends FCM notifications to employee `deviceToken` values saved at login;
+ *             employees without a token are skipped
  *         status:
  *           type: string
  *           enum: [draft, published, scheduled]
@@ -220,6 +223,8 @@
  *     description: >
  *       Publishes a draft announcement immediately by setting status to published
  *       and publishedAt to the current time. Clears any scheduledAt value.
+ *       When `push` is in deliveryChannels, sends FCM notifications to active employees
+ *       with a saved `deviceToken`. When `email` is included, sends announcement.ejs emails.
  *     security:
  *       - bearerAuth: []
  *     parameters:

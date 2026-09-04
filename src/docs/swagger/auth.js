@@ -659,7 +659,9 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Employee password login
- *     description: Login with email and password (password is emailed after registration OTP verification).
+ *     description: >
+ *       Login with email and password (password is emailed after registration OTP verification).
+ *       Optionally pass `deviceToken` to register the FCM token for push notifications.
  *     requestBody:
  *       required: true
  *       content:
@@ -720,7 +722,9 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Verify login OTP
- *     description: Verifies OTP from send-login-otp and returns access token (sets refreshToken cookie).
+ *     description: >
+ *       Verifies OTP from send-login-otp and returns access token (sets refreshToken cookie).
+ *       Optionally pass `deviceToken` to register the FCM token for push notifications.
  *     requestBody:
  *       required: true
  *       content:
@@ -868,7 +872,7 @@
  *   post:
  *     tags: [Employee Auth]
  *     summary: Employee logout
- *     description: Clears refreshToken cookie and invalidates session
+ *     description: Clears refreshToken cookie, clears stored deviceToken, and invalidates session
  *     responses:
  *       200:
  *         description: Logged out successfully

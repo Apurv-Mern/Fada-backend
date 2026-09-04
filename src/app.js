@@ -182,23 +182,38 @@ app.post("/test-sms", async (req, res) => {
 
 app.post("/test-push", async (req, res) => {
   try {
-    const { token, title, body, data } = req.body;
+    const { token, tokens, title, body, data, imageUrl, sync } = req.body;
 
     if (!title?.trim() || !body?.trim()) {
       return res.apiError("title and body are required", 422);
     }
 
+    const deviceTokens = tokens || (token ? [token] : []);
+
+    if (!deviceTokens.length) {
+      return res.apiError("token or tokens is required", 422);
+    }
+
     const payload = {
       title: title.trim(),
       body: body.trim(),
-      tokens: [token],
-      data: data,
+      ...(deviceTokens.length === 1
+        ? { token: deviceTokens[0] }
+        : { tokens: deviceTokens }),
+      ...(data && typeof data === "object" ? { data } : {}),
+      ...(imageUrl ? { imageUrl } : {}),
     };
 
-    
+    if (sync === true || sync === "true" || sync === "1") {
+      const result = await sendPushNotification(payload);
+      return res.apiSuccess("Push notification sent successfully", result);
+    }
 
-    const result = await sendPushNotification(payload);
-    return res.apiSuccess("Push notification sent successfully", result);
+    await addPushJob(payload);
+    return res.apiSuccess("Push notification queued successfully", {
+      queued: true,
+      tokenCount: deviceTokens.length,
+    });
   } catch (error) {
     return res.apiError(
       error.message || "Failed to send push notification",

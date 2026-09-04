@@ -666,7 +666,23 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiSuccessResponse'
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         search:
+ *                           $ref: '#/components/schemas/ReportSearchFilterField'
+ *                         departments:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                         designations:
+ *                           type: array
+ *                           items:
+ *                             type: object
  */
 
 /**
