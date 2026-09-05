@@ -532,7 +532,7 @@ exports.getEmployeements = async (req, res) => {
           "isCurrentlyWorking",
           "highlights",
         ],
-        where: { employeeId: id },
+        where: { employeeId: id, status: { [Op.in]: ["completed", "verified"] } },
         include: [
           {
             model: Dealer,
