@@ -1,4 +1,5 @@
 const Validator = require("validatorjs");
+const dayjs = require("dayjs");
 const { Op, where } = require("sequelize");
 const {
   sequelize,
@@ -16,6 +17,25 @@ const {
   getEmploymentKeyRecords,
   groupKeyRecordsByDealerId,
 } = require("../../../../services/employeeService");
+
+const resolveEmploymentEndDate = (isCurrentlyWorking, endDate) => {
+  if (isCurrentlyWorking && !endDate) return null;
+  return endDate || null;
+};
+
+const employmentPeriodsOverlap = (periodA, periodB) => {
+  const startA = dayjs(periodA.startDate).startOf("day");
+  const endA = periodA.endDate ? dayjs(periodA.endDate).endOf("day") : null;
+  const startB = dayjs(periodB.startDate).startOf("day");
+  const endB = periodB.endDate ? dayjs(periodB.endDate).endOf("day") : null;
+
+  if (endA && startA.isAfter(endA, "day")) return false;
+  if (endB && startB.isAfter(endB, "day")) return false;
+  if (endA && startB.isAfter(endA, "day")) return false;
+  if (endB && startA.isAfter(endB, "day")) return false;
+
+  return true;
+};
 
 /*
 @API: GET /employee/profile
@@ -413,6 +433,10 @@ exports.createEmployeement = async (req, res) => {
       highlights,
     } = req.body;
 
+    if (endDate && dayjs(endDate).isBefore(dayjs(startDate), "day")) {
+      return res.apiError("End date cannot be before start date.", 422);
+    }
+
     if (!req.auth.isJourneyCompleted) {
       const checkJourney = await EmployeeAssignment.count({
         where: { employeeId: id },
@@ -421,25 +445,50 @@ exports.createEmployeement = async (req, res) => {
       await Employee.update({ isJourneyCompleted: checkJourney > 0 ? true : false }, { where: { id } });
     }
 
-    const checkEmployeement = await EmployeeAssignment.findOne({
-      where: { employeeId: id, isCurrentlyWorking: true },
+    const existingEmployeements = await EmployeeAssignment.findAll({
+      where: { employeeId: id },
+      attributes: ["id", "startDate", "endDate", "isCurrentlyWorking"],
       include: [
         {
           model: Dealer,
           as: "dealership",
           attributes: ["id", "name"],
           required: false,
-        }
-      ]
+        },
+      ],
     });
 
-    if (checkEmployeement) {
-      if (endDate && !dayjs(endDate).isBefore(dayjs(checkEmployeement?.startDate), "day")) {
+    const newPeriod = {
+      startDate,
+      endDate: resolveEmploymentEndDate(isCurrentlyWorking, endDate),
+    };
+
+    for (const existing of existingEmployeements) {
+      if (!existing.startDate) continue;
+
+      const existingPeriod = {
+        startDate: existing.startDate,
+        endDate: resolveEmploymentEndDate(
+          existing.isCurrentlyWorking,
+          existing.endDate,
+        ),
+      };
+
+      if (!employmentPeriodsOverlap(newPeriod, existingPeriod)) continue;
+
+      const companyName = existing.dealership?.name || "another company";
+
+      if (existing.isCurrentlyWorking) {
         return res.apiError(
-          `You are currently employed at ${checkEmployeement?.dealership?.name || "another dealership"
-          }. The previous employment last working date must be before your current employment start date. Please enter a valid last working date.`
+          `You are currently employed at ${companyName}. Employment periods cannot overlap. If adding a past employment, the end date must be before your current employment start date (${dayjs(existing.startDate).format("MMM YYYY")}).`,
+          422,
         );
       }
+
+      return res.apiError(
+        `This employment period overlaps with an existing record at ${companyName}. Please choose dates that do not overlap with your employment history.`,
+        422,
+      );
     }
 
     await EmployeeAssignment.create({
