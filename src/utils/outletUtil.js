@@ -143,13 +143,13 @@ const validateFunctionsSafe = async (functions) => {
 
   const whereConditions = [];
   if (numericIds.length) whereConditions.push({ id: numericIds });
-  if (slugs.length) whereConditions.push({ slug: slugs });
+  if (slugs.length) whereConditions.push({ name: slugs });
 
   const outletFunctions = await OutletFunction.findAll({
     where: { [Op.or]: whereConditions },
   });
 
-  const foundBySlug = new Map(outletFunctions.map((item) => [item.slug, item]));
+  const foundBySlug = new Map(outletFunctions.map((item) => [item.name, item]));
   const foundById = new Map(
     outletFunctions.map((item) => [String(item.id), item]),
   );

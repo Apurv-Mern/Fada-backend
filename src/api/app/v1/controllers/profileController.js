@@ -399,7 +399,7 @@ exports.deleteDocument = async (req, res) => {
 }
 @Access: Private
 */
-exports.createEmployeementOld = async (req, res) => {
+exports.createEmployeement = async (req, res) => {
   try {
     const id = req.auth.id;
 
@@ -511,9 +511,6 @@ exports.createEmployeementOld = async (req, res) => {
   }
 };
 
-
-
-
 /*
 @API: GET /employee/employeements
 @Desc: Get employee employeements
@@ -535,7 +532,7 @@ exports.getEmployeements = async (req, res) => {
           "isCurrentlyWorking",
           "highlights",
         ],
-        where: { employeeId: id },
+        where: { employeeId: id, status: { [Op.in]: ["completed", "verified"] } },
         include: [
           {
             model: Dealer,

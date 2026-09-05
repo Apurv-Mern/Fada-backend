@@ -536,7 +536,7 @@ exports.getEmployerLeavingRequestById = async (req, res) => {
         {
           model: Dealer,
           as: "dealership",
-          attributes: ["id", "name", "dealerCode"],
+          attributes: ["id", "name", ["dealerId", "dealerCode"]],
         },
         {
           model: Outlet,

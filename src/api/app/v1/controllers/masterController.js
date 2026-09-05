@@ -22,7 +22,7 @@ exports.getDealers = async (req, res) => {
     if (search) {
       where[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
-        { code: { [Op.like]: `%${search}%` } },
+        { dealerId: { [Op.like]: `%${search}%` } },
       ];
     }
 
@@ -32,7 +32,7 @@ exports.getDealers = async (req, res) => {
         {
           model: Dealer,
           as: "dealer",
-          attributes: ["id", "name", "dealerCode"],
+          attributes: ["id", "name", ["dealerId", "dealerCode"]],
           where,
         },
         {
