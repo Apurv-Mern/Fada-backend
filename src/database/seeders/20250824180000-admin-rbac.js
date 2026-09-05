@@ -1,84 +1,35 @@
 "use strict";
 
-const MODULES = [
-  { key: "dashboard", name: "Dashboard", sortOrder: 1 },
-  { key: "dealers", name: "Companies", sortOrder: 2 },
-  { key: "employees", name: "Employees", sortOrder: 3 },
-  { key: "staff", name: "Staff Members", sortOrder: 4 },
-  { key: "masters", name: "Masters", sortOrder: 5 },
-  { key: "score", name: "Score Engine", sortOrder: 6 },
-  { key: "communications", name: "Communications", sortOrder: 7 },
-  { key: "roles", name: "Roles & Permissions", sortOrder: 8 },
-  { key: "settings", name: "Settings", sortOrder: 9 },
-];
-
-const PERMISSIONS = [
-  { moduleKey: "dashboard", key: "dashboard.view", name: "View dashboard", action: "view" },
-  { moduleKey: "dealers", key: "dealers.view", name: "View companies", action: "view" },
-  { moduleKey: "dealers", key: "dealers.create", name: "Create companies", action: "create" },
-  { moduleKey: "dealers", key: "dealers.edit", name: "Edit companies", action: "edit" },
-  { moduleKey: "dealers", key: "dealers.delete", name: "Delete companies", action: "delete" },
-  { moduleKey: "dealers", key: "dealers.approve", name: "Approve company registrations", action: "approve" },
-  { moduleKey: "dealers", key: "dealers.approve_documents", name: "Approve company documents", action: "approve_documents" },
-  { moduleKey: "dealers", key: "dealers.import", name: "Import companies", action: "import" },
-  { moduleKey: "employees", key: "employees.view", name: "View employees", action: "view" },
-  { moduleKey: "employees", key: "employees.create", name: "Create employees", action: "create" },
-  { moduleKey: "employees", key: "employees.edit", name: "Edit employees", action: "edit" },
-  { moduleKey: "employees", key: "employees.delete", name: "Delete employees", action: "delete" },
-  { moduleKey: "employees", key: "employees.verify", name: "Verify employment", action: "verify" },
-  { moduleKey: "employees", key: "employees.approve_documents", name: "Approve employee documents", action: "approve_documents" },
-  { moduleKey: "employees", key: "employees.import", name: "Import employees", action: "import" },
-  { moduleKey: "staff", key: "staff.view", name: "View staff members", action: "view" },
-  { moduleKey: "staff", key: "staff.create", name: "Create staff members", action: "create" },
-  { moduleKey: "staff", key: "staff.edit", name: "Edit staff members", action: "edit" },
-  { moduleKey: "staff", key: "staff.delete", name: "Delete staff members", action: "delete" },
-  { moduleKey: "masters", key: "masters.view", name: "View masters", action: "view" },
-  { moduleKey: "masters", key: "masters.manage", name: "Manage masters", action: "manage" },
-  { moduleKey: "score", key: "score.view", name: "View score engine", action: "view" },
-  { moduleKey: "score", key: "score.manage", name: "Manage score engine", action: "manage" },
-  { moduleKey: "communications", key: "communications.view", name: "View communications", action: "view" },
-  { moduleKey: "communications", key: "communications.manage", name: "Manage communications", action: "manage" },
-  { moduleKey: "roles", key: "roles.manage", name: "Manage roles & permissions", action: "manage" },
-  { moduleKey: "settings", key: "settings.manage", name: "Manage settings", action: "manage" },
-];
-
-const STAFF_ROLE_PERMISSION_KEYS = [
-  "dashboard.view",
-  "dealers.view",
-  "dealers.edit",
-  "dealers.approve",
-  "dealers.approve_documents",
-  "employees.view",
-  "employees.create",
-  "employees.edit",
-  "employees.delete",
-  "employees.verify",
-  "employees.approve_documents",
-  "employees.import",
-];
+const {
+  MODULES,
+  LEGACY_MODULES,
+  PERMISSIONS,
+  STAFF_ROLE_PERMISSION_KEYS,
+  ADMIN_ROLE_ID,
+  STAFF_ROLE_ID,
+} = require("./data/admin-portal-rbac");
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface) {
     const now = new Date();
+    const allModules = [...MODULES, ...LEGACY_MODULES];
 
-    for (const module of MODULES) {
+    for (const module of allModules) {
       await queryInterface.bulkInsert("Modules", [
         {
           key: module.key,
           name: module.name,
           sortOrder: module.sortOrder,
-          isActive: true,
+          isActive: !LEGACY_MODULES.some((legacy) => legacy.key === module.key),
           createdAt: now,
           updatedAt: now,
         },
       ]);
     }
 
-    const [modules] = await queryInterface.sequelize.query(
-      "SELECT id, `key` FROM Modules",
-    );
-    const moduleIdByKey = Object.fromEntries(modules.map((m) => [m.key, m.id]));
+    const [modules] = await queryInterface.sequelize.query("SELECT id, `key` FROM Modules");
+    const moduleIdByKey = Object.fromEntries(modules.map((module) => [module.key, module.id]));
 
     for (const permission of PERMISSIONS) {
       await queryInterface.bulkInsert("Permissions", [
@@ -105,13 +56,13 @@ module.exports = {
       "SELECT id, `key` FROM Permissions WHERE isActive = true",
     );
     const permissionIdByKey = Object.fromEntries(
-      permissions.map((p) => [p.key, p.id]),
+      permissions.map((permission) => [permission.key, permission.id]),
     );
 
     for (const permission of permissions) {
       await queryInterface.bulkInsert("RolePermissions", [
         {
-          roleId: 1,
+          roleId: ADMIN_ROLE_ID,
           permissionId: permission.id,
           createdAt: now,
           updatedAt: now,
@@ -120,10 +71,13 @@ module.exports = {
     }
 
     for (const key of STAFF_ROLE_PERMISSION_KEYS) {
+      const permissionId = permissionIdByKey[key];
+      if (!permissionId) continue;
+
       await queryInterface.bulkInsert("RolePermissions", [
         {
-          roleId: 2,
-          permissionId: permissionIdByKey[key],
+          roleId: STAFF_ROLE_ID,
+          permissionId,
           createdAt: now,
           updatedAt: now,
         },
