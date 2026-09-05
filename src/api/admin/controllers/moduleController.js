@@ -1,4 +1,7 @@
-const { Module, Permission } = require("../../../database/models");
+const {
+  getAdminPortalModules,
+  getAdminPortalPermissions,
+} = require("../../../services/rbacService");
 
 /*
 @API: GET /admin/modules
@@ -7,24 +10,7 @@ const { Module, Permission } = require("../../../database/models");
 */
 exports.getModules = async (req, res) => {
   try {
-    const modules = await Module.findAll({
-      where: { isActive: true },
-      attributes: ["id", "key", "name", "description", "sortOrder"],
-      include: [
-        {
-          model: Permission,
-          as: "permissions",
-          attributes: ["id", "key", "name", "action"],
-          where: { isActive: true },
-          required: false,
-        },
-      ],
-      order: [
-        ["sortOrder", "ASC"],
-        [{ model: Permission, as: "permissions" }, "key", "ASC"],
-      ],
-    });
-
+    const modules = await getAdminPortalModules();
     return res.apiSuccess("Modules fetched successfully", modules);
   } catch (error) {
     return res.apiError("Internal server error", 500, error);
@@ -38,12 +24,7 @@ exports.getModules = async (req, res) => {
 */
 exports.getPermissions = async (req, res) => {
   try {
-    const permissions = await Permission.findAll({
-      where: { isActive: true },
-      attributes: ["id", "key", "name", "action", "moduleId"],
-      order: [["key", "ASC"]],
-    });
-
+    const permissions = await getAdminPortalPermissions();
     return res.apiSuccess("Permissions fetched successfully", permissions);
   } catch (error) {
     return res.apiError("Internal server error", 500, error);

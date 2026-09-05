@@ -296,7 +296,7 @@
  *     tags: [Dealer Staff]
  *     summary: List dealer-assignable roles
  *     description: >
- *       Returns active roles where assignableTo is dealer or all.
+ *       Returns active dealer portal roles from the DealerRoles table.
  *       Used by the staff member role dropdown in Settings.
  *     security:
  *       - bearerAuth: []

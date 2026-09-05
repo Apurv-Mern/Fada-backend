@@ -29,6 +29,11 @@ const {
   syncAssignment,
   checkAllDocumentsApproved,
 } = require("../../../services/employeeService");
+const {
+  safeNotify,
+  notifyEmployee,
+  NOTIFICATION_TYPES,
+} = require("../../../services/notificationService");
 
 const { generateTempPassword, hashPassword } = require('../../../utils/passwordUtil');
 const { addEmailJob } = require('../../../queues');
@@ -323,6 +328,17 @@ exports.createEmployee = async (req, res) => {
     });
 
 
+
+    await safeNotify(() =>
+      notifyEmployee(employeeId, {
+        title: "Welcome to FADA",
+        body: "Your employee profile has been created by your dealership.",
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "Employee",
+        sourceId: employeeId,
+        data: { screen: "profile", employeeId },
+      }),
+    );
 
     //const employee = await loadEmployee(employeeId, dealerId);
     return res.apiSuccess("Employee created successfully");

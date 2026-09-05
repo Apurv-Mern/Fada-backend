@@ -24,6 +24,11 @@ const {
   checkAllDocumentsApproved,
 } = require("../../../services/employeeService");
 const {
+  safeNotify,
+  notifyEmployee,
+  NOTIFICATION_TYPES,
+} = require("../../../services/notificationService");
+const {
   generateTempPassword,
   hashPassword,
 } = require("../../../utils/passwordUtil");
@@ -663,6 +668,18 @@ exports.createEmployee = async (req, res) => {
     });
 
     const employee = await loadEmployee(employeeId);
+
+    await safeNotify(() =>
+      notifyEmployee(employeeId, {
+        title: "Welcome to FADA",
+        body: "Your employee profile has been created by the admin team.",
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "Employee",
+        sourceId: employeeId,
+        data: { screen: "profile", employeeId },
+      }),
+    );
+
     return res.apiSuccess("Employee created successfully", employee);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
@@ -831,6 +848,21 @@ exports.updateEmployeeStatus = async (req, res) => {
     }
 
     await employee.update(data);
+
+    await safeNotify(() =>
+      notifyEmployee(employee.id, {
+        title: "Profile status updated",
+        body: `Your employee profile status has been updated to "${req.params.status}".`,
+        type: NOTIFICATION_TYPES.SYSTEM,
+        sourceType: "Employee",
+        sourceId: employee.id,
+        data: {
+          screen: "profile",
+          employeeId: employee.id,
+          status: req.params.status,
+        },
+      }),
+    );
 
     return res.apiSuccess("Employee status updated successfully");
   } catch (error) {

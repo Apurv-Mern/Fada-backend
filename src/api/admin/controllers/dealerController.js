@@ -12,6 +12,12 @@ const Validator = require("validatorjs");
 const { validateDealerBrands } = require("../../../utils/outletUtil");
 const { generateDealerId } = require("../../../utils/fadaIdUtil");
 const {
+  safeNotify,
+  notifyDealer,
+  notifyAllAdmins,
+  NOTIFICATION_TYPES,
+} = require("../../../services/notificationService");
+const {
   generateTempPassword,
   hashPassword,
 } = require("../../../utils/passwordUtil");
@@ -434,6 +440,18 @@ exports.createDealer = async (req, res) => {
       { transaction },
     );
     await transaction.commit();
+
+    await safeNotify(() =>
+      notifyDealer(dealer.id, {
+        title: "Welcome to FADA",
+        body: `Your dealer account "${dealer.name}" has been created by the admin team.`,
+        type: NOTIFICATION_TYPES.DEALER,
+        sourceType: "Dealer",
+        sourceId: dealer.id,
+        data: { screen: "dealer-profile", dealerId: dealer.id },
+      }),
+    );
+
     return res.apiSuccess("Dealer created successfully", dealer);
   } catch (error) {
     await transaction.rollback();
@@ -602,6 +620,22 @@ exports.updateDealerStatus = async (req, res) => {
         where: { id: req.params.id },
       },
     );
+
+    await safeNotify(() =>
+      notifyDealer(Number(req.params.id), {
+        title: "Dealer status updated",
+        body: `Your dealer account status has been updated to "${req.body.status}".`,
+        type: NOTIFICATION_TYPES.SYSTEM,
+        sourceType: "Dealer",
+        sourceId: Number(req.params.id),
+        data: {
+          screen: "dealer-profile",
+          dealerId: Number(req.params.id),
+          status: req.body.status,
+        },
+      }),
+    );
+
     return res.apiSuccess("Dealer status updated successfully", dealer);
   } catch (error) {
     return res.apiError(error.message, 500, error);

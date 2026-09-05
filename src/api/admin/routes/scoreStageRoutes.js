@@ -1,16 +1,19 @@
 const router = require("express").Router();
 const scoreStageController = require("../controllers/scoreStageController");
 const upload = require("../../../utils/fileUtil");
-const requirePermission = require("../../../middlewares/requirePermission");
+const requireAnyPermission = require("../../../middlewares/requireAnyPermission");
 
-router.get("/", requirePermission("score.view"), scoreStageController.getScoreStages);
-router.put("/", requirePermission("score.manage"), scoreStageController.bulkUpdateScoreStages);
-router.get("/:id", requirePermission("score.view"), scoreStageController.getScoreStageById);
-router.put("/:id", requirePermission("score.manage"), scoreStageController.updateScoreStage);
-router.delete("/:id", requirePermission("score.manage"), scoreStageController.deleteScoreStage);
+const scoreConfigView = requireAnyPermission("score_configuration.view", "score.view");
+const scoreConfigManage = requireAnyPermission("score_configuration.manage", "score.manage");
+
+router.get("/", scoreConfigView, scoreStageController.getScoreStages);
+router.put("/", scoreConfigManage, scoreStageController.bulkUpdateScoreStages);
+router.get("/:id", scoreConfigView, scoreStageController.getScoreStageById);
+router.put("/:id", scoreConfigManage, scoreStageController.updateScoreStage);
+router.delete("/:id", scoreConfigManage, scoreStageController.deleteScoreStage);
 router.put(
   "/icon/:id",
-  requirePermission("score.manage"),
+  scoreConfigManage,
   upload.single("icon"),
   scoreStageController.updateScoreStageIcon,
 );

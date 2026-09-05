@@ -17,6 +17,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "createdByAdminId",
         as: "announcements",
       });
+
+      Admin.hasMany(models.Notification, {
+        foreignKey: "adminId",
+        as: "notifications",
+      });
     }
   }
   Admin.init(

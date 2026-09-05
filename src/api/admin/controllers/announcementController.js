@@ -3,11 +3,14 @@ const { Op } = require("sequelize");
 const {
   Announcement,
   Admin,
-  Employee,
-  Dealer,
 } = require("../../../database/models");
 
 const { addPushJobs, addEmailJobs } = require("../../../queues");
+const {
+  getAnnouncementTargets,
+  persistAnnouncementNotifications,
+  safeNotify,
+} = require("../../../services/notificationService");
 
 const POST_TYPES = ["updates", "reminders", "celebration", "announcement"];
 const TARGET_AUDIENCES = ["employees", "dealers", "members_and_dealers", "all"];
@@ -182,42 +185,11 @@ exports.createAnnouncement = async (req, res) => {
     });
 
     if (announcement.status === "published") {
-      let targets = [];
-      if (announcement.targetAudience === "employees") {
-        targets = await Employee.findAll({
-          attributes: ["id", "name", "email", "deviceToken"],
-          where: {
-            isActive: true,
-          },
-        });
-      }
+      const targets = await getAnnouncementTargets(announcement);
 
-      if (announcement.targetAudience === "dealers") {
-        targets = await Dealer.findAll({
-          attributes: ["id", "name", "email"],
-          where: {
-            isActive: true,
-          },
-        });
-      }
-
-      if (announcement.targetAudience === "both") {
-        const employees = await Employee.findAll({
-          attributes: ["id", "name", "email", "deviceToken"],
-          where: {
-            isActive: true,
-          },
-        });
-
-        const dealers = await Dealer.findAll({
-          attributes: ["id", "name", "email"],
-          where: {
-            isActive: true,
-          },
-        });
-
-        targets = [...employees, ...dealers];
-      }
+      await safeNotify(() =>
+        persistAnnouncementNotifications(announcement, targets),
+      );
 
       if (announcement.deliveryChannels.includes("push")) {
         await addPushJobs(
@@ -313,37 +285,11 @@ exports.sendNow = async (req, res) => {
       return res.apiError("Only draft announcements can be sent now", 400);
     }
 
-    let targets = [];
+    let targets = await getAnnouncementTargets(announcement);
 
-    if (announcement.targetAudience === "employees") {
-      targets = await Employee.findAll({
-        attributes: ["id", "name", "email", "deviceToken"],
-        where: {
-          isActive: true,
-        },
-      });
-    } else if (announcement.targetAudience === "dealers") {
-      targets = await Dealer.findAll({
-        attributes: ["id", "name", "email"],
-        where: {
-          isActive: true,
-        },
-      });
-    } else if (announcement.targetAudience === "both") {
-      const employees = await Employee.findAll({
-        attributes: ["id", "name", "email", "deviceToken"],
-        where: {
-          isActive: true,
-        },
-      });
-      const dealers = await Dealer.findAll({
-        attributes: ["id", "name", "email"],
-        where: {
-          isActive: true,
-        },
-      });
-      targets = [...employees, ...dealers];
-    }
+    await safeNotify(() =>
+      persistAnnouncementNotifications(announcement, targets),
+    );
 
     //send push notification to targets
     if (announcement.deliveryChannels.includes("push")) {

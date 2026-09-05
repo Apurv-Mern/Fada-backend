@@ -6,12 +6,13 @@ const options = {
     openapi: "3.0.0",
     info: {
       title: "FADA Backend API",
-      version: "1.11.0",
+      version: "1.12.0",
       description:
         "FADA Backend API documentation grouped by Admin, Dealer, Employee (auth + mobile app), and Common endpoints. " +
         "Dealer business APIs accept optional header X-Dealer-Id for group-holding context. " +
         "Dealer portal staff (userType=staff) operate under parentDealerId. " +
         "Push notifications use Firebase Admin SDK with device tokens (employee deviceToken saved on login). " +
+        "In-app notifications are persisted in the Notifications table for admin, dealer, and employee portals. " +
         "Employee department/designation live on EmployeeAssignment.",
     },
     servers: [
@@ -48,6 +49,7 @@ const options = {
     "./src/docs/swagger/score-rules.js",
     "./src/docs/swagger/score-stages.js",
     "./src/docs/swagger/announcements.js",
+    "./src/docs/swagger/notifications.js",
     "./src/docs/swagger/staff.js",
     "./src/docs/swagger/rbac.js",
     "./src/docs/swagger/dashboard.js",

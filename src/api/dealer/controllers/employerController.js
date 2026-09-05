@@ -14,6 +14,12 @@ const {
   newEmployerSteps,
   employerLeavingSteps,
 } = require("../../../services/employeeService");
+const {
+  safeNotify,
+  notifyEmployee,
+  notifyDealer,
+  NOTIFICATION_TYPES,
+} = require("../../../services/notificationService");
 
 const EMPLOYER_JOINING_STATUS = {
   SEND_INVITATION: "send_invitation",
@@ -263,6 +269,21 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
 
     await transaction.commit();
 
+    await safeNotify(() =>
+      notifyEmployee(employerInvitation.employeeId, {
+        title: `Invitation ${status === "accept" ? "accepted" : "rejected"}`,
+        body: `Your employment invitation has been ${status === "accept" ? "accepted" : "rejected"} by the dealership.`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
+        sourceType: "EmployeeAssignment",
+        sourceId: employerInvitation.id,
+        data: {
+          screen: "employment-invitation",
+          employeeAssignmentId: employerInvitation.id,
+          status,
+        },
+      }),
+    );
+
     return res.apiSuccess(
       `Employer invitation ${status}ed successfully`,
       employerInvitation,
@@ -347,6 +368,21 @@ exports.sendNewEmployerInvitation = async (req, res) => {
       { transaction },
     );
     await transaction.commit();
+
+    await safeNotify(() =>
+      notifyEmployee(employeeId, {
+        title: "Employment invitation received",
+        body: "A dealership has sent you an employment invitation.",
+        type: NOTIFICATION_TYPES.INVITATION,
+        sourceType: "EmployeeAssignment",
+        sourceId: employerInvitation.id,
+        data: {
+          screen: "employment-invitation",
+          employeeAssignmentId: employerInvitation.id,
+        },
+      }),
+    );
+
     return res.apiSuccess(
       "Employer invitation sent successfully",
       employerInvitation,

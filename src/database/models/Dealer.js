@@ -53,9 +53,19 @@ module.exports = (sequelize, DataTypes) => {
         as: "childDealers",
       });
 
-      Dealer.belongsTo(models.Role, {
-        foreignKey: "roleId",
-        as: "role",
+      Dealer.belongsTo(models.DealerRole, {
+        foreignKey: "dealerRoleId",
+        as: "dealerRole",
+      });
+
+      Dealer.hasMany(models.DealerRole, {
+        foreignKey: "dealerId",
+        as: "customRoles",
+      });
+
+      Dealer.hasMany(models.Notification, {
+        foreignKey: "dealerId",
+        as: "notifications",
       });
     }
   }
@@ -72,7 +82,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         unique: true,
       },
-      roleId: DataTypes.INTEGER,
+      dealerRoleId: DataTypes.INTEGER,
       userType: {
         type: DataTypes.ENUM("dealer", "staff"),
         allowNull: false,

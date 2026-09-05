@@ -187,24 +187,24 @@ module.exports = {
 
     for (const [roleKey, permissionKeys] of Object.entries(ROLE_PERMISSIONS)) {
       const [[role]] = await queryInterface.sequelize.query(
-        "SELECT id FROM Roles WHERE `key` = :key LIMIT 1",
+        "SELECT id FROM DealerRoles WHERE `key` = :key LIMIT 1",
         { replacements: { key: roleKey } },
       );
 
       if (!role) continue;
 
       await queryInterface.sequelize.query(
-        "DELETE rp FROM RolePermissions rp INNER JOIN Permissions p ON rp.permissionId = p.id WHERE rp.roleId = :roleId AND p.`key` LIKE 'dealer_%'",
-        { replacements: { roleId: role.id } },
+        "DELETE drp FROM DealerRolePermissions drp INNER JOIN Permissions p ON drp.permissionId = p.id WHERE drp.dealerRoleId = :dealerRoleId AND p.`key` LIKE 'dealer_%'",
+        { replacements: { dealerRoleId: role.id } },
       );
 
       for (const permissionKey of permissionKeys) {
         const permissionId = permissionIdByKey[permissionKey];
         if (!permissionId) continue;
 
-        await queryInterface.bulkInsert("RolePermissions", [
+        await queryInterface.bulkInsert("DealerRolePermissions", [
           {
-            roleId: role.id,
+            dealerRoleId: role.id,
             permissionId,
             createdAt: now,
             updatedAt: now,

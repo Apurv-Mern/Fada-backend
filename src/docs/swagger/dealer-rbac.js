@@ -24,9 +24,10 @@
  *           type: string
  *         description:
  *           type: string
- *         assignableTo:
- *           type: string
- *           enum: [dealer]
+ *         dealerId:
+ *           type: integer
+ *           nullable: true
+ *           description: Null for global system roles; set to the owning dealer for custom roles
  *         isSystem:
  *           type: boolean
  *         isSuperRole:
@@ -268,6 +269,7 @@
  *   get:
  *     tags: [Dealer Portal RBAC]
  *     summary: List dealer portal roles
+ *     description: Returns system roles (dealerId null) plus custom roles created by the current dealer company.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -301,6 +303,7 @@
  *   post:
  *     tags: [Dealer Portal RBAC]
  *     summary: Create custom dealer portal role
+ *     description: Creates a role scoped to the authenticated dealer company (dealerId is set automatically).
  *     description: Primary dealer account only. Permissions must be dealer portal keys (dealer_*).
  *     security:
  *       - bearerAuth: []

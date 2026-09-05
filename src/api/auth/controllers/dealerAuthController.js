@@ -14,6 +14,11 @@ const {
 const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
 const { generateDealerId } = require("../../../utils/fadaIdUtil");
 const { addEmailJob, addSmsJob } = require("../../../queues");
+const {
+  safeNotify,
+  notifyAllAdmins,
+  NOTIFICATION_TYPES,
+} = require("../../../services/notificationService");
 /*
 @API: POST /dealer/auth/register
 @Body: { name, dealerCode, email, password, phone }
@@ -150,6 +155,17 @@ exports.verifyOtp = async (req, res) => {
     await dealer.update({
       refreshToken,
     });
+
+    await safeNotify(() =>
+      notifyAllAdmins({
+        title: "New dealer registration",
+        body: `${dealer.name || dealer.email} has registered and is pending review.`,
+        type: NOTIFICATION_TYPES.DEALER,
+        sourceType: "Dealer",
+        sourceId: dealer.id,
+        data: { screen: "dealer-detail", dealerId: dealer.id },
+      }),
+    );
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,

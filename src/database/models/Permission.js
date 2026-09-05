@@ -15,6 +15,13 @@ module.exports = (sequelize, DataTypes) => {
         otherKey: "roleId",
         as: "roles",
       });
+
+      Permission.belongsToMany(models.DealerRole, {
+        through: models.DealerRolePermission,
+        foreignKey: "permissionId",
+        otherKey: "dealerRoleId",
+        as: "dealerRoles",
+      });
     }
   }
 

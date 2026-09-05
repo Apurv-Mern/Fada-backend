@@ -1,6 +1,7 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
-const { Role, Permission, Admin, Dealer } = require("../../../database/models");
+const { Role, Permission, Admin } = require("../../../database/models");
+const { adminRoleAssignableFilter, validateAdminPortalPermissionKeys } = require("../../../services/rbacService");
 
 const roleAttributes = [
   "id",
@@ -47,24 +48,12 @@ const findRoleOrError = async (id, res) => {
 };
 
 const validatePermissionKeys = async (permissionKeys, res) => {
-  if (!Array.isArray(permissionKeys) || permissionKeys.length === 0) {
-    res.apiError("At least one permission is required", 422);
+  const validation = await validateAdminPortalPermissionKeys(permissionKeys);
+  if (validation.error) {
+    res.apiError(validation.error, 422);
     return null;
   }
-
-  const permissions = await Permission.findAll({
-    where: {
-      key: { [Op.in]: permissionKeys },
-      isActive: true,
-    },
-  });
-
-  if (permissions.length !== permissionKeys.length) {
-    res.apiError("One or more permission keys are invalid", 422);
-    return null;
-  }
-
-  return permissions;
+  return validation.permissions;
 };
 
 /*
@@ -78,7 +67,7 @@ exports.getRoles = async (req, res) => {
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
-    const where = {};
+    const where = { ...adminRoleAssignableFilter };
     if (search) {
       where[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
@@ -134,7 +123,7 @@ exports.createRole = async (req, res) => {
       key: "required|string|regex:/^[a-z0-9_-]+$/",
       name: "required|string",
       description: "string",
-      assignableTo: "required|in:staff,dealer,all",
+      assignableTo: "required|in:staff,all",
       permissions: "required|array",
       isActive: "boolean",
     });
@@ -180,7 +169,7 @@ exports.updateRole = async (req, res) => {
     const validator = new Validator(req.body, {
       name: "required|string",
       description: "string",
-      assignableTo: "required|in:staff,dealer,all",
+      assignableTo: "required|in:staff,all",
       permissions: "required|array",
       isActive: "boolean",
     });
@@ -238,16 +227,6 @@ exports.deleteRole = async (req, res) => {
     const assignedAdminCount = await Admin.count({ where: { roleId: role.id } });
     if (assignedAdminCount > 0) {
       return res.apiError("Role is assigned to staff members and cannot be deleted", 400);
-    }
-
-    const assignedDealerCount = await Dealer.count({
-      where: { roleId: role.id, userType: "staff" },
-    });
-    if (assignedDealerCount > 0) {
-      return res.apiError(
-        "Role is assigned to dealer portal staff and cannot be deleted",
-        400,
-      );
     }
 
     await role.destroy();

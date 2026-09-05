@@ -2,7 +2,7 @@ const Validator = require("validatorjs");
 const { Op } = require("sequelize");
 const { Admin, Role } = require("../../../database/models");
 const { hashPassword } = require("../../../utils/passwordUtil");
-const { roleInclude } = require("../../../services/rbacService");
+const { roleInclude, adminRoleAssignableFilter } = require("../../../services/rbacService");
 
 const staffAttributes = {
   exclude: ["password", "otp", "refreshToken"],
@@ -55,7 +55,7 @@ const validateRole = async (roleId, res) => {
     where: {
       id: roleId,
       isActive: true,
-      assignableTo: { [Op.in]: ["staff", "all"] },
+      ...adminRoleAssignableFilter,
     },
   });
   if (!role) {
@@ -90,7 +90,7 @@ exports.getStaffRoles = async (_req, res) => {
       attributes: ["id", "name", "key"],
       where: {
         isActive: true,
-        assignableTo: { [Op.in]: ["staff", "all"] },
+        ...adminRoleAssignableFilter,
       },
       order: [["name", "ASC"]],
     });

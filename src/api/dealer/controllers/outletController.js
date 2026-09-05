@@ -10,6 +10,11 @@ const {
   enrichOutletFunctions,
 } = require("../../../utils/outletUtil");
 const { generateUniqueOutletPublicCode } = require("../../../utils/entityCodeUtil");
+const {
+  safeNotify,
+  notifyAllAdmins,
+  NOTIFICATION_TYPES,
+} = require("../../../services/notificationService");
 
 const outletValidationRules = {
   name: "required|string",
@@ -175,6 +180,17 @@ exports.createOutlet = async (req, res) => {
     const createdOutlet = await Outlet.findByPk(outlet.id, {
       include: outletIncludes,
     });
+
+    await safeNotify(() =>
+      notifyAllAdmins({
+        title: "New outlet added",
+        body: `A new outlet "${createdOutlet.name}" was created by a dealer.`,
+        type: NOTIFICATION_TYPES.OUTLET,
+        sourceType: "Outlet",
+        sourceId: createdOutlet.id,
+        data: { screen: "outlet-detail", outletId: createdOutlet.id, dealerId },
+      }),
+    );
 
     return res.apiSuccess("Outlet created successfully", createdOutlet);
   } catch (error) {

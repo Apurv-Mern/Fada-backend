@@ -223,12 +223,11 @@ module.exports = {
     );
 
     for (const role of DEALER_ROLES) {
-      await queryInterface.bulkInsert("Roles", [
+      await queryInterface.bulkInsert("DealerRoles", [
         {
           key: role.key,
           name: role.name,
           description: role.description,
-          assignableTo: role.assignableTo,
           isSystem: role.isSystem,
           isSuperRole: role.isSuperRole,
           isActive: true,
@@ -238,14 +237,14 @@ module.exports = {
       ]);
 
       const [[createdRole]] = await queryInterface.sequelize.query(
-        "SELECT id FROM Roles WHERE `key` = :key LIMIT 1",
+        "SELECT id FROM DealerRoles WHERE `key` = :key LIMIT 1",
         { replacements: { key: role.key } },
       );
 
       for (const permissionKey of role.permissionKeys) {
-        await queryInterface.bulkInsert("RolePermissions", [
+        await queryInterface.bulkInsert("DealerRolePermissions", [
           {
-            roleId: createdRole.id,
+            dealerRoleId: createdRole.id,
             permissionId: permissionIdByKey[permissionKey],
             createdAt: now,
             updatedAt: now,
@@ -257,7 +256,7 @@ module.exports = {
 
   async down(queryInterface) {
     await queryInterface.sequelize.query(
-      "DELETE rp FROM RolePermissions rp INNER JOIN Permissions p ON rp.permissionId = p.id WHERE p.`key` LIKE 'dealer_%'",
+      "DELETE drp FROM DealerRolePermissions drp INNER JOIN Permissions p ON drp.permissionId = p.id WHERE p.`key` LIKE 'dealer_%'",
     );
     await queryInterface.sequelize.query(
       "DELETE FROM Permissions WHERE `key` LIKE 'dealer_%'",
@@ -266,7 +265,7 @@ module.exports = {
       "DELETE FROM Modules WHERE `key` LIKE 'dealer_%'",
     );
     await queryInterface.sequelize.query(
-      "DELETE FROM Roles WHERE `key` IN ('dealer_admin', 'dealer_manager', 'dealer_viewer')",
+      "DELETE FROM DealerRoles WHERE `key` IN ('dealer_admin', 'dealer_manager', 'dealer_viewer')",
     );
   },
 };

@@ -14,4 +14,5 @@ router.use("/settings", require("./settingRoutes"));
 router.use("/master", require("./masterRoutes"));
 router.use("/employer-invitations", require("./employerRoutes"));
 router.use("/employer-leaving", require("./employerLeavingRoutes"));
+router.use("/notifications", require("./notificationRoutes"));
 module.exports = router;

@@ -13,6 +13,11 @@ const {
 const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const { addEmailJob, addSmsJob } = require("../../../queues");
+const {
+  safeNotify,
+  notifyAllAdmins,
+  NOTIFICATION_TYPES,
+} = require("../../../services/notificationService");
 const { Op } = require("sequelize");
 
 function getDeviceTokenFromBody(body = {}) {
@@ -171,6 +176,17 @@ exports.verifyRegistrationOtp = async (req, res) => {
         password: randomPassword,
       },
     });
+
+    await safeNotify(() =>
+      notifyAllAdmins({
+        title: "New employee registration",
+        body: `${employee.name || email} has registered and is pending review.`,
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "Employee",
+        sourceId: employee.id,
+        data: { screen: "employee-detail", employeeId: employee.id },
+      }),
+    );
 
     return res.apiSuccess(
       "Registration OTP verified successfully. Please check your email for your login password.",

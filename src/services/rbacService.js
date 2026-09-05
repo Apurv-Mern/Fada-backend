@@ -3,6 +3,7 @@ const {
   Admin,
   Dealer,
   Role,
+  DealerRole,
   Permission,
   Module,
 } = require("../database/models");
@@ -23,19 +24,36 @@ const roleInclude = {
 };
 
 const dealerRoleInclude = {
-  model: Role,
-  as: "role",
+  model: DealerRole,
+  as: "dealerRole",
   attributes: [
     "id",
     "key",
     "name",
     "description",
-    "assignableTo",
+    "dealerId",
     "isSystem",
     "isSuperRole",
     "isActive",
   ],
 };
+
+const adminRoleAssignableFilter = {
+  assignableTo: { [Op.in]: ["staff", "all"] },
+};
+
+function buildDealerRoleAccessFilter(companyDealerId) {
+  return {
+    [Op.or]: [
+      { dealerId: null, isSystem: true },
+      { dealerId: companyDealerId },
+    ],
+  };
+}
+
+function buildDealerOwnedRoleFilter(companyDealerId) {
+  return { dealerId: companyDealerId };
+}
 
 async function loadAdminWithRole(adminId) {
   return Admin.findByPk(adminId, {
@@ -49,12 +67,12 @@ async function loadDealerWithRole(dealerId) {
   });
 }
 
-async function validateDealerRole(roleId) {
-  return Role.findOne({
+async function validateDealerRole(dealerRoleId, companyDealerId) {
+  return DealerRole.findOne({
     where: {
-      id: roleId,
+      id: dealerRoleId,
       isActive: true,
-      assignableTo: { [Op.in]: ["dealer", "all"] },
+      ...buildDealerRoleAccessFilter(companyDealerId),
     },
   });
 }
@@ -83,6 +101,29 @@ async function getPermissionKeysForRole(role) {
   return permissions.map((permission) => permission.key);
 }
 
+async function getDealerPermissionKeysForRole(dealerRole) {
+  if (!dealerRole) return [];
+  if (dealerRole.isSuperRole) {
+    const permissions = await Permission.findAll({
+      where: {
+        isActive: true,
+        key: { [Op.like]: "dealer\\_%" },
+      },
+      attributes: ["key"],
+      order: [["key", "ASC"]],
+    });
+    return permissions.map((permission) => permission.key);
+  }
+
+  const permissions = await dealerRole.getPermissions({
+    where: { isActive: true },
+    attributes: ["key"],
+    joinTableAttributes: [],
+  });
+
+  return permissions.map((permission) => permission.key);
+}
+
 async function getPermissionKeysForAdmin(adminId) {
   const admin = await loadAdminWithRole(adminId);
   if (!admin?.role) return [];
@@ -91,8 +132,70 @@ async function getPermissionKeysForAdmin(adminId) {
 
 async function getPermissionKeysForDealer(dealerId) {
   const dealer = await loadDealerWithRole(dealerId);
-  if (!dealer?.role) return [];
-  return getPermissionKeysForRole(dealer.role);
+  if (!dealer?.dealerRole) return [];
+  return getDealerPermissionKeysForRole(dealer.dealerRole);
+}
+
+async function getAdminPortalModules() {
+  return Module.findAll({
+    where: {
+      isActive: true,
+      key: { [Op.notLike]: "dealer\\_%" },
+    },
+    attributes: ["id", "key", "name", "description", "sortOrder"],
+    include: [
+      {
+        model: Permission,
+        as: "permissions",
+        attributes: ["id", "key", "name", "action"],
+        where: {
+          isActive: true,
+          key: { [Op.notLike]: "dealer\\_%" },
+        },
+        required: false,
+      },
+    ],
+    order: [
+      ["sortOrder", "ASC"],
+      [{ model: Permission, as: "permissions" }, "key", "ASC"],
+    ],
+  });
+}
+
+async function getAdminPortalPermissions() {
+  return Permission.findAll({
+    where: {
+      isActive: true,
+      key: { [Op.notLike]: "dealer\\_%" },
+    },
+    attributes: ["id", "key", "name", "action", "moduleId"],
+    order: [["key", "ASC"]],
+  });
+}
+
+async function validateAdminPortalPermissionKeys(permissionKeys) {
+  if (!Array.isArray(permissionKeys) || permissionKeys.length === 0) {
+    return { error: "At least one permission is required" };
+  }
+
+  const permissions = await Permission.findAll({
+    where: {
+      isActive: true,
+      [Op.and]: [
+        { key: { [Op.in]: permissionKeys } },
+        { key: { [Op.notLike]: "dealer\\_%" } },
+      ],
+    },
+  });
+
+  if (permissions.length !== permissionKeys.length) {
+    return {
+      error:
+        "One or more permission keys are invalid or not allowed for the admin portal",
+    };
+  }
+
+  return { permissions };
 }
 
 async function getDealerPortalModules() {
@@ -154,26 +257,18 @@ async function validateDealerPortalPermissionKeys(permissionKeys) {
   return { permissions };
 }
 
-const dealerRoleAssignableFilter = {
-  assignableTo: { [Op.in]: ["dealer", "all"] },
-};
-
-const dealerRoleManagementFilter = {
-  assignableTo: "dealer",
-};
-
 async function dealerHasPermission(dealerId, permissionKey) {
   const dealer = await loadDealerWithRole(dealerId);
-  if (!dealer?.role || dealer.isActive === false) return false;
-  if (dealer.role.isSuperRole) return true;
+  if (!dealer?.dealerRole || dealer.isActive === false) return false;
+  if (dealer.dealerRole.isSuperRole) return true;
 
   const permission = await Permission.findOne({
     where: { key: permissionKey, isActive: true },
     include: [
       {
-        model: Role,
-        as: "roles",
-        where: { id: dealer.roleId },
+        model: DealerRole,
+        as: "dealerRoles",
+        where: { id: dealer.dealerRoleId },
         through: { attributes: [] },
         required: true,
       },
@@ -204,6 +299,18 @@ async function adminHasPermission(adminId, permissionKey) {
   return !!permission;
 }
 
+async function adminHasAnyPermission(adminId, permissionKeys = []) {
+  if (!Array.isArray(permissionKeys) || permissionKeys.length === 0) return false;
+
+  for (const permissionKey of permissionKeys) {
+    if (await adminHasPermission(adminId, permissionKey)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function formatAdminAuthPayload(admin, permissions = []) {
   return {
     id: admin.id,
@@ -231,19 +338,25 @@ function formatAdminAuthPayload(admin, permissions = []) {
 module.exports = {
   roleInclude,
   dealerRoleInclude,
+  adminRoleAssignableFilter,
+  buildDealerRoleAccessFilter,
+  buildDealerOwnedRoleFilter,
   loadAdminWithRole,
   loadDealerWithRole,
   validateDealerRole,
+  getAdminPortalModules,
+  getAdminPortalPermissions,
+  validateAdminPortalPermissionKeys,
   getDealerPortalModules,
   getDealerPortalPermissions,
   validateDealerPortalPermissionKeys,
-  dealerRoleAssignableFilter,
-  dealerRoleManagementFilter,
   getAllPermissionKeys,
   getPermissionKeysForRole,
+  getDealerPermissionKeysForRole,
   getPermissionKeysForAdmin,
   getPermissionKeysForDealer,
   adminHasPermission,
+  adminHasAnyPermission,
   dealerHasPermission,
   formatAdminAuthPayload,
 };

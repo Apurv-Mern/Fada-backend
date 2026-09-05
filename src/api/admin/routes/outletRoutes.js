@@ -1,21 +1,55 @@
 const router = require("express").Router();
 const outletController = require("../controllers/outletController");
-const requirePermission = require("../../../middlewares/requirePermission");
+const requireAnyPermission = require("../../../middlewares/requireAnyPermission");
 
-router.get("/", requirePermission("dealers.view"), outletController.getOutlets);
+const OUTLET_VIEW_PERMISSIONS = ["outlets.view", "dealers.view"];
+const OUTLET_CREATE_PERMISSIONS = ["outlets.create", "dealers.create"];
+const OUTLET_EDIT_PERMISSIONS = ["outlets.edit", "dealers.edit"];
+const OUTLET_DELETE_PERMISSIONS = ["outlets.delete", "dealers.delete"];
+const OUTLET_IMPORT_PERMISSIONS = ["outlets.import", "dealers.import"];
+const OUTLET_ACCESS_PERMISSIONS = [
+  ...OUTLET_VIEW_PERMISSIONS,
+  ...OUTLET_CREATE_PERMISSIONS,
+  ...OUTLET_EDIT_PERMISSIONS,
+  ...OUTLET_DELETE_PERMISSIONS,
+  "dealers.approve",
+  ...OUTLET_IMPORT_PERMISSIONS,
+];
+
+router.get("/", requireAnyPermission(...OUTLET_ACCESS_PERMISSIONS), outletController.getOutlets);
 router.get(
   "/parent/:parentId",
-  requirePermission("dealers.view"),
+  requireAnyPermission(...OUTLET_ACCESS_PERMISSIONS),
   outletController.getOutletsByParent,
 );
-router.post("/import", requirePermission("dealers.create"), outletController.importOutlets);
-router.get("/:id", requirePermission("dealers.view"), outletController.getOutletById);
-router.post("/", requirePermission("dealers.create"), outletController.createOutlet);
-router.put("/:id", requirePermission("dealers.edit"), outletController.updateOutlet);
-router.delete("/:id", requirePermission("dealers.delete"), outletController.deleteOutlet);
+router.post(
+  "/import",
+  requireAnyPermission(...OUTLET_IMPORT_PERMISSIONS),
+  outletController.importOutlets,
+);
+router.get(
+  "/:id",
+  requireAnyPermission(...OUTLET_VIEW_PERMISSIONS),
+  outletController.getOutletById,
+);
+router.post(
+  "/",
+  requireAnyPermission(...OUTLET_CREATE_PERMISSIONS),
+  outletController.createOutlet,
+);
+router.put(
+  "/:id",
+  requireAnyPermission(...OUTLET_EDIT_PERMISSIONS),
+  outletController.updateOutlet,
+);
+router.delete(
+  "/:id",
+  requireAnyPermission(...OUTLET_DELETE_PERMISSIONS),
+  outletController.deleteOutlet,
+);
 router.put(
   "/:id/active-inactive",
-  requirePermission("dealers.edit"),
+  requireAnyPermission(...OUTLET_EDIT_PERMISSIONS),
   outletController.activeInactiveOutlets,
 );
 

@@ -1,37 +1,44 @@
 "use strict";
+
 const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
-  class Role extends Model {
+  class DealerRole extends Model {
     static associate(models) {
-      Role.belongsToMany(models.Permission, {
-        through: models.RolePermission,
-        foreignKey: "roleId",
+      DealerRole.belongsTo(models.Dealer, {
+        foreignKey: "dealerId",
+        as: "dealer",
+      });
+
+      DealerRole.belongsToMany(models.Permission, {
+        through: models.DealerRolePermission,
+        foreignKey: "dealerRoleId",
         otherKey: "permissionId",
         as: "permissions",
       });
 
-      Role.hasMany(models.Admin, {
-        foreignKey: "roleId",
+      DealerRole.hasMany(models.Dealer, {
+        foreignKey: "dealerRoleId",
         as: "staffMembers",
       });
     }
   }
 
-  Role.init(
+  DealerRole.init(
     {
-      name: DataTypes.STRING,
       key: {
         type: DataTypes.STRING(50),
         allowNull: true,
-        unique: true,
+      },
+      dealerId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
       description: DataTypes.TEXT,
-      assignableTo: {
-        type: DataTypes.ENUM("staff", "all"),
-        allowNull: false,
-        defaultValue: "staff",
-      },
       isSystem: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -47,14 +54,17 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: true,
       },
-      updatedBy: DataTypes.INTEGER,
     },
     {
       sequelize,
-      modelName: "Role",
+      modelName: "DealerRole",
       paranoid: true,
+      indexes: [
+        { fields: ["dealerId"] },
+        { unique: true, fields: ["dealerId", "key"] },
+      ],
     },
   );
 
-  return Role;
+  return DealerRole;
 };

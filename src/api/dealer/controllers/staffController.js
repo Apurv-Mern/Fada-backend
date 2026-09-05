@@ -1,6 +1,6 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
-const { Dealer, Role } = require("../../../database/models");
+const { Dealer, DealerRole } = require("../../../database/models");
 const {
   hashPassword,
   generateTempPassword,
@@ -9,6 +9,7 @@ const { addEmailJob } = require("../../../queues");
 const {
   dealerRoleInclude,
   validateDealerRole,
+  buildDealerRoleAccessFilter,
 } = require("../../../services/rbacService");
 
 const staffAttributes = {
@@ -97,15 +98,20 @@ async function findCompanyStaffOrError(id, companyDealerId, res) {
 @Desc: List dealer-assignable roles
 @Access: Private
 */
-exports.getStaffRoles = async (_req, res) => {
+exports.getStaffRoles = async (req, res) => {
   try {
-    const roles = await Role.findAll({
-      attributes: ["id", "name", "key", "description", "isSuperRole"],
+    const companyDealerId = getCompanyDealerId(req);
+
+    const roles = await DealerRole.findAll({
+      attributes: ["id", "name", "key", "description", "dealerId", "isSuperRole", "isSystem"],
       where: {
         isActive: true,
-        assignableTo: { [Op.in]: ["dealer", "all"] },
+        ...buildDealerRoleAccessFilter(companyDealerId),
       },
-      order: [["name", "ASC"]],
+      order: [
+        ["isSystem", "DESC"],
+        ["name", "ASC"],
+      ],
     });
 
     return res.apiSuccess("Staff roles fetched successfully", roles);
@@ -140,7 +146,7 @@ exports.getStaffMembers = async (req, res) => {
     }
 
     if (roleId) {
-      where.roleId = roleId;
+      where.dealerRoleId = roleId;
     }
 
     if (isActive !== undefined && isActive !== "") {
@@ -206,7 +212,8 @@ exports.createStaffMember = async (req, res) => {
 
     if (!validatePasswordConfirmation(req.body, res, true)) return;
 
-    const role = await validateDealerRole(req.body.roleId);
+    const companyDealerId = getCompanyDealerId(req);
+    const role = await validateDealerRole(req.body.roleId, companyDealerId);
     if (!role) {
       return res.apiError("Invalid role", 422);
     }
@@ -219,13 +226,12 @@ exports.createStaffMember = async (req, res) => {
 
     const password = req.body.password || generateTempPassword();
     const hashedPassword = await hashPassword(password);
-    const companyDealerId = getCompanyDealerId(req);
 
     const staff = await Dealer.create({
       name: req.body.name.trim(),
       email,
       phone: req.body.phone || null,
-      roleId: req.body.roleId,
+      dealerRoleId: req.body.roleId,
       password: hashedPassword,
       userType: "staff",
       parentDealerId: companyDealerId,
@@ -287,7 +293,7 @@ exports.updateStaffMember = async (req, res) => {
       return res.apiError("Staff member not found", 404);
     }
 
-    const role = await validateDealerRole(req.body.roleId);
+    const role = await validateDealerRole(req.body.roleId, companyDealerId);
     if (!role) {
       return res.apiError("Invalid role", 422);
     }
@@ -304,7 +310,7 @@ exports.updateStaffMember = async (req, res) => {
       name: req.body.name.trim(),
       email,
       phone: req.body.phone || null,
-      roleId: req.body.roleId,
+      dealerRoleId: req.body.roleId,
       isActive: req.body.isActive ?? staff.isActive,
     };
 

@@ -10,6 +10,12 @@ const {
   OrganizationStructure
 } = require("../../../../database/models");
 const Validator = require("validatorjs");
+const {
+  safeNotify,
+  notifyDealer,
+  notifyEmployee,
+  NOTIFICATION_TYPES,
+} = require("../../../../services/notificationService");
 
 const EMPLOYER_JOINING_STATUS = {
   SEND_INVITATION: "send_invitation",
@@ -95,6 +101,21 @@ exports.sendNewEmployerInvitation = async (req, res) => {
     }
 
     await transaction.commit();
+
+    await safeNotify(() =>
+      notifyDealer(dealerId, {
+        title: "Employment request received",
+        body: "An employee has requested to join your dealership.",
+        type: NOTIFICATION_TYPES.INVITATION,
+        sourceType: "EmployeeAssignment",
+        sourceId: employeeAssignment.id,
+        data: {
+          screen: "employment-request",
+          employeeAssignmentId: employeeAssignment.id,
+        },
+      }),
+    );
+
     return res.apiSuccess("New employer invitation sent successfully", {});
   } catch (error) {
     await transaction.rollback();
@@ -249,6 +270,11 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
       return res.apiError("Invalid status", 400);
     }
 
+    const assignment = await EmployeeAssignment.findOne({
+      where: { employeeId: id, id: req.params.id },
+      transaction,
+    });
+
     const employeeInvitation = await EmployeeAssignment.update(
       { status: status === "accept" ? "verified" : "rejected" },
       { where: { employeeId: id, id: req.params.id }, transaction },
@@ -270,6 +296,24 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
     );
 
     await transaction.commit();
+
+    if (assignment?.dealerId) {
+      await safeNotify(() =>
+        notifyDealer(assignment.dealerId, {
+          title: `Employment invitation ${status === "accept" ? "accepted" : "rejected"}`,
+          body: `An employee has ${status === "accept" ? "accepted" : "rejected"} your employment invitation.`,
+          type: NOTIFICATION_TYPES.EMPLOYMENT,
+          sourceType: "EmployeeAssignment",
+          sourceId: assignment.id,
+          data: {
+            screen: "employment-request",
+            employeeAssignmentId: assignment.id,
+            status,
+          },
+        }),
+      );
+    }
+
     return res.apiSuccess(
       `${status === "accept" ? "Accepted" : "Rejected"} employee invitation successfully`,
       employeeInvitation,
@@ -345,6 +389,21 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
     }, { transaction });
 
     await transaction.commit();
+
+    await safeNotify(() =>
+      notifyDealer(employeeAssignment.dealerId, {
+        title: "Employee leaving request",
+        body: "An employee has submitted a request to leave your dealership.",
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
+        sourceType: "EmployeeLeaveEmployeement",
+        sourceId: employeeLeavingRequest.id,
+        data: {
+          screen: "employment-leaving",
+          leaveRequestId: employeeLeavingRequest.id,
+        },
+      }),
+    );
+
     return res.apiSuccess("Employee leaving request submitted successfully", employeeLeavingRequest);
   } catch (error) {
     await transaction.rollback();

@@ -1,9 +1,10 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
-const { Role, Permission, Dealer } = require("../../../database/models");
+const { Dealer, DealerRole, Permission } = require("../../../database/models");
 const {
   validateDealerPortalPermissionKeys,
-  dealerRoleManagementFilter,
+  buildDealerRoleAccessFilter,
+  buildDealerOwnedRoleFilter,
 } = require("../../../services/rbacService");
 
 const roleAttributes = [
@@ -11,7 +12,7 @@ const roleAttributes = [
   "key",
   "name",
   "description",
-  "assignableTo",
+  "dealerId",
   "isSystem",
   "isSuperRole",
   "isActive",
@@ -27,6 +28,8 @@ const permissionInclude = {
   where: { isActive: true },
   required: false,
 };
+
+const getCompanyDealerId = (req) => req.currentDealerId;
 
 function ensurePrimaryDealerCanMutate(req, res) {
   if (req.auth?.userType === "staff") {
@@ -44,12 +47,30 @@ function formatRole(role) {
   };
 }
 
-async function findDealerRoleOrError(id, res) {
-  const role = await Role.findOne({
+async function findAccessibleDealerRoleOrError(id, companyDealerId, res) {
+  const role = await DealerRole.findOne({
     attributes: roleAttributes,
     where: {
       id,
-      ...dealerRoleManagementFilter,
+      ...buildDealerRoleAccessFilter(companyDealerId),
+    },
+    include: [permissionInclude],
+  });
+
+  if (!role) {
+    res.apiError("Role not found", 404);
+    return null;
+  }
+
+  return role;
+}
+
+async function findOwnedDealerRoleOrError(id, companyDealerId, res) {
+  const role = await DealerRole.findOne({
+    attributes: roleAttributes,
+    where: {
+      id,
+      ...buildDealerOwnedRoleFilter(companyDealerId),
     },
     include: [permissionInclude],
   });
@@ -69,28 +90,39 @@ async function findDealerRoleOrError(id, res) {
 */
 exports.getRoles = async (req, res) => {
   try {
+    const companyDealerId = getCompanyDealerId(req);
     const { search, isActive } = req.query;
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
 
-    const where = { ...dealerRoleManagementFilter };
+    const accessFilter = buildDealerRoleAccessFilter(companyDealerId);
+    const where = { ...accessFilter };
 
     if (search) {
-      where[Op.or] = [
-        { name: { [Op.like]: `%${search}%` } },
-        { key: { [Op.like]: `%${search}%` } },
+      where[Op.and] = [
+        accessFilter,
+        {
+          [Op.or]: [
+            { name: { [Op.like]: `%${search}%` } },
+            { key: { [Op.like]: `%${search}%` } },
+          ],
+        },
       ];
+      delete where[Op.or];
     }
 
     if (isActive !== undefined && isActive !== "") {
       where.isActive = isActive === "true" || isActive === "1";
     }
 
-    const { rows: roles, count: total } = await Role.findAndCountAll({
+    const { rows: roles, count: total } = await DealerRole.findAndCountAll({
       attributes: roleAttributes,
       where,
       include: [permissionInclude],
-      order: [["name", "ASC"]],
+      order: [
+        ["isSystem", "DESC"],
+        ["name", "ASC"],
+      ],
       limit,
       offset,
       distinct: true,
@@ -112,7 +144,11 @@ exports.getRoles = async (req, res) => {
 */
 exports.getRoleById = async (req, res) => {
   try {
-    const role = await findDealerRoleOrError(req.params.id, res);
+    const role = await findAccessibleDealerRoleOrError(
+      req.params.id,
+      getCompanyDealerId(req),
+      res,
+    );
     if (!role) return;
 
     return res.apiSuccess("Role fetched successfully", formatRole(role));
@@ -130,6 +166,8 @@ exports.createRole = async (req, res) => {
   try {
     if (!ensurePrimaryDealerCanMutate(req, res)) return;
 
+    const companyDealerId = getCompanyDealerId(req);
+
     const validator = new Validator(req.body, {
       key: "required|string|regex:/^[a-z0-9_-]+$/",
       name: "required|string",
@@ -142,7 +180,18 @@ exports.createRole = async (req, res) => {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    const existing = await Role.findOne({ where: { key: req.body.key } });
+    const roleKey = req.body.key.trim().toLowerCase();
+
+    const existing = await DealerRole.findOne({
+      where: {
+        key: roleKey,
+        [Op.or]: [
+          { dealerId: companyDealerId },
+          { dealerId: null, isSystem: true },
+        ],
+      },
+    });
+
     if (existing) {
       return res.apiError("A role with this key already exists", 409);
     }
@@ -154,11 +203,11 @@ exports.createRole = async (req, res) => {
       return res.apiError(validation.error, 422);
     }
 
-    const role = await Role.create({
-      key: req.body.key.trim().toLowerCase(),
+    const role = await DealerRole.create({
+      key: roleKey,
       name: req.body.name.trim(),
       description: req.body.description || null,
-      assignableTo: "dealer",
+      dealerId: companyDealerId,
       isSystem: false,
       isSuperRole: false,
       isActive: req.body.isActive ?? true,
@@ -166,7 +215,7 @@ exports.createRole = async (req, res) => {
 
     await role.setPermissions(validation.permissions);
 
-    const created = await findDealerRoleOrError(role.id, res);
+    const created = await findOwnedDealerRoleOrError(role.id, companyDealerId, res);
     return res.apiSuccess("Role created successfully", formatRole(created));
   } catch (error) {
     return res.apiError(error.message, 500, error);
@@ -182,6 +231,8 @@ exports.updateRole = async (req, res) => {
   try {
     if (!ensurePrimaryDealerCanMutate(req, res)) return;
 
+    const companyDealerId = getCompanyDealerId(req);
+
     const validator = new Validator(req.body, {
       name: "required|string",
       description: "string",
@@ -193,15 +244,19 @@ exports.updateRole = async (req, res) => {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    const role = await Role.findOne({
+    const role = await DealerRole.findOne({
       where: {
         id: req.params.id,
-        ...dealerRoleManagementFilter,
+        ...buildDealerOwnedRoleFilter(companyDealerId),
       },
     });
 
     if (!role) {
       return res.apiError("Role not found", 404);
+    }
+
+    if (role.isSystem) {
+      return res.apiError("System roles cannot be updated", 400);
     }
 
     const validation = await validateDealerPortalPermissionKeys(
@@ -214,14 +269,14 @@ exports.updateRole = async (req, res) => {
     await role.update({
       name: req.body.name.trim(),
       description: req.body.description || null,
-      isActive: role.isSystem ? role.isActive : (req.body.isActive ?? role.isActive),
+      isActive: req.body.isActive ?? role.isActive,
     });
 
     if (!role.isSuperRole) {
       await role.setPermissions(validation.permissions);
     }
 
-    const updated = await findDealerRoleOrError(role.id, res);
+    const updated = await findOwnedDealerRoleOrError(role.id, companyDealerId, res);
     return res.apiSuccess("Role updated successfully", formatRole(updated));
   } catch (error) {
     return res.apiError(error.message, 500, error);
@@ -237,10 +292,12 @@ exports.deleteRole = async (req, res) => {
   try {
     if (!ensurePrimaryDealerCanMutate(req, res)) return;
 
-    const role = await Role.findOne({
+    const companyDealerId = getCompanyDealerId(req);
+
+    const role = await DealerRole.findOne({
       where: {
         id: req.params.id,
-        ...dealerRoleManagementFilter,
+        ...buildDealerOwnedRoleFilter(companyDealerId),
       },
     });
 
@@ -254,8 +311,9 @@ exports.deleteRole = async (req, res) => {
 
     const assignedCount = await Dealer.count({
       where: {
-        roleId: role.id,
+        dealerRoleId: role.id,
         userType: "staff",
+        parentDealerId: companyDealerId,
       },
     });
 

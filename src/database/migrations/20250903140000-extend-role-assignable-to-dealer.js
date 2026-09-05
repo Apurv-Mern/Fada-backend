@@ -5,17 +5,17 @@ module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.query(`
       ALTER TABLE Roles
-      MODIFY COLUMN assignableTo ENUM('staff', 'all', 'dealer') NOT NULL DEFAULT 'staff'
+      MODIFY COLUMN assignableTo ENUM('admin','employee','dealer') NOT NULL DEFAULT 'admin'
     `);
   },
 
   async down(queryInterface) {
     await queryInterface.sequelize.query(`
-      UPDATE Roles SET assignableTo = 'staff' WHERE assignableTo = 'dealer'
+      UPDATE Roles SET assignableTo = 'admin' WHERE assignableTo = 'dealer'
     `);
     await queryInterface.sequelize.query(`
       ALTER TABLE Roles
-      MODIFY COLUMN assignableTo ENUM('staff', 'all') NOT NULL DEFAULT 'staff'
+      MODIFY COLUMN assignableTo ENUM('admin', 'dealer') NOT NULL DEFAULT 'admin'
     `);
   },
 };
