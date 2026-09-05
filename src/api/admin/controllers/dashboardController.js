@@ -3,6 +3,8 @@ const {
   Dealer,
   Outlet,
   Employee,
+  OrganizationStructure,
+  EmployeeAssignment,
 } = require("../../../database/models");
 const dayjs = require("dayjs");
 const { Op } = require("sequelize");
@@ -28,6 +30,7 @@ exports.getDashboardStats = async (req, res) => {
       dealerInactiveCount,
       dealerPendingCount,
       recentDealers,
+      topFadaScorers,
     ] = await Promise.all([
       Outlet.count(),
       Outlet.count({ where: { isActive: true } }),
@@ -49,6 +52,31 @@ exports.getDashboardStats = async (req, res) => {
         }, */
         limit: 5,
         order: [["createdAt", "DESC"]],
+      }),
+      Employee.findAll({
+        attributes: ["id", "name", "score"],
+        where: { isActive: true, status: "approved" },
+        include: [
+          {
+            model: EmployeeAssignment,
+            attributes: ["id", "designationId"], 
+            as: "assignment",
+            where: {   isCurrentlyWorking: true },
+            required: false,
+            include: [
+              {
+                model: OrganizationStructure,
+                as: "designation",
+                attributes: ["id", "name"],
+              },
+            ],
+          },
+        ],
+        limit: 5,
+        order: [
+          ["score", "DESC"],
+          ["createdAt", "ASC"], // optional tie-breaker
+        ],
       }),
     ]);
 
@@ -72,6 +100,7 @@ exports.getDashboardStats = async (req, res) => {
       },
 
       recentDealers: recentDealers,
+      topFadaScorers: topFadaScorers,
     };
     return res.apiSuccess(
       "Dashboard stats fetched successfully",
