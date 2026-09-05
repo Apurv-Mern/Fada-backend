@@ -7,9 +7,10 @@ const {
   PERMISSIONS,
   STAFF_ROLE_PERMISSION_KEYS,
   LEGACY_PERMISSION_MAP,
-  ADMIN_ROLE_ID,
-  STAFF_ROLE_ID,
+  ADMIN_ROLE_KEY,
+  STAFF_ROLE_KEY,
 } = require("../data/admin-portal-rbac");
+const { getRoleIdByKey } = require("./system-roles");
 
 async function loadModuleIdByKey(queryInterface) {
   const [modules] = await queryInterface.sequelize.query("SELECT id, `key` FROM Modules");
@@ -154,19 +155,26 @@ async function syncAdminPortalRbac(queryInterface) {
     PERMISSIONS.map((permission) => permission.key),
   );
 
-  await grantRolePermissions(
-    queryInterface,
-    ADMIN_ROLE_ID,
-    PERMISSIONS.map((permission) => permissionIdByKey[permission.key]),
-    now,
-  );
+  const adminRoleId = await getRoleIdByKey(queryInterface, ADMIN_ROLE_KEY);
+  const staffRoleId = await getRoleIdByKey(queryInterface, STAFF_ROLE_KEY);
 
-  await grantRolePermissions(
-    queryInterface,
-    STAFF_ROLE_ID,
-    STAFF_ROLE_PERMISSION_KEYS.map((key) => permissionIdByKey[key]),
-    now,
-  );
+  if (adminRoleId) {
+    await grantRolePermissions(
+      queryInterface,
+      adminRoleId,
+      PERMISSIONS.map((permission) => permissionIdByKey[permission.key]),
+      now,
+    );
+  }
+
+  if (staffRoleId) {
+    await grantRolePermissions(
+      queryInterface,
+      staffRoleId,
+      STAFF_ROLE_PERMISSION_KEYS.map((key) => permissionIdByKey[key]),
+      now,
+    );
+  }
 
   await applyLegacyPermissionMap(queryInterface, now);
 }

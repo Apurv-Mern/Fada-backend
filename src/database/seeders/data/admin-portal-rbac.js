@@ -193,8 +193,8 @@ const LEGACY_PERMISSION_MAP = [
   { legacy: "newsroom.manage", granted: ["newsroom.create", "newsroom.edit", "newsroom.delete"] },
 ];
 
-const ADMIN_ROLE_ID = 1;
-const STAFF_ROLE_ID = 2;
+const ADMIN_ROLE_KEY = "admin";
+const STAFF_ROLE_KEY = "staff";
 
 module.exports = {
   MODULES,
@@ -203,6 +203,6 @@ module.exports = {
   PERMISSIONS,
   STAFF_ROLE_PERMISSION_KEYS,
   LEGACY_PERMISSION_MAP,
-  ADMIN_ROLE_ID,
-  STAFF_ROLE_ID,
+  ADMIN_ROLE_KEY,
+  STAFF_ROLE_KEY,
 };
