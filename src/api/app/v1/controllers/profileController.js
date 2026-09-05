@@ -379,7 +379,7 @@ exports.deleteDocument = async (req, res) => {
 }
 @Access: Private
 */
-exports.createEmployeement = async (req, res) => {
+exports.createEmployeementOld = async (req, res) => {
   try {
     const id = req.auth.id;
 
@@ -461,6 +461,9 @@ exports.createEmployeement = async (req, res) => {
     return res.apiError("Internal server error", 500, error);
   }
 };
+
+
+
 
 /*
 @API: GET /employee/employeements
