@@ -264,6 +264,17 @@ exports.updateOutlet = async (req, res) => {
       include: adminOutletIncludes,
     });
 
+    await safeNotify(() =>
+      notifyDealer(req.body.dealerId, {
+        title: "Outlet updated",
+        body: `Outlet "${outlet.name}" has been updated by the admin team.`,
+        type: NOTIFICATION_TYPES.OUTLET,
+        sourceType: "Outlet",
+        sourceId: outlet.id,
+        data: { screen: "outlet-detail", outletId: outlet.id },
+      }),
+    );
+
     return res.apiSuccess("Outlet updated successfully", outlet);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
@@ -286,6 +297,8 @@ exports.deleteOutlet = async (req, res) => {
       return res.apiError("Outlet not found", 404);
     }
 
+    const { dealerId, name: outletName, id: outletId } = outlet;
+
     await sequelize.transaction(async (transaction) => {
       await OutletBrandCategory.destroy({
         where: { outletId: outlet.id },
@@ -293,6 +306,17 @@ exports.deleteOutlet = async (req, res) => {
       });
       await outlet.destroy({ transaction });
     });
+
+    await safeNotify(() =>
+      notifyDealer(dealerId, {
+        title: "Outlet removed",
+        body: `Outlet "${outletName}" has been removed by the admin team.`,
+        type: NOTIFICATION_TYPES.OUTLET,
+        sourceType: "Outlet",
+        sourceId: outletId,
+        data: { screen: "outlets", outletId },
+      }),
+    );
 
     return res.apiSuccess("Outlet deleted successfully");
   } catch (error) {

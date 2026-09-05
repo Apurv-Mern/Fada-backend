@@ -13,8 +13,8 @@ const Validator = require("validatorjs");
 const {
   safeNotify,
   notifyDealer,
-  notifyEmployee,
   NOTIFICATION_TYPES,
+  formatEmploymentStatusLabel,
 } = require("../../../../services/notificationService");
 
 const EMPLOYER_JOINING_STATUS = {
@@ -102,16 +102,19 @@ exports.sendNewEmployerInvitation = async (req, res) => {
 
     await transaction.commit();
 
+    const employeeName = req.auth?.name?.trim() || "An employee";
+
     await safeNotify(() =>
       notifyDealer(dealerId, {
         title: "Employment request received",
-        body: "An employee has requested to join your dealership.",
-        type: NOTIFICATION_TYPES.INVITATION,
+        body: `${employeeName} has sent an employment request to join your dealership.`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
         sourceType: "EmployeeAssignment",
         sourceId: employeeAssignment.id,
         data: {
           screen: "employment-request",
           employeeAssignmentId: employeeAssignment.id,
+          employeeId: req.auth.id,
         },
       }),
     );
@@ -237,6 +240,15 @@ exports.markAsSharedDetails = async (req, res) => {
   try {
     const { id } = req.auth;
 
+    const assignment = await EmployeeAssignment.findOne({
+      where: { id: req.params.id, employeeId: id },
+      attributes: ["id", "dealerId"],
+    });
+
+    if (!assignment) {
+      return res.apiError("Employment request not found", 404);
+    }
+
     await EmployeeEmployerStatus.create({
       employeeAssignmentId: req.params.id,
       status: EMPLOYER_JOINING_STATUS.SHARE_DETAILS,
@@ -244,6 +256,26 @@ exports.markAsSharedDetails = async (req, res) => {
       actionUserBy: "employee",
       actionUserId: id,
     });
+
+    const employeeName = req.auth?.name?.trim() || "An employee";
+    const statusLabel = formatEmploymentStatusLabel(
+      EMPLOYER_JOINING_STATUS.SHARE_DETAILS,
+    );
+
+    await safeNotify(() =>
+      notifyDealer(assignment.dealerId, {
+        title: "Employment status updated",
+        body: `${employeeName} has updated their employment status to "${statusLabel}".`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
+        sourceType: "EmployeeAssignment",
+        sourceId: assignment.id,
+        data: {
+          screen: "employment-request",
+          employeeAssignmentId: assignment.id,
+          status: EMPLOYER_JOINING_STATUS.SHARE_DETAILS,
+        },
+      }),
+    );
 
     return res.apiSuccess(`Mark as shared details successfully`);
   } catch (error) {
@@ -298,10 +330,14 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
     await transaction.commit();
 
     if (assignment?.dealerId) {
+      const employeeName = req.auth?.name?.trim() || "An employee";
+      const statusLabel =
+        status === "accept" ? "Invitation accepted" : "Invitation rejected";
+
       await safeNotify(() =>
         notifyDealer(assignment.dealerId, {
-          title: `Employment invitation ${status === "accept" ? "accepted" : "rejected"}`,
-          body: `An employee has ${status === "accept" ? "accepted" : "rejected"} your employment invitation.`,
+          title: "Employment status updated",
+          body: `${employeeName} has updated their employment status to "${statusLabel}".`,
           type: NOTIFICATION_TYPES.EMPLOYMENT,
           sourceType: "EmployeeAssignment",
           sourceId: assignment.id,
@@ -390,16 +426,20 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
 
     await transaction.commit();
 
+    const employeeName = req.auth?.name?.trim() || "An employee";
+
     await safeNotify(() =>
       notifyDealer(employeeAssignment.dealerId, {
-        title: "Employee leaving request",
-        body: "An employee has submitted a request to leave your dealership.",
+        title: "Employment leaving request received",
+        body: `${employeeName} has submitted an employment leaving request.`,
         type: NOTIFICATION_TYPES.EMPLOYMENT,
         sourceType: "EmployeeLeaveEmployeement",
         sourceId: employeeLeavingRequest.id,
         data: {
           screen: "employment-leaving",
           leaveRequestId: employeeLeavingRequest.id,
+          employeeId: id,
+          status: EMPLOYER_EXIT_STATUS.INFORM_EMPLOYER,
         },
       }),
     );
@@ -527,6 +567,27 @@ exports.updateEmployerLeavingRequestStatus = async (req, res) => {
         { transaction },
       );
       await transaction.commit();
+
+      const employeeName = req.auth?.name?.trim() || "An employee";
+      const statusLabel = formatEmploymentStatusLabel(
+        EMPLOYER_EXIT_STATUS.REJECT_RESIGNATION,
+      );
+
+      await safeNotify(() =>
+        notifyDealer(employeeLeavingRequest.dealerId, {
+          title: "Employment status updated",
+          body: `${employeeName} has updated their employment exit status to "${statusLabel}".`,
+          type: NOTIFICATION_TYPES.EMPLOYMENT,
+          sourceType: "EmployeeLeaveEmployeement",
+          sourceId: employeeLeavingRequest.id,
+          data: {
+            screen: "employment-leaving",
+            leaveRequestId: employeeLeavingRequest.id,
+            status,
+          },
+        }),
+      );
+
       return res.apiSuccess(
         "Rejected employee leaving request successfully",
         employeeLeavingRequest,
@@ -545,6 +606,27 @@ exports.updateEmployerLeavingRequestStatus = async (req, res) => {
     );
 
     await transaction.commit();
+
+    const employeeName = req.auth?.name?.trim() || "An employee";
+    const statusLabel = formatEmploymentStatusLabel(
+      EMPLOYER_EXIT_STATUS.SUBMIT_RESIGNATION,
+    );
+
+    await safeNotify(() =>
+      notifyDealer(employeeLeavingRequest.dealerId, {
+        title: "Employment status updated",
+        body: `${employeeName} has updated their employment exit status to "${statusLabel}".`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
+        sourceType: "EmployeeLeaveEmployeement",
+        sourceId: employeeLeavingRequest.id,
+        data: {
+          screen: "employment-leaving",
+          leaveRequestId: employeeLeavingRequest.id,
+          status,
+        },
+      }),
+    );
+
     return res.apiSuccess("Resignation request submitted successfully");
   } catch (error) {
     await transaction.rollback();

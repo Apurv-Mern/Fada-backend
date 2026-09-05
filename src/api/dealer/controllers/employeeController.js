@@ -449,6 +449,22 @@ exports.updateEmployee = async (req, res) => {
     });
 
     const employee = await loadEmployee(existingEmployee.id, dealerId);
+
+    await safeNotify(() =>
+      notifyEmployee(existingEmployee.id, {
+        title: "Profile updated",
+        body: "Your employee profile has been updated by your dealership.",
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "Employee",
+        sourceId: existingEmployee.id,
+        push: true,
+        data: {
+          screen: "profile",
+          employeeId: existingEmployee.id,
+        },
+      }),
+    );
+
     return res.apiSuccess("Employee updated successfully", employee);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
@@ -477,6 +493,9 @@ exports.deleteEmployee = async (req, res) => {
     );
     if (!employee) return;
 
+    const employeeId = employee.id;
+    const employeeName = employee.name;
+
     await sequelize.transaction(async (transaction) => {
       await EmployeeAssignment.destroy({
         where: { employeeId: employee.id, dealerId },
@@ -484,6 +503,18 @@ exports.deleteEmployee = async (req, res) => {
       });
       await employee.destroy({ transaction });
     });
+
+    await safeNotify(() =>
+      notifyEmployee(employeeId, {
+        title: "Profile removed",
+        body: "Your employee profile has been removed by your dealership.",
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "Employee",
+        sourceId: employeeId,
+        push: true,
+        data: { screen: "profile", employeeId },
+      }),
+    );
 
     return res.apiSuccess("Employee deleted successfully");
   } catch (error) {
@@ -525,6 +556,30 @@ exports.approveEmployeeDocuments = async (req, res) => {
     });
 
     await checkAllDocumentsApproved(employee.id);
+
+    const docType = await Document.findByPk(req.params.documentId, {
+      attributes: ["id", "name"],
+    });
+    const dealer = await Dealer.findByPk(dealerId, { attributes: ["name"] });
+    const dealerName = dealer?.name?.trim() || "Your dealership";
+
+    await safeNotify(() =>
+      notifyEmployee(employee.id, {
+        title: "Document approved",
+        body: `Your ${docType?.name || "document"} has been approved by ${dealerName}.`,
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "EmployeeDocument",
+        sourceId: document.id,
+        push: true,
+        data: {
+          screen: "documents",
+          employeeId: employee.id,
+          documentId: Number(req.params.documentId),
+          employeeDocumentId: document.id,
+          status: "approved",
+        },
+      }),
+    );
 
     return res.apiSuccess("Employee document approved successfully");
   } catch (error) {

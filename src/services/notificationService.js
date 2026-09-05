@@ -289,6 +289,28 @@ async function persistAnnouncementNotifications(announcement, targets = []) {
   return createNotifications(notifications);
 }
 
+const EMPLOYMENT_STATUS_LABELS = {
+  send_invitation: "Invitation sent",
+  accept_invitation: "Invitation accepted",
+  reject_invitation: "Invitation rejected",
+  share_details: "Details shared",
+  employer_verification: "Employer verification",
+  joining_confirmed: "Joining confirmed",
+  transfered: "Transferred",
+  inform_employer: "Employer informed",
+  submit_resignation: "Resignation submitted",
+  accept_resignation: "Resignation accepted",
+  reject_resignation: "Resignation rejected",
+  handover_completed: "Handover completed",
+  clearance_completed: "Clearance completed",
+  exit_completed: "Exit completed",
+};
+
+function formatEmploymentStatusLabel(status) {
+  if (!status) return "updated";
+  return EMPLOYMENT_STATUS_LABELS[status] || status.replace(/_/g, " ");
+}
+
 async function safeNotify(task) {
   try {
     return await task();
@@ -314,4 +336,5 @@ module.exports = {
   getAnnouncementTargets,
   persistAnnouncementNotifications,
   safeNotify,
+  formatEmploymentStatusLabel,
 };

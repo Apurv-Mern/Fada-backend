@@ -26,6 +26,7 @@ const {
 const {
   safeNotify,
   notifyEmployee,
+  notifyDealer,
   NOTIFICATION_TYPES,
 } = require("../../../services/notificationService");
 const {
@@ -668,6 +669,7 @@ exports.createEmployee = async (req, res) => {
     });
 
     const employee = await loadEmployee(employeeId);
+    const dealerId = assignmentResult.data?.dealerId;
 
     await safeNotify(() =>
       notifyEmployee(employeeId, {
@@ -679,6 +681,19 @@ exports.createEmployee = async (req, res) => {
         data: { screen: "profile", employeeId },
       }),
     );
+
+    if (dealerId) {
+      await safeNotify(() =>
+        notifyDealer(dealerId, {
+          title: "New employee added",
+          body: `Employee "${employee.name}" has been added to your company by the admin team.`,
+          type: NOTIFICATION_TYPES.EMPLOYEE,
+          sourceType: "Employee",
+          sourceId: employeeId,
+          data: { screen: "employee-detail", employeeId },
+        }),
+      );
+    }
 
     return res.apiSuccess("Employee created successfully", employee);
   } catch (error) {
@@ -741,6 +756,10 @@ exports.updateEmployee = async (req, res) => {
       }
     }
 
+    const existingAssignment = await EmployeeAssignment.findOne({
+      where: { employeeId: existingEmployee.id },
+    });
+
     await sequelize.transaction(async (transaction) => {
       await existingEmployee.update(buildEmployeePayload(req.body), {
         transaction,
@@ -786,6 +805,40 @@ exports.updateEmployee = async (req, res) => {
     });
 
     const employee = await loadEmployee(existingEmployee.id);
+    const dealerId =
+      assignmentResult.data?.dealerId ?? existingAssignment?.dealerId;
+
+    await safeNotify(() =>
+      notifyEmployee(existingEmployee.id, {
+        title: "Profile updated",
+        body: "Your employee profile has been updated by the admin team.",
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "Employee",
+        sourceId: existingEmployee.id,
+        push: true,
+        data: {
+          screen: "profile",
+          employeeId: existingEmployee.id,
+        },
+      }),
+    );
+
+    if (dealerId) {
+      await safeNotify(() =>
+        notifyDealer(dealerId, {
+          title: "Employee profile updated",
+          body: `Employee "${employee.name}" profile has been updated by the admin team.`,
+          type: NOTIFICATION_TYPES.EMPLOYEE,
+          sourceType: "Employee",
+          sourceId: existingEmployee.id,
+          data: {
+            screen: "employee-detail",
+            employeeId: existingEmployee.id,
+          },
+        }),
+      );
+    }
+
     return res.apiSuccess("Employee updated successfully", employee);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
@@ -811,6 +864,12 @@ exports.deleteEmployee = async (req, res) => {
       return res.apiError("Employee not found", 404);
     }
 
+    const assignment = await EmployeeAssignment.findOne({
+      where: { employeeId: employee.id },
+    });
+    const dealerId = assignment?.dealerId;
+    const employeeName = employee.name;
+
     await sequelize.transaction(async (transaction) => {
       await EmployeeAssignment.destroy({
         where: { employeeId: employee.id },
@@ -818,6 +877,34 @@ exports.deleteEmployee = async (req, res) => {
       });
       await employee.destroy({ transaction });
     });
+
+    await safeNotify(() =>
+      notifyEmployee(Number(req.params.id), {
+        title: "Profile removed",
+        body: "Your employee profile has been removed by the admin team.",
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "Employee",
+        sourceId: Number(req.params.id),
+        push: true,
+        data: { screen: "profile", employeeId: Number(req.params.id) },
+      }),
+    );
+
+    if (dealerId) {
+      await safeNotify(() =>
+        notifyDealer(dealerId, {
+          title: "Employee removed",
+          body: `Employee "${employeeName}" has been removed from your company by the admin team.`,
+          type: NOTIFICATION_TYPES.EMPLOYEE,
+          sourceType: "Employee",
+          sourceId: Number(req.params.id),
+          data: {
+            screen: "employees",
+            employeeId: Number(req.params.id),
+          },
+        }),
+      );
+    }
 
     return res.apiSuccess("Employee deleted successfully");
   } catch (error) {
@@ -1007,6 +1094,54 @@ exports.updateEmployeeDocumentStatus = async (req, res) => {
     });
 
     await checkAllDocumentsApproved(id);
+
+    const document = await Document.findByPk(documentId, {
+      attributes: ["id", "name"],
+    });
+    const documentName = document?.name || "document";
+
+    if (status === "approved") {
+      await safeNotify(() =>
+        notifyEmployee(id, {
+          title: "Document approved",
+          body: `Your ${documentName} has been approved by the admin team.`,
+          type: NOTIFICATION_TYPES.EMPLOYEE,
+          sourceType: "EmployeeDocument",
+          sourceId: employeeDocument.id,
+          push: true,
+          data: {
+            screen: "documents",
+            employeeId: Number(id),
+            documentId: Number(documentId),
+            employeeDocumentId: employeeDocument.id,
+            status,
+          },
+        }),
+      );
+    } else {
+      const rejectionBody = reason
+        ? `Your ${documentName} has been rejected by the admin team. Reason: ${reason}`
+        : `Your ${documentName} has been rejected by the admin team.`;
+
+      await safeNotify(() =>
+        notifyEmployee(id, {
+          title: "Document rejected",
+          body: rejectionBody,
+          type: NOTIFICATION_TYPES.EMPLOYEE,
+          sourceType: "EmployeeDocument",
+          sourceId: employeeDocument.id,
+          push: true,
+          data: {
+            screen: "documents",
+            employeeId: Number(id),
+            documentId: Number(documentId),
+            employeeDocumentId: employeeDocument.id,
+            status,
+            reason: reason || null,
+          },
+        }),
+      );
+    }
 
     return res.apiSuccess(
       status === "approved"

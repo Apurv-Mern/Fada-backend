@@ -3,8 +3,14 @@ const {
   sequelize,
   Document,
   DealerDocument,
+  Dealer,
 } = require("../../../database/models");
 const Validator = require("validatorjs");
+const {
+  NOTIFICATION_TYPES,
+  notifyAllAdmins,
+  safeNotify,
+} = require("../../../services/notificationService");
 
 const getDealerId = (req) => req.currentDealerId;
 
@@ -139,6 +145,26 @@ exports.uploadBusinessDocument = async (req, res) => {
     );
 
     await transaction.commit();
+
+    const dealer = await Dealer.findByPk(dealerId, {
+      attributes: ["id", "name", "email"],
+    });
+
+    await safeNotify(() =>
+      notifyAllAdmins({
+        title: "Company document uploaded",
+        body: `${dealer?.name || dealer?.email || "A company"} uploaded ${document.name} for verification.`,
+        type: NOTIFICATION_TYPES.DEALER,
+        sourceType: "DealerDocument",
+        sourceId: dealerDocument.id,
+        data: {
+          screen: "dealer-detail",
+          dealerId,
+          documentId,
+          dealerDocumentId: dealerDocument.id,
+        },
+      }),
+    );
 
     return res.apiSuccess("Business document uploaded successfully", dealerDocument);
   } catch (error) {

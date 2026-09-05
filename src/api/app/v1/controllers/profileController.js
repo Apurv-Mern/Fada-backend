@@ -17,6 +17,11 @@ const {
   getEmploymentKeyRecords,
   groupKeyRecordsByDealerId,
 } = require("../../../../services/employeeService");
+const {
+  NOTIFICATION_TYPES,
+  notifyAllAdmins,
+  safeNotify,
+} = require("../../../../services/notificationService");
 
 const resolveEmploymentEndDate = (isCurrentlyWorking, endDate) => {
   if (isCurrentlyWorking && !endDate) return null;
@@ -334,7 +339,7 @@ exports.uploadDocuments = async (req, res) => {
       transaction,
     });
 
-    await EmployeeDocument.create(
+    const employeeDocument = await EmployeeDocument.create(
       {
         employeeId: id,
         documentId,
@@ -346,6 +351,26 @@ exports.uploadDocuments = async (req, res) => {
     );
 
     await transaction.commit();
+
+    const employee = await Employee.findByPk(id, {
+      attributes: ["id", "name", "email"],
+    });
+
+    await safeNotify(() =>
+      notifyAllAdmins({
+        title: "Employee document uploaded",
+        body: `${employee?.name || employee?.email || "An employee"} uploaded ${document.name} for verification.`,
+        type: NOTIFICATION_TYPES.EMPLOYEE,
+        sourceType: "EmployeeDocument",
+        sourceId: employeeDocument.id,
+        data: {
+          screen: "employee-detail",
+          employeeId: id,
+          documentId,
+          employeeDocumentId: employeeDocument.id,
+        },
+      }),
+    );
 
     return res.apiSuccess("Employee document uploaded successfully");
   } catch (error) {

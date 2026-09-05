@@ -17,8 +17,8 @@ const {
 const {
   safeNotify,
   notifyEmployee,
-  notifyDealer,
   NOTIFICATION_TYPES,
+  formatEmploymentStatusLabel,
 } = require("../../../services/notificationService");
 
 const EMPLOYER_JOINING_STATUS = {
@@ -269,10 +269,15 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
 
     await transaction.commit();
 
+    const dealer = await Dealer.findByPk(dealerId, { attributes: ["name"] });
+    const dealerName = dealer?.name?.trim() || "The dealership";
+    const statusLabel =
+      status === "accept" ? "Invitation accepted" : "Invitation rejected";
+
     await safeNotify(() =>
       notifyEmployee(employerInvitation.employeeId, {
-        title: `Invitation ${status === "accept" ? "accepted" : "rejected"}`,
-        body: `Your employment invitation has been ${status === "accept" ? "accepted" : "rejected"} by the dealership.`,
+        title: "Employment status updated",
+        body: `${dealerName} has updated your employment status to "${statusLabel}".`,
         type: NOTIFICATION_TYPES.EMPLOYMENT,
         sourceType: "EmployeeAssignment",
         sourceId: employerInvitation.id,
@@ -369,16 +374,20 @@ exports.sendNewEmployerInvitation = async (req, res) => {
     );
     await transaction.commit();
 
+    const dealer = await Dealer.findByPk(id, { attributes: ["name"] });
+    const dealerName = dealer?.name?.trim() || "A dealership";
+
     await safeNotify(() =>
       notifyEmployee(employeeId, {
-        title: "Employment invitation received",
-        body: "A dealership has sent you an employment invitation.",
-        type: NOTIFICATION_TYPES.INVITATION,
+        title: "Employment request received",
+        body: `${dealerName} has sent you an employment request.`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
         sourceType: "EmployeeAssignment",
         sourceId: employerInvitation.id,
         data: {
           screen: "employment-invitation",
           employeeAssignmentId: employerInvitation.id,
+          dealerId: id,
         },
       }),
     );
@@ -454,6 +463,26 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
       actionUserBy: "dealer",
       actionUserId: dealerId,
     });
+
+    const dealer = await Dealer.findByPk(dealerId, { attributes: ["name"] });
+    const dealerName = dealer?.name?.trim() || "The dealership";
+    const statusLabel = formatEmploymentStatusLabel(status);
+
+    await safeNotify(() =>
+      notifyEmployee(employerInvitation.employeeId, {
+        title: "Employment status updated",
+        body: `${dealerName} has updated your employment status to "${statusLabel}".`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
+        sourceType: "EmployeeAssignment",
+        sourceId: employerInvitation.id,
+        data: {
+          screen: "employment-invitation",
+          employeeAssignmentId: employerInvitation.id,
+          status,
+        },
+      }),
+    );
+
     return res.apiSuccess(
       "Employer invitation status updated successfully",
       employerInvitation,
@@ -679,6 +708,27 @@ exports.acceptOrRejectEmployerLeavingRequestById = async (req, res) => {
     );
 
     await transaction.commit();
+
+    const dealer = await Dealer.findByPk(dealerId, { attributes: ["name"] });
+    const dealerName = dealer?.name?.trim() || "The dealership";
+    const statusLabel =
+      status === "accept" ? "Resignation accepted" : "Resignation rejected";
+
+    await safeNotify(() =>
+      notifyEmployee(leaveRequest.employeeId, {
+        title: "Employment status updated",
+        body: `${dealerName} has updated your employment exit status to "${statusLabel}".`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
+        sourceType: "EmployeeLeaveEmployeement",
+        sourceId: leaveRequest.id,
+        data: {
+          screen: "employment-leaving",
+          leaveRequestId: leaveRequest.id,
+          status,
+        },
+      }),
+    );
+
     return res.apiSuccess(
       `Employer leaving request ${status}ed successfully`,
       leaveRequest,
@@ -774,6 +824,26 @@ exports.updateEmployerLeavingRequestStatusById = async (req, res) => {
     }
 
     await transaction.commit();
+
+    const dealer = await Dealer.findByPk(dealerId, { attributes: ["name"] });
+    const dealerName = dealer?.name?.trim() || "The dealership";
+    const statusLabel = formatEmploymentStatusLabel(status);
+
+    await safeNotify(() =>
+      notifyEmployee(leaveRequest.employeeId, {
+        title: "Employment status updated",
+        body: `${dealerName} has updated your employment exit status to "${statusLabel}".`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
+        sourceType: "EmployeeLeaveEmployeement",
+        sourceId: leaveRequest.id,
+        data: {
+          screen: "employment-leaving",
+          leaveRequestId: leaveRequest.id,
+          status,
+        },
+      }),
+    );
+
     return res.apiSuccess(
       "Employer leaving request status updated successfully",
       leaveRequest,
@@ -876,6 +946,27 @@ exports.sendEmployeementTransferRequest = async (req, res) => {
     );
 
     await transaction.commit();
+
+    const dealer = await Dealer.findByPk(dealerId, { attributes: ["name"] });
+    const dealerName = dealer?.name?.trim() || "Your dealership";
+
+    await safeNotify(() =>
+      notifyEmployee(employeeId, {
+        title: "Employment transfer completed",
+        body: `${dealerName} has transferred you from ${existingEmployeeAssignment.branch.name} to ${newOutlet.name}.`,
+        type: NOTIFICATION_TYPES.EMPLOYMENT,
+        sourceType: "EmployeeAssignment",
+        sourceId: employeementTransferRequest.id,
+        push: true,
+        data: {
+          screen: "employment-invitation",
+          employeeAssignmentId: employeementTransferRequest.id,
+          dealerId,
+          outletId,
+        },
+      }),
+    );
+
     return res.apiSuccess(
       "Employeement transfer request sent successfully",
       employeementTransferRequest,

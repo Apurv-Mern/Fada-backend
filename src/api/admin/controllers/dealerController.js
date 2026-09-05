@@ -576,6 +576,21 @@ exports.updateDealer = async (req, res) => {
     }
 
     await transaction.commit();
+
+    await safeNotify(() =>
+      notifyDealer(Number(req.params.id), {
+        title: "Company profile updated",
+        body: "Your company profile has been updated by the admin team.",
+        type: NOTIFICATION_TYPES.DEALER,
+        sourceType: "Dealer",
+        sourceId: Number(req.params.id),
+        data: {
+          screen: "dealer-profile",
+          dealerId: Number(req.params.id),
+        },
+      }),
+    );
+
     return res.apiSuccess("Dealer updated successfully", dealer);
   } catch (error) {
     await transaction.rollback();
@@ -880,6 +895,37 @@ exports.verifyDealerBusinessDocument = async (req, res) => {
       isVerified: status === "approved" ? true : false,
       status,
     });
+
+    if (status === "approved" || status === "rejected") {
+      const document = await Document.findByPk(dealerDocument.documentId, {
+        attributes: ["id", "name"],
+      });
+      const documentName = document?.name || "business document";
+
+      await safeNotify(() =>
+        notifyDealer(dealerDocument.dealerId, {
+          title:
+            status === "approved"
+              ? "Business document approved"
+              : "Business document rejected",
+          body:
+            status === "approved"
+              ? `Your ${documentName} has been approved by the admin team.`
+              : `Your ${documentName} has been rejected by the admin team.`,
+          type: NOTIFICATION_TYPES.DEALER,
+          sourceType: "DealerDocument",
+          sourceId: dealerDocument.id,
+          data: {
+            screen: "business-documents",
+            dealerId: dealerDocument.dealerId,
+            documentId: dealerDocument.documentId,
+            dealerDocumentId: dealerDocument.id,
+            status,
+          },
+        }),
+      );
+    }
+
     return res.apiSuccess(`Dealer document ${status} successfully`);
   } catch (error) {
     return res.apiError(error.message, 500, error);
