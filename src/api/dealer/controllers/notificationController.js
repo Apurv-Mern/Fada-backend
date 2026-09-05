@@ -1,5 +1,6 @@
 const {
   listNotifications,
+  getLatestNotifications,
   getUnreadCount,
   markNotificationRead,
   markAllNotificationsRead,
@@ -21,6 +22,22 @@ exports.getNotifications = async (req, res) => {
       req.query,
     );
     return res.apiSuccess("Notifications fetched successfully", data);
+  } catch (error) {
+    return res.apiError(error.message, 500, error);
+  }
+};
+
+/*
+@API: GET /dealers/notifications/latest
+@Desc: Get latest 5 dealer notifications
+@Access: Private
+*/
+exports.getLatestNotifications = async (req, res) => {
+  try {
+    const notifications = await getLatestNotifications({
+      dealerId: getDealerRecipientId(req),
+    });
+    return res.apiSuccess("Latest notifications fetched successfully", { notifications });
   } catch (error) {
     return res.apiError(error.message, 500, error);
   }

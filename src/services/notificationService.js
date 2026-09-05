@@ -114,7 +114,7 @@ async function notifyAdmin(adminId, payload = {}) {
 async function notifyAllAdmins(payload = {}) {
   const admins = await Admin.findAll({
     attributes: ["id"],
-    where: { isActive: true },
+    where: { isActive: true,roleId : 1 },
   });
 
   if (!admins.length) return [];
@@ -162,6 +162,15 @@ async function listNotifications(recipient, query = {}) {
     notifications,
     pagination: { total, limit, offset },
   };
+}
+
+async function getLatestNotifications(recipient, limit = 5) {
+  const { notifications } = await listNotifications(recipient, {
+    limit,
+    offset: 0,
+  });
+
+  return notifications;
 }
 
 async function getUnreadCount(recipient) {
@@ -298,6 +307,7 @@ module.exports = {
   notifyAdmin,
   notifyAllAdmins,
   listNotifications,
+  getLatestNotifications,
   getUnreadCount,
   markNotificationRead,
   markAllNotificationsRead,
