@@ -2,15 +2,10 @@
 
 const { syncAdminPortalRbac } = require("./helpers/admin-portal-rbac");
 
-/** Idempotent sync for existing databases — modules, permissions, and role grants. */
+/** Idempotent sync for existing databases — safe to re-run on every deploy. */
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface) {
-    const [[existingDashboard]] = await queryInterface.sequelize.query(
-      "SELECT id FROM Modules WHERE `key` = 'dashboard' LIMIT 1",
-    );
-    if (!existingDashboard) return;
-
     await syncAdminPortalRbac(queryInterface);
   },
 
