@@ -4,18 +4,8 @@ const roleController = require("../controllers/roleController");
 const AuthMiddleware = require("../../../middlewares/dealerAuth");
 const requireDealerPermission = require("../../../middlewares/requireDealerPermission");
 
-router.get(
-  "/",
-  AuthMiddleware,
-  requireDealerPermission("dealer_settings.manage"),
-  roleController.getRoles,
-);
-router.get(
-  "/:id",
-  AuthMiddleware,
-  requireDealerPermission("dealer_settings.manage"),
-  roleController.getRoleById,
-);
+router.get("/", AuthMiddleware, roleController.getRoles);
+router.get("/:id", AuthMiddleware, roleController.getRoleById);
 router.post(
   "/",
   AuthMiddleware,

@@ -3,39 +3,21 @@ const dealerController = require("../controllers/dealerController");
 const requirePermission = require("../../../middlewares/requirePermission");
 const requireAnyPermission = require("../../../middlewares/requireAnyPermission");
 
-const DEALER_ACCESS_PERMISSIONS = [
-  "dealers.view",
-  "dealers.create",
-  "dealers.edit",
-  "dealers.delete",
-  "dealers.approve",
-  "dealers.approve_documents",
-  "dealers.import",
-];
-
 const dealerDocumentApprove = requireAnyPermission(
   "dealers.approve_documents",
   "dealers.approve",
 );
 
-router.get("/", requireAnyPermission(...DEALER_ACCESS_PERMISSIONS), dealerController.getDealers);
-router.get("/stats", requireAnyPermission(...DEALER_ACCESS_PERMISSIONS), dealerController.getDealerStats);
-router.get(
-  "/group-holding",
-  requireAnyPermission(...DEALER_ACCESS_PERMISSIONS),
-  dealerController.getDealersGroupByHolding,
-);
+router.get("/", dealerController.getDealers);
+router.get("/stats", dealerController.getDealerStats);
+router.get("/group-holding", dealerController.getDealersGroupByHolding);
 router.post("/", requirePermission("dealers.create"), dealerController.createDealer);
 router.put(
   "/:dealerId/location",
   requirePermission("dealers.edit"),
   dealerController.saveDealerLocation,
 );
-router.get(
-  "/:dealerId/key-contact",
-  requirePermission("dealers.view"),
-  dealerController.getKeyContact,
-);
+router.get("/:dealerId/key-contact", dealerController.getKeyContact);
 router.post(
   "/:dealerId/key-contact",
   requirePermission("dealers.edit"),
@@ -51,17 +33,13 @@ router.delete(
   requirePermission("dealers.edit"),
   dealerController.deleteKeyContact,
 );
-router.get(
-  "/:dealerId/business-documents",
-  requirePermission("dealers.view"),
-  dealerController.getDealerBusinessDocuments,
-);
+router.get("/:dealerId/business-documents", dealerController.getDealerBusinessDocuments);
 router.put(
   "/:dealerId/business-documents/:dealerDocumentId/verify",
   dealerDocumentApprove,
   dealerController.verifyDealerBusinessDocument,
 );
-router.get("/:id", requirePermission("dealers.view"), dealerController.getDealerById);
+router.get("/:id", dealerController.getDealerById);
 router.put("/:id", requirePermission("dealers.edit"), dealerController.updateDealer);
 router.delete("/:id", requirePermission("dealers.delete"), dealerController.deleteDealer);
 router.put("/:id/status", requirePermission("dealers.approve"), dealerController.updateDealerStatus);

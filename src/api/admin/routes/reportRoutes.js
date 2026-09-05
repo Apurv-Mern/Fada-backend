@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const reportController = require("../controllers/reportController");
-const requirePermission = require("../../../middlewares/requirePermission");
 
 const ADMIN_REPORT_ROUTES = [
   {
@@ -66,37 +65,17 @@ const ADMIN_REPORT_ROUTES = [
   },
 ];
 
-router.get(
-  "/filters",
-  requirePermission("reports.view"),
-  reportController.getReportFilters,
-);
+router.get("/filters", reportController.getReportFilters);
 
 for (const route of ADMIN_REPORT_ROUTES) {
-  router.get(
-    `/${route.path}/export`,
-    requirePermission("reports.export"),
-    route.export,
-  );
-  router.get(
-    `/${route.path}`,
-    requirePermission("reports.view"),
-    route.get,
-  );
+  router.get(`/${route.path}/export`, route.export);
+  router.get(`/${route.path}`, route.get);
 }
 
 /** @deprecated Use dedicated report paths above */
-router.get(
-  "/:reportKey/export",
-  requirePermission("reports.export"),
-  reportController.exportReport,
-);
+router.get("/:reportKey/export", reportController.exportReport);
 
 /** @deprecated Use dedicated report paths above */
-router.get(
-  "/:reportKey",
-  requirePermission("reports.view"),
-  reportController.getReport,
-);
+router.get("/:reportKey", reportController.getReport);
 
 module.exports = router;

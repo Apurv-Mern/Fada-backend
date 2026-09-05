@@ -2,9 +2,9 @@ const router = require("express").Router();
 const staffController = require("../controllers/staffController");
 const requirePermission = require("../../../middlewares/requirePermission");
 
-router.get("/roles", requirePermission("staff.view"), staffController.getStaffRoles);
-router.get("/", requirePermission("staff.view"), staffController.getStaffMembers);
-router.get("/:id", requirePermission("staff.view"), staffController.getStaffMemberById);
+router.get("/roles", staffController.getStaffRoles);
+router.get("/", staffController.getStaffMembers);
+router.get("/:id", staffController.getStaffMemberById);
 router.post("/", requirePermission("staff.create"), staffController.createStaffMember);
 router.put(
   "/:id/active-inactive",

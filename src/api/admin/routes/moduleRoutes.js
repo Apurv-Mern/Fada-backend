@@ -1,11 +1,6 @@
 const router = require("express").Router();
 const moduleController = require("../controllers/moduleController");
-const requirePermission = require("../../../middlewares/requirePermission");
 
-router.get(
-  "/",
-  requirePermission("roles.manage"),
-  moduleController.getModules,
-);
+router.get("/", moduleController.getModules);
 
 module.exports = router;
