@@ -224,7 +224,7 @@ async function emailSignupSuccessToDealer({ to, name, companyName }) {
 
   return queueEmail({
     to,
-    subject: "FADA-ID — Registration Successful",
+    subject: "FADA-ID — Email Verified, Profile Pending Review",
     templateName: EMAIL_TEMPLATES.SIGNUP_SUCCESS_DEALER,
     data: { name, companyName, portalUrl: dealerPortalUrl },
   });
