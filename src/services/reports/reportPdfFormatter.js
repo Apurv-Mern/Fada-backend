@@ -5,6 +5,7 @@ const COLUMN_LABELS = {
   dealerId: "Dealer ID",
   dealerCode: "Dealer Code",
   dealerName: "Dealer Name",
+  companyName: "Company Name",
   dealerType: "Dealer Type",
   oemBrand: "OEM / Brand",
   state: "State",
@@ -83,6 +84,7 @@ const REPORT_COLUMNS = {
     "membershipStatus",
   ],
   "onboarding-verification": [
+    "companyName",
     "employeeName",
     "fadaId",
     "department",

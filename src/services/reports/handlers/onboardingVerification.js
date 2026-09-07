@@ -6,6 +6,7 @@ const {
   Employee,
   EmployeeAssignment,
   OrganizationStructure,
+  Dealer,
   Op,
 } = require("../queryHelpers");
 const {
@@ -43,6 +44,7 @@ async function run({ scope, filters }) {
       },
       { model: OrganizationStructure, as: "department", attributes: ["name"], required: false },
       { model: OrganizationStructure, as: "designation", attributes: ["name"], required: false },
+      { model: Dealer, as: "dealership", attributes: ["id", "name"], required: false },
     ],
   });
 
@@ -57,7 +59,8 @@ async function run({ scope, filters }) {
     return {
       employeeId: employee.id,
       dealerId: assignment.dealerId,
-      dealerName: assignment.dealer?.name || null,
+      companyName: assignment.dealership?.name || null,
+      dealerName: assignment.dealership?.name || null,
       employeeName: employee.name,
       fadaId: employee.fadaId,
       department: assignment.department?.name || null,
