@@ -140,7 +140,7 @@ app.post("/test-email", async (req, res) => {
     templateName: "otp.ejs",
     data: {
       name: "John Doe",
-      otp: "123456",
+      otp: "1234",
       purpose: "registration",
     },
   });

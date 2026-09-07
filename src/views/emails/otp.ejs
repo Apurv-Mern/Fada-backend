@@ -30,46 +30,7 @@
             cellpadding="0"
             style="max-width: 620px; background-color: #ffffff;"
           >
-            <!-- Header -->
-            <tr>
-              <td align="center" style="padding: 8px 24px 20px;">
-                <table role="presentation" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td
-                      align="center"
-                      valign="middle"
-                      style="
-                        width: 42px;
-                        height: 42px;
-                        background-color: #ff7a00;
-                        border-radius: 10px;
-                      "
-                    >
-                      <span
-                        style="
-                          color: #ffffff;
-                          font-size: 22px;
-                          font-weight: 700;
-                          line-height: 42px;
-                        "
-                        >F</span
-                      >
-                    </td>
-                    <td style="padding-left: 10px;">
-                      <span style="font-size: 28px; font-weight: 700; color: #222222; letter-spacing: 0.5px;">
-                        FADA<span style="color: #ff7a00;">-ID</span>
-                      </span>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding: 0 24px;">
-                <div style="height: 2px; background-color: #ff7a00; width: 100%;"></div>
-              </td>
-            </tr>
+            <%- include('partials/email-header') %>
 
             <!-- Body -->
             <tr>
@@ -97,11 +58,11 @@
                             "
                           >
                             <img
-                              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56' fill='none'%3E%3Cpath d='M8 16c0-2.2 1.8-4 4-4h32c2.2 0 4 1.8 4 4v24c0 2.2-1.8 4-4 4H12c-2.2 0-4-1.8-4-4V16z' fill='%23FF7A00'/%3E%3Cpath d='M10 18l18 12 18-12' stroke='%23FFFFFF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='20' y='24' width='16' height='14' rx='2' fill='%23FFFFFF'/%3E%3Cpath d='M24 31h8v2h-8v-2zm0 4h8v2h-8v-2z' fill='%23FF7A00'/%3E%3C/svg%3E"
+                              src="<%= secureEmailIconUrl %>"
                               width="56"
                               height="56"
                               alt="Secure email"
-                              style="display: block; margin: 18px auto 0;"
+                              style="display:block;margin:18px auto 0;border:0"
                             />
                           </td>
                         </tr>

@@ -286,6 +286,8 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
           employeeAssignmentId: employerInvitation.id,
           status,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 
@@ -389,6 +391,8 @@ exports.sendNewEmployerInvitation = async (req, res) => {
           employeeAssignmentId: employerInvitation.id,
           dealerId: id,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 
@@ -480,6 +484,8 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
           employeeAssignmentId: employerInvitation.id,
           status,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 
@@ -726,6 +732,8 @@ exports.acceptOrRejectEmployerLeavingRequestById = async (req, res) => {
           leaveRequestId: leaveRequest.id,
           status,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 
@@ -841,6 +849,8 @@ exports.updateEmployerLeavingRequestStatusById = async (req, res) => {
           leaveRequestId: leaveRequest.id,
           status,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 
@@ -964,6 +974,8 @@ exports.sendEmployeementTransferRequest = async (req, res) => {
           dealerId,
           outletId,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 

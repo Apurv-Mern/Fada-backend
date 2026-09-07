@@ -47,7 +47,7 @@ module.exports = {
 
   otp: {
     expiresInMinutes: process.env.OTP_EXPIRES_IN_MINUTES || 10,
-    default: process.env.DEFAULT_OTP || 123456,
+    default: process.env.DEFAULT_OTP || 1234,
     useDefault: process.env.USE_DEFAULT_OTP === "true",
   },
 

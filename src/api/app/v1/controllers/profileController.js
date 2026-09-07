@@ -369,6 +369,8 @@ exports.uploadDocuments = async (req, res) => {
           documentId,
           employeeDocumentId: employeeDocument.id,
         },
+        email: true,
+        entityLabel: `Employee ID: ${id} · Document: ${document.name}`,
       }),
     );
 

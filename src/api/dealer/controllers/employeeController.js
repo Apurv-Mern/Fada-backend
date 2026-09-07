@@ -34,6 +34,10 @@ const {
   notifyEmployee,
   NOTIFICATION_TYPES,
 } = require("../../../services/notificationService");
+const {
+  safeSendEmail,
+  emailWelcomeEmployee,
+} = require("../../../services/emailNotificationService");
 
 const { generateTempPassword, hashPassword } = require('../../../utils/passwordUtil');
 const { addEmailJob } = require('../../../queues');
@@ -299,14 +303,21 @@ exports.createEmployee = async (req, res) => {
     }
 
     let employeeId;
+    let tempPassword;
+    let employeeEmail;
+    let employeeName;
 
     await sequelize.transaction(async (transaction) => {
       const fadaId = await generateFadaId(Employee);
+      tempPassword = generateTempPassword();
+      employeeEmail = req.body.email;
+      employeeName = req.body.name;
 
       const employee = await Employee.create(
         {
           ...buildEmployeePayload(req.body),
           fadaId,
+          password: await hashPassword(tempPassword),
           isJourneyCompleted: true,
           isRegistrationCompleted: true,
           isProfilePrivate : true,
@@ -329,6 +340,8 @@ exports.createEmployee = async (req, res) => {
 
 
 
+    const dealer = await Dealer.findByPk(dealerId, { attributes: ["name"] });
+
     await safeNotify(() =>
       notifyEmployee(employeeId, {
         title: "Welcome to FADA",
@@ -340,7 +353,17 @@ exports.createEmployee = async (req, res) => {
       }),
     );
 
-    //const employee = await loadEmployee(employeeId, dealerId);
+    if (employeeEmail) {
+      await safeSendEmail(() =>
+        emailWelcomeEmployee({
+          to: employeeEmail,
+          name: employeeName,
+          createdBy: dealer?.name || "your dealership",
+          tempPassword,
+        }),
+      );
+    }
+
     return res.apiSuccess("Employee created successfully");
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
@@ -462,6 +485,8 @@ exports.updateEmployee = async (req, res) => {
           screen: "profile",
           employeeId: existingEmployee.id,
         },
+        email: true,
+        emailCategory: "Employee Profile",
       }),
     );
 
@@ -495,6 +520,7 @@ exports.deleteEmployee = async (req, res) => {
 
     const employeeId = employee.id;
     const employeeName = employee.name;
+    const employeeEmail = employee.email;
 
     await sequelize.transaction(async (transaction) => {
       await EmployeeAssignment.destroy({
@@ -513,6 +539,10 @@ exports.deleteEmployee = async (req, res) => {
         sourceId: employeeId,
         push: true,
         data: { screen: "profile", employeeId },
+        email: true,
+        emailType: "removed",
+        recipientEmail: employeeEmail,
+        recipientName: employeeName,
       }),
     );
 
@@ -578,6 +608,10 @@ exports.approveEmployeeDocuments = async (req, res) => {
           employeeDocumentId: document.id,
           status: "approved",
         },
+        email: true,
+        emailType: "status",
+        statusLabel: "Approved",
+        statusTone: "approved",
       }),
     );
 

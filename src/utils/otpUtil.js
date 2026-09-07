@@ -4,7 +4,7 @@ const config = require("../config/config");
 
 
 
-const generateOTP = (digits = 6) => {
+const generateOTP = (digits = 4) => {
   return  config.otp.useDefault
   ? String(config.otp.default) : crypto.randomInt(10 ** (digits - 1), 10 ** digits).toString();
 };

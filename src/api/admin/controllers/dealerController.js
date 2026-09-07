@@ -18,6 +18,10 @@ const {
   NOTIFICATION_TYPES,
 } = require("../../../services/notificationService");
 const {
+  safeSendEmail,
+  emailWelcomeDealer,
+} = require("../../../services/emailNotificationService");
+const {
   generateTempPassword,
   hashPassword,
 } = require("../../../utils/passwordUtil");
@@ -42,6 +46,50 @@ const keyContactValidationRules = {
   email: "required|email",
   isActive: "boolean",
 };
+
+const dealerStatus = ["temporary", "pending", "approved", "rejected"];
+
+function buildDealerStatusNotification({ status, previousStatus, reason }) {
+  const notifications = {
+    rejected: {
+      title: "Company profile rejected",
+      body:
+        previousStatus === "approved"
+          ? "Your company profile has been rejected after it was previously approved. Please contact support if you need assistance."
+          : "Your company profile has been rejected by the admin team. Please contact support for more information.",
+      statusLabel: "Rejected",
+      statusTone: "rejected",
+      reason,
+    },
+    temporary: {
+      title: "Profile marked temporary",
+      body: "Your company profile has been marked as temporary. Please complete your registration and upload the required business documents in the Dealer Portal.",
+      statusLabel: "Temporary",
+      statusTone: "updated",
+    },
+    approved: {
+      title: "Company profile approved",
+      body: "Your company profile has been approved by the admin team. You now have full access to the Dealer Portal.",
+      statusLabel: "Approved",
+      statusTone: "approved",
+    },
+    pending: {
+      title: "Profile under review",
+      body: "Your company profile is under review by the admin team. We will notify you once a decision is made.",
+      statusLabel: "Pending",
+      statusTone: "updated",
+    },
+  };
+
+  return (
+    notifications[status] || {
+      title: "Dealer status updated",
+      body: `Your dealer account status has been updated to "${status}".`,
+      statusLabel: status,
+      statusTone: "updated",
+    }
+  );
+}
 
 const findDealerOrError = async (dealerId, res) => {
   const dealer = await Dealer.findByPk(dealerId);
@@ -413,6 +461,8 @@ exports.createDealer = async (req, res) => {
       }
     }
 
+    const tempPassword = generateTempPassword();
+
     const dealer = await Dealer.create(
       {
         name: req.body.name,
@@ -423,6 +473,10 @@ exports.createDealer = async (req, res) => {
         isGroupHoldingEntity: req.body.isGroupHoldingEntity ?? false,
         parentDealerId: req.body.parentCompanyId ?? null,
         brands: brandsResult.normalized,
+        password: await hashPassword(tempPassword),
+        status: "approved",
+        isActive: true,
+        isEmailVerified: true,
       },
       { transaction },
     );
@@ -449,6 +503,15 @@ exports.createDealer = async (req, res) => {
         sourceType: "Dealer",
         sourceId: dealer.id,
         data: { screen: "dealer-profile", dealerId: dealer.id },
+      }),
+    );
+
+    await safeSendEmail(() =>
+      emailWelcomeDealer({
+        to: dealer.email,
+        name: dealer.name,
+        companyName: dealer.name,
+        tempPassword,
       }),
     );
 
@@ -588,6 +651,8 @@ exports.updateDealer = async (req, res) => {
           screen: "dealer-profile",
           dealerId: Number(req.params.id),
         },
+        email: true,
+        emailCategory: "Company Profile",
       }),
     );
 
@@ -621,33 +686,49 @@ exports.deleteDealer = async (req, res) => {
 */
 exports.updateDealerStatus = async (req, res) => {
   try {
+    const dealer = await Dealer.findByPk(req.params.id);
+    if (!dealer) {
+      return res.apiError("Dealer not found", 404);
+    }
+
     const validator = new Validator(req.body, {
-      status: "required|string",
+      status: `required|string|in:${dealerStatus.join(",")}`,
+      reason: "string",
     });
     if (validator.fails()) {
-      return res.apiError(validator.errors.all(), 400);
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
-    const dealer = await Dealer.update(
-      {
-        status: req.body.status,
-      },
-      {
-        where: { id: req.params.id },
-      },
-    );
+
+    const previousStatus = dealer.status;
+    const { status, reason } = req.body;
+
+    await dealer.update({ status });
+
+    const statusNotification = buildDealerStatusNotification({
+      status,
+      previousStatus,
+      reason,
+    });
 
     await safeNotify(() =>
       notifyDealer(Number(req.params.id), {
-        title: "Dealer status updated",
-        body: `Your dealer account status has been updated to "${req.body.status}".`,
+        title: statusNotification.title,
+        body: statusNotification.body,
         type: NOTIFICATION_TYPES.SYSTEM,
         sourceType: "Dealer",
         sourceId: Number(req.params.id),
         data: {
           screen: "dealer-profile",
           dealerId: Number(req.params.id),
-          status: req.body.status,
+          status,
+          previousStatus,
+          reason: reason || null,
         },
+        email: true,
+        emailType: "status",
+        statusLabel: statusNotification.statusLabel,
+        statusTone: statusNotification.statusTone,
+        reason,
       }),
     );
 
@@ -880,12 +961,13 @@ exports.verifyDealerBusinessDocument = async (req, res) => {
   try {
     const validator = new Validator(req.body, {
       status: "required|string|in:pending,approved,rejected",
+      reason: "string",
     });
     if (validator.fails()) {
       return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
     }
 
-    const { status } = req.body;
+    const { status, reason } = req.body;
 
     const dealerDocument = await DealerDocument.findByPk(
       req.params.dealerDocumentId,
@@ -901,6 +983,9 @@ exports.verifyDealerBusinessDocument = async (req, res) => {
         attributes: ["id", "name"],
       });
       const documentName = document?.name || "business document";
+      const rejectionBody = reason
+        ? `Your ${documentName} has been rejected by the admin team. Reason: ${reason}`
+        : `Your ${documentName} has been rejected by the admin team.`;
 
       await safeNotify(() =>
         notifyDealer(dealerDocument.dealerId, {
@@ -911,7 +996,7 @@ exports.verifyDealerBusinessDocument = async (req, res) => {
           body:
             status === "approved"
               ? `Your ${documentName} has been approved by the admin team.`
-              : `Your ${documentName} has been rejected by the admin team.`,
+              : rejectionBody,
           type: NOTIFICATION_TYPES.DEALER,
           sourceType: "DealerDocument",
           sourceId: dealerDocument.id,
@@ -921,7 +1006,13 @@ exports.verifyDealerBusinessDocument = async (req, res) => {
             documentId: dealerDocument.documentId,
             dealerDocumentId: dealerDocument.id,
             status,
+            reason: reason || null,
           },
+          email: true,
+          emailType: "status",
+          statusLabel: status === "approved" ? "Approved" : "Rejected",
+          statusTone: status,
+          reason,
         }),
       );
     }

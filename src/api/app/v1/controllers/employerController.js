@@ -116,6 +116,8 @@ exports.sendNewEmployerInvitation = async (req, res) => {
           employeeAssignmentId: employeeAssignment.id,
           employeeId: req.auth.id,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 
@@ -274,6 +276,8 @@ exports.markAsSharedDetails = async (req, res) => {
           employeeAssignmentId: assignment.id,
           status: EMPLOYER_JOINING_STATUS.SHARE_DETAILS,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 
@@ -346,6 +350,8 @@ exports.acceptOrRejectEmployerInvitationById = async (req, res) => {
             employeeAssignmentId: assignment.id,
             status,
           },
+          email: true,
+          emailCategory: "Employment",
         }),
       );
     }
@@ -441,6 +447,8 @@ exports.submitEmployerLeavingRequest = async (req, res) => {
           employeeId: id,
           status: EMPLOYER_EXIT_STATUS.INFORM_EMPLOYER,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 
@@ -585,6 +593,8 @@ exports.updateEmployerLeavingRequestStatus = async (req, res) => {
             leaveRequestId: employeeLeavingRequest.id,
             status,
           },
+          email: true,
+          emailCategory: "Employment",
         }),
       );
 
@@ -624,6 +634,8 @@ exports.updateEmployerLeavingRequestStatus = async (req, res) => {
           leaveRequestId: employeeLeavingRequest.id,
           status,
         },
+        email: true,
+        emailCategory: "Employment",
       }),
     );
 

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= appName %> — Staff Account Created</title>
+  </head>
+  <body style="margin:0;padding:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#333">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px">
+            <%- include('partials/email-header') %>
+            <tr>
+              <td style="padding:28px 24px;background:#fff9f5;border-left:1px solid #ffe8d6;border-right:1px solid #ffe8d6">
+                <h1 style="margin:0 0 16px;font-size:24px;color:#222;text-align:center">Your Staff Account Is Ready</h1>
+                <p style="margin:0 0 12px;font-size:16px;color:#444;text-align:center">Hello <strong style="color:#ff7a00"><%= name %></strong>,</p>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#555;text-align:center">
+                  A staff account has been created for you on the <%= portalName || "FADA-ID" %> portal<% if (typeof organizationName !== 'undefined' && organizationName) { %> for <strong><%= organizationName %></strong><% } %>.
+                  <% if (typeof tempPassword !== 'undefined' && tempPassword) { %>Use the temporary password below to log in and change your password immediately.<% } else { %>Use the login credentials shared with you by your administrator.<% } %>
+                </p>
+                <% if (typeof tempPassword !== 'undefined' && tempPassword) { %>
+                <div style="margin:0 auto 24px;max-width:320px;padding:18px 24px;text-align:center;border:1.5px solid #ffb26b;border-radius:12px;background:#fff;font-size:28px;font-weight:700;letter-spacing:2px;color:#ff7a00">
+                  <%= tempPassword %>
+                </div>
+                <% } %>
+                <% if (typeof portalUrl !== 'undefined' && portalUrl) { %>
+                <p align="center" style="margin:0 0 24px">
+                  <a href="<%= portalUrl %>" style="display:inline-block;padding:12px 28px;background:#ff7a00;color:#fff;text-decoration:none;font-size:15px;font-weight:700;border-radius:8px">Go to Portal</a>
+                </p>
+                <% } %>
+                <p style="margin:0;font-size:14px;line-height:1.6;color:#666;text-align:center">Login email: <strong><%= email %></strong></p>
+              </td>
+            </tr>
+            <tr><td style="padding:0 24px"><div style="height:2px;background:#ff7a00"></div></td></tr>
+            <tr>
+              <td align="center" style="padding:22px 24px 18px">
+                <p style="margin:0;font-size:16px;font-weight:700;color:#ff7a00">The <%= appName %> Team</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="background:#ff7a00;padding:14px 24px;border-radius:0 0 4px 4px">
+                <p style="margin:0;font-size:13px;color:#fff">&copy; <%= year %> <%= appName %>. All rights reserved.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

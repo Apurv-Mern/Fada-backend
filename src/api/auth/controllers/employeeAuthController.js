@@ -14,6 +14,10 @@ const { generateOTP, verifyUserName } = require("../../../utils/otpUtil");
 const { generateFadaId } = require("../../../utils/fadaIdUtil");
 const { addEmailJob, addSmsJob } = require("../../../queues");
 const {
+  safeSendEmail,
+  emailKycPendingToEmployee,
+} = require("../../../services/emailNotificationService");
+const {
   safeNotify,
   notifyAllAdmins,
   NOTIFICATION_TYPES,
@@ -173,9 +177,16 @@ exports.verifyRegistrationOtp = async (req, res) => {
       templateName: "emp-temp-password.ejs",
       data: {
         name: employee.name,
-        password: randomPassword,
+        tempPassword: randomPassword,
       },
     });
+
+    await safeSendEmail(() =>
+      emailKycPendingToEmployee({
+        to: email,
+        name: employee.name,
+      }),
+    );
 
     await safeNotify(() =>
       notifyAllAdmins({
@@ -185,6 +196,8 @@ exports.verifyRegistrationOtp = async (req, res) => {
         sourceType: "Employee",
         sourceId: employee.id,
         data: { screen: "employee-detail", employeeId: employee.id },
+        email: true,
+        entityLabel: `Employee ID: ${employee.id}`,
       }),
     );
 

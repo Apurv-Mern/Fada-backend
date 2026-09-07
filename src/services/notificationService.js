@@ -6,6 +6,19 @@ const {
   Dealer,
 } = require("../database/models");
 const { addPushJob } = require("../queues");
+const {
+  safeSendEmail,
+  emailWorkflowToEmployee,
+  emailWorkflowToDealer,
+  emailStatusUpdateToEmployee,
+  emailStatusUpdateToDealer,
+  emailProfileRemovedToEmployee,
+  emailProfileRemovedToDealer,
+  emailAllActiveAdmins,
+  EMAIL_TEMPLATES,
+  getPortalUrls,
+  queueEmail,
+} = require("./emailNotificationService");
 
 const NOTIFICATION_TYPES = {
   GENERAL: "general",
@@ -23,6 +36,87 @@ function buildRecipientWhere({ employeeId, dealerId, adminId }) {
   if (dealerId) return { dealerId };
   if (adminId) return { adminId };
   return null;
+}
+
+async function deliverEmployeeEmail(employeeId, payload = {}) {
+  if (!payload.email) return null;
+
+  const emailPayload = {
+    subject: payload.emailSubject || payload.title,
+    title: payload.title,
+    messageBody: payload.body,
+    categoryLabel: payload.emailCategory,
+    actionUrl: payload.actionUrl,
+    actionLabel: payload.actionLabel,
+    statusLabel: payload.statusLabel,
+    statusTone: payload.statusTone,
+    reason: payload.reason,
+  };
+
+  if (payload.emailType === "status") {
+    return emailStatusUpdateToEmployee(employeeId, emailPayload);
+  }
+
+  if (payload.emailType === "removed") {
+    if (payload.recipientEmail) {
+      return queueEmail({
+        to: payload.recipientEmail,
+        subject: emailPayload.subject || "Your FADA-ID profile has been removed",
+        templateName: EMAIL_TEMPLATES.PROFILE_REMOVED,
+        data: {
+          name: payload.recipientName,
+          title: emailPayload.title,
+          messageBody: emailPayload.messageBody,
+        },
+      });
+    }
+    return emailProfileRemovedToEmployee(employeeId, emailPayload);
+  }
+
+  return emailWorkflowToEmployee(employeeId, emailPayload);
+}
+
+async function deliverDealerEmail(dealerId, payload = {}) {
+  if (!payload.email) return null;
+
+  const emailPayload = {
+    subject: payload.emailSubject || payload.title,
+    title: payload.title,
+    messageBody: payload.body,
+    categoryLabel: payload.emailCategory,
+    actionUrl: payload.actionUrl,
+    actionLabel: payload.actionLabel,
+    statusLabel: payload.statusLabel,
+    statusTone: payload.statusTone,
+    reason: payload.reason,
+  };
+
+  if (payload.emailType === "status") {
+    return emailStatusUpdateToDealer(dealerId, emailPayload);
+  }
+
+  if (payload.emailType === "removed") {
+    return emailProfileRemovedToDealer(dealerId, emailPayload);
+  }
+
+  return emailWorkflowToDealer(dealerId, emailPayload);
+}
+
+async function deliverAdminEmails(payload = {}) {
+  if (!payload.email) return null;
+
+  const { adminPortalUrl } = getPortalUrls();
+
+  return emailAllActiveAdmins({
+    subject: payload.emailSubject || payload.title,
+    templateName: EMAIL_TEMPLATES.ADMIN_ACTION_ALERT,
+    data: {
+      title: payload.title,
+      messageBody: payload.body,
+      entityLabel: payload.entityLabel,
+      actionUrl: payload.actionUrl || adminPortalUrl,
+    },
+  });
 }
 
 async function createNotification(payload = {}) {
@@ -90,18 +184,26 @@ async function createNotifications(notifications = []) {
 }
 
 async function notifyEmployee(employeeId, payload = {}) {
-  return createNotification({
+  const notification = await createNotification({
     employeeId,
     push: true,
     ...payload,
   });
+
+  await safeSendEmail(() => deliverEmployeeEmail(employeeId, payload));
+
+  return notification;
 }
 
 async function notifyDealer(dealerId, payload = {}) {
-  return createNotification({
+  const notification = await createNotification({
     dealerId,
     ...payload,
   });
+
+  await safeSendEmail(() => deliverDealerEmail(dealerId, payload));
+
+  return notification;
 }
 
 async function notifyAdmin(adminId, payload = {}) {
@@ -114,17 +216,21 @@ async function notifyAdmin(adminId, payload = {}) {
 async function notifyAllAdmins(payload = {}) {
   const admins = await Admin.findAll({
     attributes: ["id"],
-    where: { isActive: true,roleId : 1 },
+    where: { isActive: true },
   });
 
   if (!admins.length) return [];
 
-  return createNotifications(
+  const notifications = await createNotifications(
     admins.map((admin) => ({
       adminId: admin.id,
       ...payload,
     })),
   );
+
+  await safeSendEmail(() => deliverAdminEmails(payload));
+
+  return notifications;
 }
 
 async function listNotifications(recipient, query = {}) {

@@ -207,6 +207,8 @@ exports.createOutlet = async (req, res) => {
         sourceType: "Outlet",
         sourceId: outlet.id,
         data: { screen: "outlet-detail", outletId: outlet.id },
+        email: true,
+        emailCategory: "Outlet",
       }),
     );
 
@@ -272,6 +274,8 @@ exports.updateOutlet = async (req, res) => {
         sourceType: "Outlet",
         sourceId: outlet.id,
         data: { screen: "outlet-detail", outletId: outlet.id },
+        email: true,
+        emailCategory: "Outlet",
       }),
     );
 
@@ -315,6 +319,8 @@ exports.deleteOutlet = async (req, res) => {
         sourceType: "Outlet",
         sourceId: outletId,
         data: { screen: "outlets", outletId },
+        email: true,
+        emailCategory: "Outlet",
       }),
     );
 

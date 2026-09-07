@@ -2,6 +2,11 @@ const Validator = require("validatorjs");
 const { Op } = require("sequelize");
 const { Admin, Role } = require("../../../database/models");
 const { hashPassword } = require("../../../utils/passwordUtil");
+const {
+  safeSendEmail,
+  emailStaffAccountCreated,
+  getPortalUrls,
+} = require("../../../services/emailNotificationService");
 const { roleInclude, adminRoleAssignableFilter } = require("../../../services/rbacService");
 
 const staffAttributes = {
@@ -220,6 +225,16 @@ exports.createStaffMember = async (req, res) => {
       attributes: staffAttributes,
       include: [roleInclude],
     });
+
+    await safeSendEmail(() =>
+      emailStaffAccountCreated({
+        to: staff.email,
+        name: staff.name,
+        email: staff.email,
+        portalName: "Admin Portal",
+        portalUrl: getPortalUrls().adminPortalUrl,
+      }),
+    );
 
     return res.apiSuccess("Staff member created successfully", created);
   } catch (error) {

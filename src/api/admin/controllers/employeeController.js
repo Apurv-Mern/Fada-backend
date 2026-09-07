@@ -30,6 +30,10 @@ const {
   NOTIFICATION_TYPES,
 } = require("../../../services/notificationService");
 const {
+  safeSendEmail,
+  emailWelcomeEmployee,
+} = require("../../../services/emailNotificationService");
+const {
   generateTempPassword,
   hashPassword,
 } = require("../../../utils/passwordUtil");
@@ -115,6 +119,48 @@ const employeeAttributes = {
 };
 
 const employeeStatus = ["temporary", "pending", "approved", "rejected"];
+
+function buildEmployeeStatusNotification({ status, previousStatus, reason }) {
+  const notifications = {
+    rejected: {
+      title: "Profile rejected",
+      body:
+        previousStatus === "approved"
+          ? "Your employee profile has been rejected after it was previously approved. Please contact support if you need assistance."
+          : "Your employee profile has been rejected by the admin team. Please contact support for more information.",
+      statusLabel: "Rejected",
+      statusTone: "rejected",
+      reason,
+    },
+    temporary: {
+      title: "Profile marked temporary",
+      body: "Your employee profile has been marked as temporary. Please complete your registration and upload the required KYC documents in the app.",
+      statusLabel: "Temporary",
+      statusTone: "updated",
+    },
+    approved: {
+      title: "Profile approved",
+      body: "Your employee profile has been approved by the admin team. You now have full access to FADA-ID.",
+      statusLabel: "Approved",
+      statusTone: "approved",
+    },
+    pending: {
+      title: "Profile under review",
+      body: "Your employee profile is under review by the admin team. We will notify you once a decision is made.",
+      statusLabel: "Pending",
+      statusTone: "updated",
+    },
+  };
+
+  return (
+    notifications[status] || {
+      title: "Profile status updated",
+      body: `Your employee profile status has been updated to "${status}".`,
+      statusLabel: status,
+      statusTone: "updated",
+    }
+  );
+}
 
 const employeeValidationRules = {
   name: "required|string",
@@ -639,14 +685,17 @@ exports.createEmployee = async (req, res) => {
     }
 
     let employeeId;
+    let tempPassword;
 
     await sequelize.transaction(async (transaction) => {
       const fadaId = await generateFadaId(Employee);
+      tempPassword = generateTempPassword();
 
       const employee = await Employee.create(
         {
           ...buildEmployeePayload(req.body),
           fadaId,
+          password: await hashPassword(tempPassword),
           isJourneyCompleted: true,
           isRegistrationCompleted: true,
           isKycCompleted: true,
@@ -691,6 +740,19 @@ exports.createEmployee = async (req, res) => {
           sourceType: "Employee",
           sourceId: employeeId,
           data: { screen: "employee-detail", employeeId },
+          email: true,
+          emailCategory: "Employee",
+        }),
+      );
+    }
+
+    if (employee.email) {
+      await safeSendEmail(() =>
+        emailWelcomeEmployee({
+          to: employee.email,
+          name: employee.name,
+          createdBy: "the admin team",
+          tempPassword,
         }),
       );
     }
@@ -820,6 +882,8 @@ exports.updateEmployee = async (req, res) => {
           screen: "profile",
           employeeId: existingEmployee.id,
         },
+        email: true,
+        emailCategory: "Employee Profile",
       }),
     );
 
@@ -835,6 +899,8 @@ exports.updateEmployee = async (req, res) => {
             screen: "employee-detail",
             employeeId: existingEmployee.id,
           },
+          email: true,
+          emailCategory: "Employee",
         }),
       );
     }
@@ -869,6 +935,7 @@ exports.deleteEmployee = async (req, res) => {
     });
     const dealerId = assignment?.dealerId;
     const employeeName = employee.name;
+    const employeeEmail = employee.email;
 
     await sequelize.transaction(async (transaction) => {
       await EmployeeAssignment.destroy({
@@ -887,6 +954,10 @@ exports.deleteEmployee = async (req, res) => {
         sourceId: Number(req.params.id),
         push: true,
         data: { screen: "profile", employeeId: Number(req.params.id) },
+        email: true,
+        emailType: "removed",
+        recipientEmail: employeeEmail,
+        recipientName: employeeName,
       }),
     );
 
@@ -902,6 +973,8 @@ exports.deleteEmployee = async (req, res) => {
             screen: "employees",
             employeeId: Number(req.params.id),
           },
+          email: true,
+          emailCategory: "Employee",
         }),
       );
     }
@@ -928,18 +1001,34 @@ exports.updateEmployeeStatus = async (req, res) => {
       return res.apiError("Invalid status", 400);
     }
 
-    let data = { status: req.params.status };
+    const validator = new Validator(req.body, {
+      reason: "string",
+    });
 
-    if ((req.params.status = "approved")) {
+    if (validator.fails()) {
+      return res.apiError(Object.values(validator.errors.all()).flat()[0], 422);
+    }
+
+    const previousStatus = employee.status;
+    const { reason } = req.body;
+    const data = { status: req.params.status };
+
+    if (req.params.status === "approved") {
       data.isVerified = true;
     }
 
     await employee.update(data);
 
+    const statusNotification = buildEmployeeStatusNotification({
+      status: req.params.status,
+      previousStatus,
+      reason,
+    });
+
     await safeNotify(() =>
       notifyEmployee(employee.id, {
-        title: "Profile status updated",
-        body: `Your employee profile status has been updated to "${req.params.status}".`,
+        title: statusNotification.title,
+        body: statusNotification.body,
         type: NOTIFICATION_TYPES.SYSTEM,
         sourceType: "Employee",
         sourceId: employee.id,
@@ -947,7 +1036,14 @@ exports.updateEmployeeStatus = async (req, res) => {
           screen: "profile",
           employeeId: employee.id,
           status: req.params.status,
+          previousStatus,
+          reason: reason || null,
         },
+        email: true,
+        emailType: "status",
+        statusLabel: statusNotification.statusLabel,
+        statusTone: statusNotification.statusTone,
+        reason,
       }),
     );
 
@@ -1116,6 +1212,10 @@ exports.updateEmployeeDocumentStatus = async (req, res) => {
             employeeDocumentId: employeeDocument.id,
             status,
           },
+          email: true,
+          emailType: "status",
+          statusLabel: "Approved",
+          statusTone: "approved",
         }),
       );
     } else {
@@ -1139,6 +1239,11 @@ exports.updateEmployeeDocumentStatus = async (req, res) => {
             status,
             reason: reason || null,
           },
+          email: true,
+          emailType: "status",
+          statusLabel: "Rejected",
+          statusTone: "rejected",
+          reason,
         }),
       );
     }

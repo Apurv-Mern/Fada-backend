@@ -1,6 +1,6 @@
 const Validator = require("validatorjs");
 const { Op } = require("sequelize");
-const { sequelize, Outlet, Brand } = require("../../../database/models");
+const { sequelize, Outlet, Brand, Dealer } = require("../../../database/models");
 const {
   buildOutletIncludes,
   validateFunctions,
@@ -181,14 +181,18 @@ exports.createOutlet = async (req, res) => {
       include: outletIncludes,
     });
 
+    const dealer = await Dealer.findByPk(dealerId, { attributes: ["name"] });
+
     await safeNotify(() =>
       notifyAllAdmins({
         title: "New outlet added",
-        body: `A new outlet "${createdOutlet.name}" was created by a dealer.`,
+        body: `${dealer?.name || "A dealer"} created a new outlet "${createdOutlet.name}".`,
         type: NOTIFICATION_TYPES.OUTLET,
         sourceType: "Outlet",
         sourceId: createdOutlet.id,
         data: { screen: "outlet-detail", outletId: createdOutlet.id, dealerId },
+        email: true,
+        entityLabel: `Outlet ID: ${createdOutlet.id} · Dealer ID: ${dealerId}`,
       }),
     );
 

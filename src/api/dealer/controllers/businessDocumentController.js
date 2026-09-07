@@ -163,6 +163,8 @@ exports.uploadBusinessDocument = async (req, res) => {
           documentId,
           dealerDocumentId: dealerDocument.id,
         },
+        email: true,
+        entityLabel: `Dealer ID: ${dealerId} · Document: ${document.name}`,
       }),
     );
 

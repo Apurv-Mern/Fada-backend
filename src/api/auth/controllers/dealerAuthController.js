@@ -19,6 +19,11 @@ const {
   notifyAllAdmins,
   NOTIFICATION_TYPES,
 } = require("../../../services/notificationService");
+const {
+  safeSendEmail,
+  emailSignupSuccessToDealer,
+  emailProfilePendingToDealer,
+} = require("../../../services/emailNotificationService");
 /*
 @API: POST /dealer/auth/register
 @Body: { name, dealerCode, email, password, phone }
@@ -156,6 +161,21 @@ exports.verifyOtp = async (req, res) => {
       refreshToken,
     });
 
+    await safeSendEmail(() =>
+      emailSignupSuccessToDealer({
+        to: dealer.email,
+        name: dealer.name,
+        companyName: dealer.name,
+      }),
+    );
+
+    await safeSendEmail(() =>
+      emailProfilePendingToDealer({
+        to: dealer.email,
+        name: dealer.name,
+      }),
+    );
+
     await safeNotify(() =>
       notifyAllAdmins({
         title: "New dealer registration",
@@ -164,6 +184,8 @@ exports.verifyOtp = async (req, res) => {
         sourceType: "Dealer",
         sourceId: dealer.id,
         data: { screen: "dealer-detail", dealerId: dealer.id },
+        email: true,
+        entityLabel: `Dealer ID: ${dealer.id}`,
       }),
     );
 
