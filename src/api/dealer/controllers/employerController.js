@@ -6,7 +6,8 @@ const {
   EmployeeLeaveEmployeement,
   Dealer,
   Outlet,
-  OrganizationStructure
+  OrganizationStructure,
+  EmployeeProfileShare
 } = require("../../../database/models");
 const Validator = require("validatorjs");
 
@@ -457,6 +458,12 @@ exports.updateEmployerInvitationStatusById = async (req, res) => {
         startDate: joiningDate,
         isCurrentlyWorking: true,
         status: "completed"
+      });
+ 
+      await EmployeeProfileShare.create({
+        employeeId: employerInvitation.employeeId,
+        dealerId: dealerId,
+        isActive: true,
       });
     }
 
